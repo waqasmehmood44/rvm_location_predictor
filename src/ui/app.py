@@ -1127,6 +1127,157 @@ def main():
         )
         return
 
+    # -------------------------------------------------------------
+    # Interactive Machine Model & Commercial Reward Dropdown Filters
+    # -------------------------------------------------------------
+    machine_options = [
+        "Ripet_C-front",
+        "DAINT_G",
+        "DAINT_A-bis",
+        "Ripet_C-Bis",
+        "Ripet_V2",
+        "Ripet_C-Ter",
+        "DAINT_B-bis",
+        "RVM_Mod.E_Nuova",
+        "Ripet_Smarpet",
+        "RVM_Mod.E",
+        "Ripet_V1",
+        "SUPERMARPET01S",
+    ]
+
+    res_mach = res.get("inputs", {}).get("machine_type", machine_options[0])
+    default_mach_idx = machine_options.index(res_mach) if res_mach in machine_options else 0
+
+    reward_choice_map = {}
+    auto_rew = st.session_state.get("auto_reward")
+    auto_scheme = auto_rew.get("reward_type") if auto_rew else res.get("commercial_rewards", {}).get("reward_type", "Emissione Buono sconto")
+    auto_fil = auto_rew.get("filiera_nome", auto_rew.get("filiera", "")) if auto_rew else res.get("commercial_rewards", {}).get("filiera_nome", "")
+
+    schemes = [
+        ("Emissione Buono sconto", "Direct Grocery Voucher"),
+        ("Conversione a punti fedeltà", "Store Loyalty Points"),
+        ("Omaggio", "Direct Free Gift / No Min. Spend"),
+    ]
+
+    for scheme_name, scheme_desc in schemes:
+        if scheme_name == auto_scheme:
+            tag = f" [Auto-Detected: {auto_fil}]" if auto_fil else " [Auto-Detected]"
+            lbl = f"{scheme_name} ({scheme_desc}){tag}"
+            reward_choice_map[lbl] = {
+                "type": "auto",
+                "param": None,
+                "scheme_name": scheme_name,
+            }
+        else:
+            lbl = f"{scheme_name} ({scheme_desc})"
+            reward_choice_map[lbl] = {
+                "type": "explicit",
+                "param": scheme_name,
+                "scheme_name": scheme_name,
+            }
+
+    res_rew = res.get("commercial_rewards", {})
+    res_is_custom = bool(res_rew.get("is_custom", False))
+    res_match_source = res_rew.get("match_source", "")
+    res_rew_type = res_rew.get("reward_type", "")
+
+    if res_is_custom:
+        lbl_custom = "🛠️ Custom Promotional Policy (User-Defined Active)"
+        reward_choice_map[lbl_custom] = {
+            "type": "custom",
+            "param": res_rew,
+            "scheme_name": res_rew_type,
+        }
+
+    default_rew_lbl = None
+    if res_is_custom:
+        for lbl in reward_choice_map:
+            if lbl.startswith("🛠️ Custom"):
+                default_rew_lbl = lbl
+                break
+    elif res_match_source != "EXPLICIT_OVERRIDE":
+        for lbl, info in reward_choice_map.items():
+            if info["type"] == "auto":
+                default_rew_lbl = lbl
+                break
+    else:
+        for lbl, info in reward_choice_map.items():
+            if info["type"] == "explicit" and info["scheme_name"] == res_rew_type:
+                default_rew_lbl = lbl
+                break
+
+    reward_choice_labels = list(reward_choice_map.keys())
+    if not default_rew_lbl or default_rew_lbl not in reward_choice_labels:
+        default_rew_lbl = reward_choice_labels[0]
+    default_rew_idx = reward_choice_labels.index(default_rew_lbl)
+
+    col_sim_mach, col_sim_rew = st.columns([1, 1])
+    with col_sim_mach:
+        top_mach = st.selectbox(
+            "⚙️ Hardware Machine Model",
+            options=machine_options,
+            index=default_mach_idx,
+            key="top_sim_machine",
+            help="Directly switch the RVM machine model. Yield, hardware capacity, and clearance gate update immediately.",
+        )
+    with col_sim_rew:
+        top_rew_lbl = st.selectbox(
+            "🎁 Commercial Reward Scheme",
+            options=reward_choice_labels,
+            index=default_rew_idx,
+            key="top_sim_reward",
+            help="Directly switch promotional reward policy. Footfall elasticity and monthly volumes update immediately.",
+        )
+
+    selected_rew_obj = reward_choice_map[top_rew_lbl]
+    chosen_reward_param = selected_rew_obj["param"]
+
+    machine_changed = (top_mach != res_mach)
+    reward_changed = False
+    if selected_rew_obj["type"] == "auto":
+        reward_changed = (res_match_source == "EXPLICIT_OVERRIDE" or res_is_custom)
+    elif selected_rew_obj["type"] == "custom":
+        reward_changed = not res_is_custom
+    else:
+        reward_changed = (res_match_source != "EXPLICIT_OVERRIDE") or res_is_custom or (res_rew_type != selected_rew_obj["scheme_name"])
+
+    if machine_changed or reward_changed:
+        with st.spinner(f"🔄 Recalculating prospective yield for {top_mach} with {selected_rew_obj['scheme_name']}..."):
+            try:
+                inputs = res.get("inputs", {})
+                comune_resolved = res.get("location_attributes", {}).get("resolved_comune")
+                clean_comune = None
+                if comune and str(comune).strip():
+                    clean_comune = str(comune).strip()
+                elif comune_resolved and str(comune_resolved).strip():
+                    clean_comune = str(comune_resolved).strip()
+                elif inputs.get("comune_input") and inputs.get("comune_input") != "AUTO_DETECTED":
+                    clean_comune = str(inputs.get("comune_input")).strip()
+
+                import inspect
+                predict_kwargs = {
+                    "store_name": inputs.get("store_name", store_name),
+                    "address": inputs.get("address", address),
+                    "cap": inputs.get("cap", cap),
+                    "machine_type": top_mach,
+                    "comune": clean_comune,
+                    "store_format": st.session_state.get("selected_format"),
+                    "sales_area_sqm": inputs.get("sales_area_sqm") or st.session_state.get("selected_sqm"),
+                    "cash_registers": inputs.get("cash_registers") or st.session_state.get("selected_casse"),
+                    "explicit_reward": chosen_reward_param,
+                    "go_live_month": inputs.get("go_live_month"),
+                    "go_live_year": inputs.get("go_live_year"),
+                    "enable_rampup": inputs.get("enable_rampup", True),
+                }
+                sig_params = inspect.signature(predictor.predict_new_location).parameters
+                kwargs_to_pass = {k: v for k, v in predict_kwargs.items() if k in sig_params}
+                new_res = predictor.predict_new_location(**kwargs_to_pass)
+                st.session_state["prediction_result"] = new_res
+                st.session_state["pending_input_machine_type"] = top_mach
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Error recalculating scenario: {e}")
+
     inv = res.get("investment_assessment", {})
     suit = res.get("location_suitability", {})
     real = res.get("realized_forecast", {})
