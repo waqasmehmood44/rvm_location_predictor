@@ -533,6 +533,33 @@ st.markdown(
         color: #0d47a1;
         border: 1px solid #90caf9;
     }
+
+    /* Segmented Navigation Tab Bar */
+    div[data-testid="stSegmentedControl"] {
+        margin-bottom: 22px !important;
+    }
+    div[data-testid="stSegmentedControl"] > div {
+        background-color: #f1f5f9 !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 10px !important;
+        padding: 4px !important;
+        gap: 6px !important;
+    }
+    div[data-testid="stSegmentedControl"] button {
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+        padding: 8px 22px !important;
+        transition: all 0.15s ease-in-out !important;
+        border: none !important;
+    }
+    div[data-testid="stSegmentedControl"] button[aria-selected="true"],
+    div[data-testid="stSegmentedControl"] button[data-selected="true"] {
+        background-color: #1b5e20 !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        box-shadow: 0 2px 6px rgba(27, 94, 32, 0.25) !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -980,6 +1007,7 @@ def render_machine_directory(df_machines: pd.DataFrame, status_label: str, predi
                             }
                             st.session_state.pop("top_sim_machine", None)
                             st.session_state.pop("top_sim_reward", None)
+                            st.session_state["pending_nav_tab"] = "🎯 Prospective Predictor"
 
                             import inspect
                             predict_kwargs = {
@@ -1102,6 +1130,7 @@ def main():
                 st.session_state.pop("pending_input_machine_type", None)
                 st.session_state.pop("selected_store_pf", None)
                 st.session_state.pop("selected_store_status", None)
+                st.session_state["pending_nav_tab"] = "🎯 Prospective Predictor"
                 st.rerun()
 
         st.caption("Guided 3-step decision support wizard with Nielsen & Coripet intelligence.")
@@ -1227,6 +1256,7 @@ def main():
                         st.session_state["auto_scale"] = auto_scale
                         st.session_state["wizard_step"] = 2
                         st.session_state["prediction_result"] = None
+                        st.session_state["pending_nav_tab"] = "🎯 Prospective Predictor"
                         st.rerun()
                 except ValueError as e:
                     st.error(f"❌ {e}")
@@ -1414,6 +1444,7 @@ def main():
                         st.session_state.pop("top_sim_machine", None)
                         st.session_state.pop("top_sim_reward", None)
                         st.session_state.pop("pending_input_machine_type", None)
+                        st.session_state["pending_nav_tab"] = "🎯 Prospective Predictor"
                         st.rerun()
                 except ValueError as err:
                     st.error(f"❌ **Input Validation / Location Error:** {err}")
@@ -1423,13 +1454,32 @@ def main():
     # -------------------------------------------------------------
     # Main Dashboard Tabs Execution: Predictor, SPL, POT
     # -------------------------------------------------------------
-    tab_main, tab_spl, tab_pot = st.tabs([
-        "🎯 Prospective Predictor",
-        "📋 SPL Machines",
-        "💡 POT Machines",
-    ])
+    # -------------------------------------------------------------
+    # Navigation Views: Prospective Predictor, SPL, POT
+    # -------------------------------------------------------------
+    TAB_MAIN = "🎯 Prospective Predictor"
+    TAB_SPL = "📋 SPL Machines"
+    TAB_POT = "💡 POT Machines"
+    NAV_TABS = [TAB_MAIN, TAB_SPL, TAB_POT]
 
-    with tab_main:
+    if "pending_nav_tab" in st.session_state:
+        st.session_state["active_nav_tab"] = st.session_state.pop("pending_nav_tab")
+
+    if "active_nav_tab" not in st.session_state or st.session_state["active_nav_tab"] not in NAV_TABS:
+        st.session_state["active_nav_tab"] = TAB_MAIN
+
+    active_tab = st.segmented_control(
+        "Navigation Views",
+        options=NAV_TABS,
+        key="active_nav_tab",
+        label_visibility="collapsed",
+        selection_mode="single",
+    )
+    if not active_tab:
+        active_tab = TAB_MAIN
+        st.session_state["active_nav_tab"] = TAB_MAIN
+
+    if active_tab == TAB_MAIN:
         if "selected_store_pf" in st.session_state and st.session_state.get("prediction_result"):
             sel_pf = st.session_state.get("selected_store_pf")
             sel_st = st.session_state.get("selected_store_status", "")
@@ -1480,12 +1530,12 @@ def main():
                 machine_type=machine_type,
             )
 
-    df_spl, df_pot = load_historical_machines()
-
-    with tab_spl:
+    elif active_tab == TAB_SPL:
+        df_spl, _ = load_historical_machines()
         render_machine_directory(df_spl, "SPL", predictor)
 
-    with tab_pot:
+    elif active_tab == TAB_POT:
+        _, df_pot = load_historical_machines()
         render_machine_directory(df_pot, "POT", predictor)
 
 
