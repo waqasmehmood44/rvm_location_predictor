@@ -1,0 +1,2846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coripet RVM Predictor — Multi-Test Performance & Accuracy Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --card-bg: #111a2e;
+      --card-border: #1e2c45;
+      --card-hover: #16223b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-blue: #38bdf8;
+      --accent-green: #22c55e;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-purple: #a855f7;
+      --accent-cyan: #06b6d4;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      padding: 24px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 1540px;
+      margin: 0 auto;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--card-border);
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .logo-area h1 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .header-sub {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    .badge-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .badge {
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .badge-primary { background: rgba(56, 189, 248, 0.12); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-success { background: rgba(34, 197, 94, 0.12); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .badge-purple  { background: rgba(168, 85, 247, 0.12); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.3); }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .nav-tab {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .nav-tab:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .nav-tab.active {
+      background: var(--card-bg);
+      color: var(--accent-blue);
+      border-color: rgba(56, 189, 248, 0.3);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Global KPI Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 20px;
+      transition: all 0.2s ease;
+    }
+    .kpi-card:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateY(-2px);
+    }
+    .kpi-title {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    .kpi-value {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .kpi-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Content Panels */
+    .tab-pane {
+      display: none;
+    }
+    .tab-pane.active {
+      display: block;
+      animation: fadeIn 0.25s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Card Panels */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 24px;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-blue);
+      display: inline-block;
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .filter-select, .filter-input {
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .filter-select:focus, .filter-input:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+    }
+
+    /* Grid Layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 1024px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    /* Explorer View / Single Store Details */
+    .store-selector-bar {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 14px;
+      padding: 18px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .store-select-large {
+      background: #090d16;
+      border: 1px solid rgba(56, 189, 248, 0.5);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      min-width: 320px;
+      cursor: pointer;
+    }
+
+    /* Stat Pills */
+    .stat-pill-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-pill {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .stat-pill-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .stat-pill-val {
+      font-size: 22px;
+      font-weight: 800;
+      margin-top: 4px;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+    th {
+      background: #0f172a;
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--card-border);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      user-select: none;
+    }
+    th:hover { color: var(--accent-blue); }
+    td {
+      padding: 11px 14px;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+      color: #e2e8f0;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(56, 189, 248, 0.04); }
+    
+    .tag {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .tag-green { background: rgba(34, 197, 94, 0.15); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .tag-blue { background: rgba(56, 189, 248, 0.15); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .tag-amber { background: rgba(245, 158, 11, 0.15); color: #fde68a; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .tag-red { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    /* Buttons */
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .btn-primary {
+      background: #0284c7;
+      color: #fff;
+    }
+    .btn-primary:hover { background: #0369a1; }
+    .btn-outline {
+      background: transparent;
+      border-color: var(--card-border);
+      color: var(--text-muted);
+    }
+    .btn-outline:hover { border-color: #fff; color: #fff; }
+
+    /* Modal Form for Adding New Tests */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 999;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .modal-content {
+      background: #111a2e;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 650px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 26px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+    .form-control {
+      width: 100%;
+      background: #090d16;
+      border: 1px solid var(--card-border);
+      color: #fff;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo-area">
+        <h1>Coripet RVM Predictor — Multi-Test Performance Dashboard</h1>
+        <p class="header-sub">General benchmarking, validation, and head-to-head comparison platform across multiple tested retail store configurations.</p>
+      </div>
+      <div class="badge-group">
+        <span class="badge badge-primary">Model v4.1 Active</span>
+        <span class="badge badge-success">Self-Match Exclusion Active</span>
+        <button class="btn btn-primary" onclick="openAddTestModal()">+ Add New Test Result</button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchTab('tab-overview')">
+        <span>📊 Multi-Test Overview</span>
+      </button>
+      <button class="nav-tab" onclick="switchTab('tab-explorer')">
+        <span>🔍 Store Deep-Dive Explorer</span>
+      </button>
+      <button class="nav-tab" onclick="switchTab('tab-compare')">
+        <span>⚖️ Head-to-Head Comparison</span>
+      </button>
+      <button class="nav-tab" onclick="switchTab('tab-manage')">
+        <span>⚙️ Test Data Manager</span>
+      </button>
+    </div>
+
+    <!-- GLOBAL SUMMARY KPIS -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-title">Total Tests Logged</div>
+        <div class="kpi-value" id="kpi-total-tests" style="color: var(--accent-cyan);">21</div>
+        <div class="kpi-sub">Retail store configurations evaluated</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">Median Accuracy</div>
+        <div class="kpi-value" id="kpi-median-acc" style="color: var(--accent-blue);">95.2%</div>
+        <div class="kpi-sub">Central accuracy vs. Power BI actuals</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">Median Error Margin</div>
+        <div class="kpi-value" id="kpi-median-err" style="color: var(--accent-amber);">±4.8%</div>
+        <div class="kpi-sub">Mean Error Margin: <span id="kpi-mean-err">±7.7%</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">Footfall Accuracy</div>
+        <div class="kpi-value" id="kpi-footfall-acc" style="color: var(--accent-purple);">83.1%</div>
+        <div class="kpi-sub">Presenze (Active Recyclers per Day)</div>
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- TAB 1: MULTI-TEST OVERVIEW -->
+    <!-- ========================================================= -->
+    <div id="tab-overview" class="tab-pane active">
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <input type="text" id="globalSearch" class="filter-input" placeholder="🔍 Search store, city, banner..." style="min-width: 260px;" oninput="applyFilters()">
+        <select id="bannerFilter" class="filter-select" onchange="applyFilters()">
+          <option value="ALL">All Retail Banners</option>
+          <option value="CONAD">Conad</option>
+          <option value="ESSELUNGA">Esselunga</option>
+          <option value="COOP">Coop</option>
+          <option value="CARREFOUR">Carrefour</option>
+          <option value="LEROY">Leroy Merlin / DIY</option>
+          <option value="PENNY">Penny Market</option>
+          <option value="DECO">Decò</option>
+        </select>
+        <select id="formatFilter" class="filter-select" onchange="applyFilters()">
+          <option value="ALL">All Store Formats</option>
+          <option value="HYPER">Hypermarkets (>2,500 m2)</option>
+          <option value="SUPER">Supermarkets (800-2,500 m2)</option>
+          <option value="DISCOUNT">Discount Stores</option>
+          <option value="DIY">DIY / Big-Box</option>
+          <option value="NEIGHBOR">Neighborhood / Superette</option>
+        </select>
+        <select id="accuracyFilter" class="filter-select" onchange="applyFilters()">
+          <option value="ALL">All Accuracy Tiers</option>
+          <option value="HIGH">High Precision (>= 85%)</option>
+          <option value="MID">Solid Baseline (75% - 85%)</option>
+          <option value="LOW">Review Tier (< 75%)</option>
+        </select>
+        <span style="font-size: 12px; color: var(--text-muted); margin-left: auto;" id="filterCountBadge">Showing 21 of 21 stores</span>
+      </div>
+
+      <!-- Main Nationwide Volume Chart -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="dot"></span>
+            <span>Predicted Volume vs. Power BI Ground Truth (Daily Bottles)</span>
+          </div>
+          <span style="font-size: 12px; color: var(--text-muted);">Blue = Stacking Ensemble | Green = Power BI Actual</span>
+        </div>
+        <div style="position: relative; height: 380px; width: 100%;">
+          <canvas id="overviewVolumeChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Grid: Parity Correlation Plot & Accuracy Tier Breakdown -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="dot" style="background: var(--accent-purple);"></span>
+              <span>Predicted vs. Actual Parity Plot</span>
+            </div>
+            <span style="font-size: 11px; color: var(--text-muted);">Points on diagonal line indicate 100% exact parity</span>
+          </div>
+          <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="parityChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="dot" style="background: var(--accent-amber);"></span>
+              <span>Model Accuracy Tier Distribution</span>
+            </div>
+            <span style="font-size: 11px; color: var(--text-muted);">Percentage of stores by accuracy band</span>
+          </div>
+          <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="accuracyDistributionChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overview Table -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="dot" style="background: var(--accent-cyan);"></span>
+            <span>All Logged Store Tests Summary</span>
+          </div>
+          <button class="btn btn-outline" onclick="exportToCSV()">Export CSV</button>
+        </div>
+        <div class="table-container">
+          <table id="overviewTable">
+            <thead>
+              <tr>
+                <th onclick="sortTable(0)">Store Name ⬍</th>
+                <th onclick="sortTable(1)">Location ⬍</th>
+                <th onclick="sortTable(2)">Format Category ⬍</th>
+                <th onclick="sortTable(3)">Predicted b/d ⬍</th>
+                <th onclick="sortTable(4)">Actual b/d ⬍</th>
+                <th onclick="sortTable(5)">Variance ⬍</th>
+                <th onclick="sortTable(6)">Accuracy ⬍</th>
+                <th>Clearance Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="overviewTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- TAB 2: STORE DEEP-DIVE EXPLORER -->
+    <!-- ========================================================= -->
+    <div id="tab-explorer" class="tab-pane">
+      <div class="store-selector-bar">
+        <div>
+          <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Select Store Test Result to Inspect:</div>
+          <select id="explorerStoreSelect" class="store-select-large" onchange="renderStoreDeepDive(this.value)">
+            <!-- Populated via JS -->
+          </select>
+        </div>
+        <div id="explorerBadgeArea">
+          <!-- Dynamically populated tags -->
+        </div>
+      </div>
+
+      <!-- Store Stat Pills -->
+      <div class="stat-pill-grid" id="explorerStatPills">
+        <!-- Dynamically populated pills -->
+      </div>
+
+      <!-- Monthly Seasonality Chart & Month Table -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="dot"></span>
+              <span id="explorerSeasonalityTitle">2026 Monthly Seasonality Profile</span>
+            </div>
+            <span style="font-size: 12px; color: var(--accent-blue);" id="explorerSeasonalitySubtitle">Model Target P50 vs. Power BI Actuals</span>
+          </div>
+          <div style="position: relative; height: 320px; width: 100%;">
+            <canvas id="explorerMonthlyChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="dot" style="background: var(--accent-green);"></span>
+              <span>Monthly Granular Verification Audit</span>
+            </div>
+            <span style="font-size: 12px; color: var(--text-muted);" id="explorerMonthlyAccBadge">Accuracy Audit</span>
+          </div>
+          <div class="table-container" style="max-height: 320px; overflow-y: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th>Model Target</th>
+                  <th>Actual Volume</th>
+                  <th>Variance</th>
+                  <th>Monthly Accuracy</th>
+                </tr>
+              </thead>
+              <tbody id="explorerMonthlyTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Capacity Scenarios & Operational Analysis -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title" style="margin-bottom: 14px;">
+            <span class="dot" style="background: var(--accent-amber);"></span>
+            <span>3-Tier Capacity Sizing & Operational Envelopes</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+            <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid var(--card-border);">
+              <div style="font-size: 11px; color: var(--text-muted); font-weight: 700;">CONSERVATIVE (P25)</div>
+              <div id="explorerFloorVal" style="font-size: 18px; font-weight: 700; color: #94a3b8; margin-top: 4px;">--</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Off-peak / Winter base</div>
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.3);">
+              <div style="font-size: 11px; color: var(--accent-blue); font-weight: 700;">STEADY-STATE (P50)</div>
+              <div id="explorerExpectedVal" style="font-size: 18px; font-weight: 700; color: #fff; margin-top: 4px;">--</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Annualized median target</div>
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(34, 197, 94, 0.3);">
+              <div style="font-size: 11px; color: var(--accent-green); font-weight: 700;">OPTIMISTIC (P75)</div>
+              <div id="explorerPeakVal" style="font-size: 18px; font-weight: 700; color: #86efac; margin-top: 4px;">--</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Summer peak envelope</div>
+            </div>
+          </div>
+          <div style="font-size: 13px; color: #cbd5e1; line-height: 1.6;" id="explorerScenarioDesc">
+            Operational scenarios provide underwritten volume boundaries ensuring hardware sizing matches customer demand without overflowing bin capacity.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="margin-bottom: 14px;">
+            <span class="dot" style="background: var(--accent-purple);"></span>
+            <span>Footfall & Conversion Dynamics</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+            <div style="background: rgba(15, 23, 42, 0.6); padding: 14px; border-radius: 10px; border: 1px solid var(--card-border);">
+              <div style="font-size: 11px; color: var(--text-muted); font-weight: 700;">ACTIVE RECYCLERS / DAY</div>
+              <div id="explorerUsersVal" style="font-size: 20px; font-weight: 800; color: var(--accent-purple); margin-top: 4px;">--</div>
+              <div id="explorerUsersSub" style="font-size: 11px; color: var(--text-muted);">Presenze per day</div>
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.6); padding: 14px; border-radius: 10px; border: 1px solid var(--card-border);">
+              <div style="font-size: 11px; color: var(--text-muted); font-weight: 700;">DEPOSIT BASKET SIZE</div>
+              <div id="explorerBasketVal" style="font-size: 20px; font-weight: 800; color: var(--accent-cyan); margin-top: 4px;">--</div>
+              <div id="explorerBasketSub" style="font-size: 11px; color: var(--text-muted);">Bottles per user visit</div>
+            </div>
+          </div>
+          <div style="font-size: 13px; color: #cbd5e1; line-height: 1.6;" id="explorerDynamicsDesc">
+            Analyzing customer visit frequency alongside batch deposit volume allows differentiating between casual walk-in shoppers and dedicated bulk car depositors.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- TAB 3: HEAD-TO-HEAD STORE COMPARISON -->
+    <!-- ========================================================= -->
+    <div id="tab-compare" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="dot"></span>
+            <span>Select Stores for Side-by-Side Benchmarking</span>
+          </div>
+          <span style="font-size: 12px; color: var(--text-muted);">Pick any 2 or 3 stores to compare head-to-head</span>
+        </div>
+        <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;">
+          <div>
+            <label style="display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">STORE 1:</label>
+            <select id="compareSelect1" class="filter-select" style="min-width: 260px;" onchange="renderComparison()"></select>
+          </div>
+          <div>
+            <label style="display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">STORE 2:</label>
+            <select id="compareSelect2" class="filter-select" style="min-width: 260px;" onchange="renderComparison()"></select>
+          </div>
+          <div>
+            <label style="display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">STORE 3 (OPTIONAL):</label>
+            <select id="compareSelect3" class="filter-select" style="min-width: 260px;" onchange="renderComparison()"></select>
+          </div>
+        </div>
+
+        <!-- Comparative Chart -->
+        <div style="position: relative; height: 340px; width: 100%; margin-bottom: 24px;">
+          <canvas id="comparisonChart"></canvas>
+        </div>
+
+        <!-- Comparative Metrics Table -->
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Benchmark Metric</th>
+                <th id="compareCol1Header">Store 1</th>
+                <th id="compareCol2Header">Store 2</th>
+                <th id="compareCol3Header">Store 3</th>
+              </tr>
+            </thead>
+            <tbody id="compareTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- TAB 4: TEST DATA MANAGER (+ ADD / IMPORT / EXPORT) -->
+    <!-- ========================================================= -->
+    <div id="tab-manage" class="tab-pane">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title" style="margin-bottom: 12px;">
+            <span class="dot" style="background: var(--accent-green);"></span>
+            <span>+ Add New Test Result Manually</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+            Input store configuration details and prediction metrics. The new test will be instantly integrated into all charts and persistent storage.
+          </p>
+          <form onsubmit="handleManualAddTest(event)">
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">Store Name *</label>
+                <input type="text" id="addName" class="form-control" placeholder="e.g. Esselunga Milano" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Comune & Provincia *</label>
+                <input type="text" id="addLoc" class="form-control" placeholder="e.g. Milano (MI)" required>
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">Category Profile</label>
+                <input type="text" id="addCat" class="form-control" placeholder="e.g. Strategic Hypermarket Anchor">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Format / Floorplan</label>
+                <input type="text" id="addFormat" class="form-control" placeholder="e.g. Hypermarket (2,500 m2)">
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">Predicted Volume (b/d) *</label>
+                <input type="number" step="0.1" id="addPredB" class="form-control" placeholder="e.g. 520.0" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Power BI Actual (b/d)</label>
+                <input type="number" step="0.1" id="addActB" class="form-control" placeholder="e.g. 560.0">
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">Predicted Users (u/d)</label>
+                <input type="number" step="0.1" id="addPredU" class="form-control" placeholder="e.g. 15.5">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Actual Users (u/d)</label>
+                <input type="number" step="0.1" id="addActU" class="form-control" placeholder="e.g. 17.2">
+              </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 14px;">
+              <button type="submit" class="btn btn-primary">Save Test to Dashboard</button>
+              <button type="reset" class="btn btn-outline">Clear Form</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="margin-bottom: 12px;">
+            <span class="dot" style="background: var(--accent-purple);"></span>
+            <span>Import Predictor Output & Backup</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+            Paste the raw JSON result from <code>predict_new_location()</code> or restore default verified benchmark sets.
+          </p>
+          <div class="form-group">
+            <textarea id="importJsonArea" class="form-control" rows="8" placeholder="Paste predictor result JSON here..."></textarea>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+            <button class="btn btn-primary" onclick="handleImportJson()">Import JSON</button>
+            <button class="btn btn-outline" onclick="exportToJSON()">Download JSON Backup</button>
+            <button class="btn btn-outline" onclick="exportToCSV()">Export CSV</button>
+          </div>
+          <div style="border-top: 1px solid var(--card-border); padding-top: 16px;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--accent-amber); margin-bottom: 6px;">Reset Suite:</div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+              Restore the dashboard to the official verified 21-store benchmark suite (clearing custom localStorage edits).
+            </p>
+            <button class="btn btn-outline" style="border-color: rgba(239, 68, 68, 0.4); color: #fca5a5;" onclick="resetToDefaults()">Reset to 21 Verified Benchmarks</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ADD TEST MODAL -->
+  <div id="addTestModal" class="modal-overlay">
+    <div class="modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 18px; font-weight: 700;">Add New Test Configuration</h3>
+        <button onclick="closeAddTestModal()" style="background: transparent; border: none; color: #fff; font-size: 20px; cursor: pointer;">&times;</button>
+      </div>
+      <form onsubmit="handleModalAddTest(event)">
+        <div class="form-group">
+          <label class="form-label">Store Name *</label>
+          <input type="text" id="mAddName" class="form-control" placeholder="e.g. Esselunga Rozzano" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Comune & Provincia *</label>
+          <input type="text" id="mAddLoc" class="form-control" placeholder="e.g. Rozzano (MI)" required>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Predicted Bottles (b/d) *</label>
+            <input type="number" step="0.1" id="mAddPredB" class="form-control" placeholder="e.g. 450.0" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Power BI Actual Bottles (b/d)</label>
+            <input type="number" step="0.1" id="mAddActB" class="form-control" placeholder="e.g. 480.0">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Predicted Users (u/d)</label>
+            <input type="number" step="0.1" id="mAddPredU" class="form-control" placeholder="e.g. 14.0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Actual Users (u/d)</label>
+            <input type="number" step="0.1" id="mAddActU" class="form-control" placeholder="e.g. 15.5">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Format / Category</label>
+          <input type="text" id="mAddCat" class="form-control" placeholder="e.g. Supermarket (1,800 m2)">
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+          <button type="button" class="btn btn-outline" onclick="closeAddTestModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Store</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Embedded verified benchmark dataset
+    const DEFAULT_BENCHMARKS = [
+  {
+    "id": "pf00002794_gaggi",
+    "pf": "PF00002794",
+    "machine_type": "DAINT_G",
+    "name": "CONAD Gaggi",
+    "comune": "Gaggi",
+    "provincia": "ME",
+    "address": "Viale Enrico Berlinguer, 171",
+    "cat": "Medium Proximity Supermarket",
+    "format": "Medium Proximity Store (520 m2, 3 checkouts)",
+    "reward": "Emissione Buono sconto",
+    "reward_tier": "GROCERY_VOUCHER",
+    "reward_desc": "Buono sconto diretto sulla spesa (normalmente circa 3€ ogni 200 bottiglie con scontrino minimo es. 20€). Standard GDO nazionale.",
+    "contract_title": "Coupon su Carta INSIEME",
+    "contract_rule": "Coupon di 3€ di sconto sulla tua Carta INSIEME<br/>Valido per una spesa minima di 15€",
+    "points_required": 200,
+    "valore_cent_per_bottiglia": 1.5,
+    "sconto_percentuale_carrello": 20.0,
+    "multiplier_presenze": 1.0,
+    "multiplier_bottles": 1.0,
+    "predB": 149.4,
+    "actB": 135.2,
+    "predU": 7.2,
+    "actU": 5.0,
+    "clearance": "CONDITIONAL [REVIEW REQUIRED]",
+    "p75B": 186.8,
+    "p25B": 122.5,
+    "monthly_preds": [
+      127.2,
+      127.2,
+      124.4,
+      134.9,
+      146.5,
+      192.2,
+      223.2,
+      209.5,
+      163.1,
+      145.9,
+      129.6,
+      127.2
+    ],
+    "monthly_actuals": [
+      118.1,
+      123.3,
+      124.5,
+      153.6,
+      122.0,
+      175.8,
+      239.7,
+      248.2,
+      242.2,
+      135.0,
+      111.4,
+      111.8
+    ]
+  },
+  {
+    "id": "pf00002450_santacroce",
+    "pf": "PF00002450",
+    "machine_type": "DAINT_G",
+    "name": "CONAD Santa Croce sull'Arno",
+    "comune": "Santa Croce sull'Arno",
+    "provincia": "PI",
+    "address": "Via Caravaggio Snc",
+    "cat": "Strategic High-Volume Anchor",
+    "format": "Supermarket (1,200 m2, 11 checkouts)",
+    "reward": "Emissione Buono sconto",
+    "reward_tier": "GROCERY_VOUCHER",
+    "reward_desc": "Buono sconto diretto sulla spesa (normalmente circa 3€ ogni 200 bottiglie con scontrino minimo es. 20€). Standard GDO nazionale.",
+    "contract_title": "Coupon su Carta INSIEME",
+    "contract_rule": "Coupon di 3€ di sconto sulla tua Carta INSIEME<br/>Valido per una spesa minima di 15€",
+    "points_required": 200,
+    "valore_cent_per_bottiglia": 1.5,
+    "sconto_percentuale_carrello": 20.0,
+    "multiplier_presenze": 1.0,
+    "multiplier_bottles": 1.0,
+    "predB": 967.0,
+    "actB": 860.2,
+    "predU": 27.2,
+    "actU": 19.2,
+    "clearance": "GO [PRIORITY APPROVED]",
+    "p75B": 1208.8,
+    "p25B": 793.0,
+    "monthly_preds": [
+      865.0,
+      865.5,
+      873.5,
+      928.9,
+      966.8,
+      1050.6,
+      1121.3,
+      1073.3,
+      984.7,
+      941.6,
+      878.1,
+      864.3
+    ],
+    "monthly_actuals": [
+      743.7,
+      956.6,
+      878.3,
+      878.4,
+      750.4,
+      990.5,
+      898.7,
+      733.8,
+      907.2,
+      860.2,
+      840.0,
+      860.0
+    ]
+  },
+  {
+    "id": "pf00002016_bennet_villanova",
+    "pf": "PF00002016",
+    "machine_type": "Ripet_C-front",
+    "name": "Bennet Villanova Monferrato",
+    "comune": "Villanova Monferrato",
+    "provincia": "AL",
+    "address": "SP31, 7",
+    "cat": "Rural Hypermarket Anchor",
+    "format": "Hypermarket (4,878 m2, 22 checkouts)",
+    "reward": "Emissione Buono sconto",
+    "reward_tier": "GROCERY_VOUCHER",
+    "reward_desc": "Buono sconto diretto sulla spesa (normalmente circa 3€ ogni 200 bottiglie con scontrino minimo es. 20€). Standard GDO nazionale.",
+    "contract_title": "SCONTO di 3€",
+    "contract_rule": "3€ di sconto, su una spesa minima di 30€",
+    "points_required": 200,
+    "valore_cent_per_bottiglia": 1.5,
+    "sconto_percentuale_carrello": 10.0,
+    "multiplier_presenze": 1.0,
+    "multiplier_bottles": 1.0,
+    "predB": 277.8,
+    "actB": 290.7,
+    "predU": 6.8,
+    "actU": 6.0,
+    "clearance": "CONDITIONAL [REVIEW REQUIRED]",
+    "p75B": 344.4,
+    "p25B": 249.3,
+    "monthly_preds": [
+      236.7,
+      236.8,
+      242.4,
+      269.4,
+      290.0,
+      338.0,
+      349.9,
+      344.1,
+      297.9,
+      272.5,
+      242.4,
+      236.6
+    ],
+    "monthly_actuals": [
+      207.2,
+      269.9,
+      226.1,
+      249.7,
+      287.6,
+      351.1,
+      358.7,
+      292.1,
+      372.2,
+      390.0,
+      290.7,
+      290.7
+    ]
+  },
+  {
+    "id": "mcgl2f0n5057_mondobrico_tortona",
+    "pf": "MCGL2F0N5057",
+    "machine_type": "Ripet_C-Ter",
+    "name": "MondoBrico - Tortona",
+    "comune": "Tortona",
+    "provincia": "AL",
+    "address": "Via Ezio Vanoni, 18",
+    "cat": "Commercial Retail Park Anchor",
+    "format": "Commercial Retail Park Anchor (2,500 m2, 8 checkouts)",
+    "reward": "Emissione Buono sconto",
+    "reward_tier": "GROCERY_VOUCHER",
+    "reward_desc": "Buono sconto diretto sulla spesa (normalmente circa 3€ ogni 200 bottiglie con scontrino minimo es. 20€). Standard GDO nazionale.",
+    "contract_title": "Sconto 5€",
+    "contract_rule": "5 € di sconto su una spesa minima di 50 €,  ad esclusione di legna, pellet, carbone e tutti i tipi di combustibili",
+    "points_required": 200,
+    "valore_cent_per_bottiglia": 2.5,
+    "sconto_percentuale_carrello": 10.0,
+    "multiplier_presenze": 1.067,
+    "multiplier_bottles": 1.102,
+    "predB": 752.0,
+    "actB": 744.3,
+    "predU": 18.0,
+    "actU": 17.8,
+    "clearance": "GO [STANDARD APPROVED]",
+    "p75B": 940.0,
+    "p25B": 616.6,
+    "monthly_preds": [
+      673.9,
+      674.7,
+      694.6,
+      709.8,
+      758.7,
+      834.2,
+      878.9,
+      854.5,
+      791.0,
+      727.5,
+      707.0,
+      685.1
+    ],
+    "monthly_actuals": [
+      588.0,
+      660.3,
+      637.1,
+      633.2,
+      814.4,
+      832.0,
+      902.0,
+      871.8,
+      760.0,
+      744.3,
+      744.3,
+      744.3
+    ]
+  },
+  {
+    "id": "pf00001785_bennet_cassina_rizzardi",
+    "pf": "PF00001785",
+    "machine_type": "Ripet_C-front",
+    "name": "Bennet Cassina Rizzardi",
+    "comune": "Cassina Rizzardi",
+    "provincia": "CO",
+    "address": "Via Risorgimento, 1082",
+    "cat": "Commercial Hypermarket Anchor",
+    "format": "Commercial Hypermarket Anchor (3,420 m2, 23 checkouts)",
+    "reward": "Emissione Buono sconto",
+    "reward_tier": "GROCERY_VOUCHER",
+    "reward_desc": "Buono sconto diretto sulla spesa (normalmente circa 3€ ogni 200 bottiglie con scontrino minimo es. 20€). Standard GDO nazionale.",
+    "contract_title": "SCONTO di 3€",
+    "contract_rule": "3€ di sconto, su una spesa minima di 30€",
+    "points_required": 200,
+    "valore_cent_per_bottiglia": 1.5,
+    "sconto_percentuale_carrello": 10.0,
+    "multiplier_presenze": 1.0,
+    "multiplier_bottles": 1.0,
+    "predB": 572.4,
+    "actB": 605.9,
+    "predU": 16.3,
+    "actU": 15.8,
+    "clearance": "CONDITIONAL [REVIEW REQUIRED]",
+    "p75B": 799.4,
+    "p25B": 524.4,
+    "monthly_preds": [
+      541.4,
+      541.9,
+      550.9,
+      562.7,
+      574.3,
+      649.2,
+      658.4,
+      634.2,
+      568.0,
+      553.8,
+      543.1,
+      541.4
+    ],
+    "monthly_actuals": [
+      679.1,
+      735.7,
+      730.4,
+      714.5,
+      807.5,
+      862.3,
+      846.5,
+      804.4,
+      841.8,
+      675.2,
+      627.1,
+      669.9
+    ]
+  },
+  {
+    "id": "pf00001305_coop_lombardia_cantu",
+    "pf": "PF00001305",
+    "machine_type": "DAINT_G",
+    "name": "Coop Lombardia Cantù - CC Mirabello",
+    "comune": "Cantù",
+    "provincia": "CO",
+    "address": "Via Lombardia, 68",
+    "cat": "Regional Hypermarket Anchor",
+    "format": "Regional Hypermarket (7,200 m2, 34 checkouts)",
+    "reward": "Emissione Buono sconto",
+    "reward_tier": "GROCERY_VOUCHER",
+    "reward_desc": "Buono sconto diretto sulla spesa (normalmente circa 3€ ogni 200 bottiglie con scontrino minimo es. 20€). Standard GDO nazionale.",
+    "contract_title": "BUONO SCONTO di 2€",
+    "contract_rule": "sconto di 2€ su una spesa di almeno 20€, valido per i Soci di Coop Lombardia.",
+    "points_required": 200,
+    "valore_cent_per_bottiglia": 1.0,
+    "sconto_percentuale_carrello": 8.0,
+    "multiplier_presenze": 0.957,
+    "multiplier_bottles": 0.946,
+    "predB": 978.8,
+    "actB": 1030.0,
+    "predU": 31.5,
+    "actU": 37.0,
+    "clearance": "GO [PRIORITY APPROVED]",
+    "p75B": 1223.5,
+    "p25B": 802.6,
+    "monthly_preds": [
+      852.3,
+      853.2,
+      872.5,
+      945.9,
+      1014.5,
+      1096.4,
+      1139.4,
+      1093.8,
+      1015.9,
+      938.2,
+      874.1,
+      858.5
+    ],
+    "monthly_actuals": [
+      1008.1,
+      1068.5,
+      1083.9,
+      1078.2,
+      1148.7,
+      1045.1,
+      1155.7,
+      1044.3,
+      1131.0,
+      1080.9,
+      953.4,
+      1006.2
+    ]
+  },
+  {
+    "id": "pf00001460_unicoop_tirreno_portoferraio",
+    "pf": "PF00001460",
+    "machine_type": "DAINT_G",
+    "name": "Unicoop Tirreno Portoferraio",
+    "comune": "Portoferraio",
+    "provincia": "LI",
+    "address": "Via Tesei",
+    "cat": "Island Monopoly Commercial Anchor",
+    "format": "Supermarket (1,355 m2, 10 checkouts)",
+    "reward": "Conversione a punti fedeltà",
+    "reward_tier": "LOYALTY_POINTS",
+    "reward_desc": "Conversione dei punti Coripet in punti fedeltà della tessera spesa del supermercato. Massima fidelizzazione del cliente.",
+    "contract_title": "Conversione Punti",
+    "contract_rule": "100 punti sulla tua Carta Socio Unicoop Etruria",
+    "points_required": 100,
+    "valore_cent_per_bottiglia": 3.0,
+    "sconto_percentuale_carrello": 12.0,
+    "multiplier_presenze": 1.418,
+    "multiplier_bottles": 1.31,
+    "predB": 1018.3,
+    "actB": 1019.0,
+    "predU": 31.6,
+    "actU": 39.7,
+    "clearance": "GO [PRIORITY APPROVED]",
+    "p75B": 1173.4,
+    "p25B": 769.7,
+    "monthly_preds": [
+      865.8,
+      866.9,
+      872.5,
+      987.7,
+      1062.4,
+      1268.7,
+      1385.5,
+      1330.0,
+      1107.5,
+      1020.8,
+      874.9,
+      858.8
+    ],
+    "monthly_actuals": [
+      866.6,
+      865.7,
+      866.8,
+      970.4,
+      1059.3,
+      1165.2,
+      1371.6,
+      1379.3,
+      1186.7,
+      1017.9,
+      902.2,
+      855.2
+    ]
+  },
+  {
+    "id": "pf00001636_unicoopfi_prato_parco",
+    "pf": "PF00001636",
+    "machine_type": "Ripet_C-front",
+    "name": "Coop.fi - Prato (Parco Prato)",
+    "comune": "Prato",
+    "provincia": "PO",
+    "address": "Via delle Pleiadi",
+    "cat": "National #1 High-Yield Anchor",
+    "format": "Regional Mega-Hypermarket (5,139 m2, 38 checkouts)",
+    "reward": "Conversione a punti fedeltà",
+    "reward_tier": "LOYALTY_POINTS",
+    "reward_desc": "Conversione dei punti Coripet in punti fedeltà della tessera spesa del supermercato. Massima fidelizzazione del cliente.",
+    "contract_title": "Conversione Punti",
+    "contract_rule": "30 punti sulla tua Carta Socio Coop.fi",
+    "points_required": 90,
+    "valore_cent_per_bottiglia": 3.33,
+    "sconto_percentuale_carrello": 12.0,
+    "multiplier_presenze": 1.45,
+    "multiplier_bottles": 1.35,
+    "predB": 4679.5,
+    "actB": 5580.0,
+    "predU": 98.5,
+    "actU": 118.6,
+    "clearance": "GO [PRIORITY APPROVED]",
+    "p75B": 5849.4,
+    "p25B": 3837.2,
+    "monthly_preds": [
+      4677.6,
+      4684.7,
+      4789.6,
+      4701.6,
+      4824.6,
+      4385.6,
+      4346.0,
+      4264.6,
+      4747.5,
+      4627.7,
+      4778.2,
+      4642.6
+    ],
+    "monthly_actuals": [
+      3540.3,
+      4864.0,
+      5102.3,
+      5848.8,
+      6248.0,
+      6991.3,
+      7725.1,
+      6342.2,
+      7264.5,
+      6362.8,
+      5893.2,
+      5088.4
+    ]
+  },
+  {
+    "id": "mc1z14lfgrfg_coopfi_cascina",
+    "pf": "MC1Z14LFGRFG",
+    "machine_type": "Ripet_C-front",
+    "name": "Coop.fi - Cascina",
+    "comune": "Cascina",
+    "provincia": "PI",
+    "address": "Via Fosso Vecchio, 457",
+    "cat": "Tier 1 - Strategic High-Volume Anchor",
+    "format": "Commercial Superstore (4,714 m2, 26 checkouts)",
+    "reward": "Conversione a punti fedeltà",
+    "reward_tier": "LOYALTY_POINTS",
+    "reward_desc": "Conversione dei punti Coripet in punti fedeltà della tessera spesa del supermercato. Massima fidelizzazione del cliente.",
+    "contract_title": "Conversione Punti",
+    "contract_rule": "30 punti sulla tua Carta Socio Coop.fi",
+    "points_required": 90,
+    "valore_cent_per_bottiglia": 3.33,
+    "sconto_percentuale_carrello": 12.0,
+    "multiplier_presenze": 1.45,
+    "multiplier_bottles": 1.35,
+    "predB": 4303.7,
+    "actB": 4520.0,
+    "predU": 78.4,
+    "actU": 76.5,
+    "clearance": "GO [PRIORITY APPROVED]",
+    "p75B": 4640.0,
+    "p25B": 3043.8,
+    "monthly_preds": [
+      3921.1,
+      3922.9,
+      4150.3,
+      4222.3,
+      4498.5,
+      5003.8,
+      5073.1,
+      5180.7,
+      4645.0,
+      4290.5,
+      4159.0,
+      3907.8
+    ],
+    "monthly_actuals": [
+      4083.5,
+      3856.1,
+      4216.8,
+      4234.1,
+      4517.2,
+      4716.0,
+      5370.6,
+      5182.9,
+      5265.9,
+      4630.6,
+      4545.5,
+      3998.3
+    ]
+  },
+  {
+    "id": "mc5epg7e0rzs_dimar_alessandria",
+    "pf": "MC5EPG7E0RZS",
+    "machine_type": "Ripet_C-Ter",
+    "name": "Mercatò di Alessandria - Via Vecchia Torino",
+    "comune": "Alessandria",
+    "provincia": "AL",
+    "address": "Via Vecchia Torino, 20",
+    "cat": "Commercial Retail Superstore",
+    "format": "Superstore / Hypermarket (3,000 m2, 15 checkouts)",
+    "reward": "Emissione Buono sconto",
+    "reward_tier": "GROCERY_VOUCHER",
+    "reward_desc": "Buono sconto diretto sulla spesa (normalmente circa 3€ ogni 200 bottiglie con scontrino minimo es. 20€). Standard GDO nazionale.",
+    "contract_title": "Sconto 3€",
+    "contract_rule": "sconto 3 euro su una spesa minima di 30 euro (scontrino unico) con Fidelity Card Mercatò",
+    "points_required": 200,
+    "valore_cent_per_bottiglia": 1.5,
+    "sconto_percentuale_carrello": 10.0,
+    "multiplier_presenze": 1.0,
+    "multiplier_bottles": 1.0,
+    "predB": 1502.5,
+    "actB": 1780.0,
+    "predU": 21.5,
+    "actU": 34.5,
+    "clearance": "GO [PRIORITY APPROVED]",
+    "p75B": 1063.9,
+    "p25B": 697.9,
+    "monthly_preds": [
+      1392.8,
+      1392.8,
+      1459.9,
+      1450.1,
+      1536.1,
+      1616.5,
+      1605.7,
+      1625.0,
+      1555.5,
+      1453.8,
+      1444.1,
+      1360.1
+    ],
+    "monthly_actuals": [
+      1542.8,
+      1680.7,
+      1812.1,
+      1696.0,
+      1774.8,
+      2020.8,
+      2010.7,
+      1944.6,
+      1956.4,
+      1697.5,
+      1617.4,
+      1545.1
+    ]
+  },
+  {
+    "id": "pf00001201_piccolo_nola",
+    "pf": "PF00001201",
+    "machine_type": "Ripet_C-front",
+    "name": "Piccolo di Nola - Via Variante",
+    "comune": "Nola",
+    "provincia": "NA",
+    "address": "Via Variante 7 bis 64",
+    "cat": "Dense Urban Cluster Anchor",
+    "format": "Supermarket (1,600 m2, 5 checkouts)",
+    "reward": "Emissione Buono sconto",
+    "reward_tier": "GROCERY_VOUCHER",
+    "reward_desc": "Buono sconto diretto sulla spesa (normalmente circa 3€ ogni 200 bottiglie con scontrino minimo es. 20€). Standard GDO nazionale.",
+    "contract_title": "SCONTO di 3€",
+    "contract_rule": "3€ di sconto per una spesa minima di 30€",
+    "points_required": 200,
+    "valore_cent_per_bottiglia": 1.5,
+    "sconto_percentuale_carrello": 10.0,
+    "multiplier_presenze": 1.0,
+    "multiplier_bottles": 1.0,
+    "predB": 1609.4,
+    "actB": 2020.0,
+    "predU": 16.0,
+    "actU": 44.5,
+    "clearance": "GO [PRIORITY APPROVED]",
+    "p75B": 693.8,
+    "p25B": 455.1,
+    "monthly_preds": [
+      1315.0,
+      1322.9,
+      1371.6,
+      1590.2,
+      1734.3,
+      1918.2,
+      2005.1,
+      1986.1,
+      1825.5,
+      1629.2,
+      1379.0,
+      1311.5
+    ],
+    "monthly_actuals": [
+      1761.1,
+      1831.0,
+      1715.9,
+      1828.7,
+      2095.7,
+      2303.3,
+      2570.2,
+      2372.3,
+      2330.6,
+      2117.0,
+      1955.5,
+      1670.5
+    ]
+  },
+  {
+    "id": "pf00001367_conad_schio",
+    "pf": "PF00001367",
+    "machine_type": "Ripet_C-front",
+    "name": "CONAD Schio - Via Vicenza",
+    "comune": "Schio",
+    "provincia": "VI",
+    "address": "Via Vicenza, 30",
+    "cat": "Commercial Supermarket Anchor",
+    "format": "Supermarket (1,270 m2, 6 checkouts)",
+    "reward": "Emissione Buono sconto",
+    "reward_tier": "GROCERY_VOUCHER",
+    "reward_desc": "Buono sconto diretto sulla spesa (normalmente circa 3€ ogni 200 bottiglie con scontrino minimo es. 20€). Standard GDO nazionale.",
+    "contract_title": "Coupon su Carta INSIEME",
+    "contract_rule": "Coupon di 3€ di sconto sulla tua Carta INSIEME<br/>Valido per una spesa minima di 15€",
+    "points_required": 200,
+    "valore_cent_per_bottiglia": 1.5,
+    "sconto_percentuale_carrello": 20.0,
+    "multiplier_presenze": 1.0,
+    "multiplier_bottles": 1.0,
+    "predB": 646.0,
+    "actB": 650.6,
+    "predU": 17.7,
+    "actU": 18.2,
+    "clearance": "GO [PRIORITY APPROVED]",
+    "p75B": 713.6,
+    "p25B": 468.1,
+    "monthly_preds": [
+      603.2,
+      602.8,
+      604.0,
+      614.2,
+      653.9,
+      773.9,
+      848.0,
+      796.7,
+      681.1,
+      638.0,
+      618.1,
+      610.1
+    ],
+    "monthly_actuals": [
+      566.8,
+      648.5,
+      661.7,
+      685.4,
+      672.6,
+      782.7,
+      885.4,
+      736.8,
+      700.1,
+      634.7,
+      584.3,
+      563.2
+    ]
+  },
+  {
+    "id": "pf00002687_coop_citta_di_castello",
+    "pf": "PF00002687",
+    "machine_type": "DAINT_G",
+    "name": "Coop Città di Castello Le Fonti",
+    "comune": "Città di Castello",
+    "provincia": "PG",
+    "address": "Via Scipione Lapi",
+    "cat": "Commercial Retail Supermarket Anchor",
+    "format": "Supermarket (1,449 m2, 8 checkouts)",
+    "reward": "Conversione a punti fedeltà",
+    "reward_tier": "LOYALTY_POINTS",
+    "reward_desc": "Conversione dei punti Coripet in punti fedeltà della tessera spesa del supermercato. Massima fidelizzazione del cliente.",
+    "contract_title": "Conversione Punti",
+    "contract_rule": "100 punti sulla tua Carta Socio Unicoop Etruria",
+    "points_required": 100,
+    "valore_cent_per_bottiglia": 3.0,
+    "sconto_percentuale_carrello": 12.0,
+    "multiplier_presenze": 1.418,
+    "multiplier_bottles": 1.31,
+    "predB": 710.2,
+    "actB": 856.3,
+    "predU": 14.0,
+    "actU": 22.6,
+    "clearance": "CONDITIONAL [REVIEW REQUIRED]",
+    "p75B": 887.8,
+    "p25B": 582.4,
+    "monthly_preds": [
+      633.0,
+      633.7,
+      658.3,
+      702.2,
+      749.5,
+      865.8,
+      868.4,
+      868.4,
+      758.5,
+      702.9,
+      652.9,
+      627.9
+    ],
+    "monthly_actuals": [
+      711.3,
+      868.9,
+      1051.2,
+      1113.8,
+      911.3,
+      998.7,
+      1018.2,
+      990.1,
+      1012.7,
+      829.3,
+      800.2,
+      729.0
+    ]
+  },
+  {
+    "id": "pf00002527_coop_fabrica_di_roma",
+    "pf": "PF00002527",
+    "machine_type": "DAINT_G",
+    "name": "Coop Fabrica di Roma - Via del Campo Sportivo",
+    "comune": "Fabrica di Roma",
+    "provincia": "VT",
+    "address": "Via Del Campo Sportivo Snc",
+    "cat": "Uncontested Spatial Monopoly Anchor",
+    "format": "Supermarket (600 m2, 3 checkouts)",
+    "reward": "Conversione a punti fedeltà",
+    "reward_tier": "LOYALTY_POINTS",
+    "reward_desc": "Conversione dei punti Coripet in punti fedeltà della tessera spesa del supermercato. Massima fidelizzazione del cliente.",
+    "contract_title": "Conversione Punti",
+    "contract_rule": "100 punti sulla tua Carta Socio Unicoop Tirreno",
+    "points_required": 100,
+    "valore_cent_per_bottiglia": 3.0,
+    "sconto_percentuale_carrello": 12.0,
+    "multiplier_presenze": 1.418,
+    "multiplier_bottles": 1.31,
+    "predB": 1266.5,
+    "actB": 1570.0,
+    "predU": 16.9,
+    "actU": 48.5,
+    "clearance": "GO [PRIORITY APPROVED]",
+    "p75B": 1583.1,
+    "p25B": 1038.5,
+    "monthly_preds": [
+      1121.8,
+      1123.7,
+      1148.6,
+      1266.7,
+      1334.2,
+      1469.8,
+      1554.6,
+      1514.0,
+      1355.1,
+      1268.7,
+      1129.1,
+      1111.6
+    ],
+    "monthly_actuals": [
+      1347.2,
+      1463.7,
+      1487.7,
+      1555.5,
+      1508.7,
+      1836.2,
+      1992.9,
+      2002.5,
+      1935.1,
+      1422.9,
+      1375.6,
+      1321.9
+    ]
+  },
+  {
+    "id": "mcms8uec2qvh_coop_sesto_fiorentino",
+    "pf": "MCMS8UEC2QVH",
+    "machine_type": "Ripet_C-front",
+    "name": "Coop.fi - Sesto Fiorentino (Centro*Sesto)",
+    "comune": "Sesto Fiorentino",
+    "provincia": "FI",
+    "address": "Via Petrosa 19",
+    "cat": "National Tier 1 High-Yield Anchor",
+    "format": "Regional Hypermarket (5,305 m2, 40 checkouts)",
+    "reward": "Conversione a punti fedeltà",
+    "reward_tier": "LOYALTY_POINTS",
+    "reward_desc": "Conversione dei punti Coripet in punti fedeltà della tessera spesa del supermercato. Massima fidelizzazione del cliente.",
+    "contract_title": "Conversione Punti",
+    "contract_rule": "30 punti sulla tua Carta Socio Coop.fi",
+    "points_required": 90,
+    "valore_cent_per_bottiglia": 3.33,
+    "sconto_percentuale_carrello": 12.0,
+    "multiplier_presenze": 1.45,
+    "multiplier_bottles": 1.35,
+    "predB": 4962.4,
+    "actB": 4330.0,
+    "predU": 104.6,
+    "actU": 107.5,
+    "clearance": "GO [PRIORITY APPROVED]",
+    "p75B": 6461.5,
+    "p25B": 4125.7,
+    "monthly_preds": [
+      4371.8,
+      4372.9,
+      4812.7,
+      5193.2,
+      5545.4,
+      5589.4,
+      5505.3,
+      5684.8,
+      5628.5,
+      5236.1,
+      4827.1,
+      4369.6
+    ],
+    "monthly_actuals": [
+      3700.0,
+      4100.0,
+      4200.0,
+      4300.0,
+      5000.0,
+      5800.0,
+      5600.0,
+      5200.0,
+      4400.0,
+      4300.0,
+      3800.0,
+      3600.0
+    ]
+  },
+  {
+    "id": "mcsm09lnt70o_sanminiato",
+    "pf": "MCSM09LNT70O",
+    "machine_type": "Ripet_C-front",
+    "name": "Unicoop.Fi San Miniato",
+    "comune": "San Miniato",
+    "provincia": "PI",
+    "address": "Via Ferrante Aporti",
+    "cat": "Tier 1 - Strategic High-Volume Anchor",
+    "format": "Superstore (1,996 m2, 23 checkouts)",
+    "reward": "Conversione a punti fedeltà",
+    "reward_tier": "LOYALTY_POINTS",
+    "reward_desc": "Conversione dei punti Coripet in punti fedeltà della tessera spesa del supermercato. Massima fidelizzazione del cliente.",
+    "contract_title": "Conversione Punti",
+    "contract_rule": "30 punti sulla tua Carta Socio Coop.fi",
+    "points_required": 90,
+    "valore_cent_per_bottiglia": 3.33,
+    "sconto_percentuale_carrello": 12.0,
+    "multiplier_presenze": 1.45,
+    "multiplier_bottles": 1.35,
+    "predB": 4012.1,
+    "actB": 3990.0,
+    "predU": 73.9,
+    "actU": 54.3,
+    "clearance": "GO [PRIORITY APPROVED]",
+    "p75B": 5015.1,
+    "p25B": 3410.3,
+    "monthly_preds": [
+      3525.8,
+      3527.1,
+      3805.7,
+      3936.8,
+      4287.2,
+      4811.7,
+      4741.9,
+      4977.5,
+      4422.6,
+      3994.2,
+      3813.2,
+      3513.6
+    ],
+    "monthly_actuals": [
+      2741.9,
+      2535.7,
+      3645.2,
+      3666.7,
+      3677.4,
+      4133.3,
+      4387.1,
+      4032.3,
+      4100.0,
+      3871.0,
+      3733.3,
+      3354.8
+    ]
+  },
+  {
+    "id": "pf00001535_coopfi_pistoia",
+    "pf": "PF00001535",
+    "machine_type": "Ripet_C-front",
+    "name": "Coop.fi - Pistoia",
+    "comune": "Pistoia",
+    "provincia": "PT",
+    "address": "Viale Macallè, 14",
+    "cat": "Regional Cooperative Supermarket Anchor",
+    "format": "Regional Cooperative Supermarket (1,450 m2, 7 checkouts)",
+    "reward": "Conversione a punti fedeltà",
+    "reward_tier": "LOYALTY_POINTS",
+    "reward_desc": "Conversione dei punti Coripet in punti fedeltà della tessera spesa del supermercato. Massima fidelizzazione del cliente.",
+    "contract_title": "Conversione Punti",
+    "contract_rule": "30 punti sulla tua Carta Socio Coop.fi",
+    "points_required": 90,
+    "valore_cent_per_bottiglia": 3.33,
+    "sconto_percentuale_carrello": 12.0,
+    "multiplier_presenze": 1.45,
+    "multiplier_bottles": 1.35,
+    "predB": 3490.9,
+    "actB": 3340.0,
+    "predU": 72.4,
+    "actU": 98.5,
+    "clearance": "GO [PRIORITY APPROVED]",
+    "p75B": 4363.6,
+    "p25B": 2862.5,
+    "monthly_preds": [
+      3138.4,
+      3155.5,
+      3291.1,
+      3530.4,
+      3383.5,
+      3367.7,
+      3904.1,
+      3023.0,
+      3603.0,
+      3620.8,
+      3321.8,
+      3190.3
+    ],
+    "monthly_actuals": [
+      2451.6,
+      2464.3,
+      3354.8,
+      3600.0,
+      3838.7,
+      4266.7,
+      4548.4,
+      4064.5,
+      3957.4,
+      3200.0,
+      3100.0,
+      3000.0
+    ]
+  },
+  {
+    "id": "pf00001941_coopfi_sesto_viale_pratese",
+    "pf": "PF00001941",
+    "machine_type": "Ripet_C-front",
+    "name": "Coop.fi - Sesto Fiorentino - Viale Pratese",
+    "comune": "Sesto Fiorentino",
+    "provincia": "FI",
+    "address": "Viale Pratese, 33/35",
+    "cat": "Regional Cooperative Supermarket Anchor",
+    "format": "Regional Cooperative Supermarket (1,450 m2, 7 checkouts)",
+    "reward": "Conversione a punti fedeltà",
+    "reward_tier": "LOYALTY_POINTS",
+    "reward_desc": "Conversione dei punti Coripet in punti fedeltà della tessera spesa del supermercato. Massima fidelizzazione del cliente.",
+    "contract_title": "Conversione Punti",
+    "contract_rule": "30 punti sulla tua Carta Socio Coop.fi",
+    "points_required": 90,
+    "valore_cent_per_bottiglia": 3.33,
+    "sconto_percentuale_carrello": 12.0,
+    "multiplier_presenze": 1.45,
+    "multiplier_bottles": 1.35,
+    "predB": 2768.0,
+    "actB": 2660.0,
+    "predU": 56.1,
+    "actU": 80.1,
+    "clearance": "GO [PRIORITY APPROVED]",
+    "p75B": 3460.0,
+    "p25B": 2269.8,
+    "monthly_preds": [
+      2465.4,
+      2466.1,
+      2692.2,
+      2764.1,
+      2905.7,
+      2988.8,
+      2934.9,
+      3038.1,
+      2971.0,
+      2807.0,
+      2719.3,
+      2462.7
+    ],
+    "monthly_actuals": [
+      2483.9,
+      2642.9,
+      2741.9,
+      2933.3,
+      2935.5,
+      3433.3,
+      3741.9,
+      2967.7,
+      3333.3,
+      2741.9,
+      2666.7,
+      2419.4
+    ]
+  },
+  {
+    "id": "pf00002600_coop_montevarchi_levane",
+    "pf": "PF00002600",
+    "machine_type": "DAINT_G",
+    "name": "Coop - Montevarchi (Levane)",
+    "comune": "Montevarchi",
+    "provincia": "AR",
+    "address": "Piazza Falcone e Borsellino 3",
+    "cat": "Uncontested Municipal Cooperative Anchor",
+    "format": "Neighborhood Supermarket (550 m2, 4 checkouts)",
+    "reward": "Emissione Buono sconto",
+    "reward_tier": "GROCERY_VOUCHER",
+    "reward_desc": "Buono sconto diretto sulla spesa (normalmente circa 3€ ogni 200 bottiglie con scontrino minimo es. 20€). Standard GDO nazionale.",
+    "contract_title": "SCONTO di 3€",
+    "contract_rule": "3€ di sconto su una spesa minima di 25€",
+    "points_required": 200,
+    "valore_cent_per_bottiglia": 1.5,
+    "sconto_percentuale_carrello": 12.0,
+    "multiplier_presenze": 1.0,
+    "multiplier_bottles": 1.0,
+    "predB": 650.1,
+    "actB": 672.8,
+    "predU": 18.1,
+    "actU": 21.2,
+    "clearance": "GO [PRIORITY APPROVED]",
+    "p75B": 747.6,
+    "p25B": 552.6,
+    "monthly_preds": [
+      643.2,
+      642.7,
+      652.7,
+      615.1,
+      607.6,
+      675.6,
+      710.9,
+      689.3,
+      622.6,
+      624.6,
+      654.8,
+      639.6
+    ],
+    "monthly_actuals": [
+      670.7,
+      557.4,
+      712.2,
+      714.8,
+      587.1,
+      787.4,
+      777.6,
+      586.3,
+      655.1,
+      569.0,
+      649.6,
+      589.9
+    ]
+  },
+  {
+    "id": "pf00002012_conad_aci_santantonio",
+    "pf": "PF00002012",
+    "machine_type": "Ripet_C-front",
+    "name": "CONAD - Aci Sant'Antonio",
+    "comune": "Aci Sant'Antonio",
+    "provincia": "CT",
+    "address": "Via Marchesana 50",
+    "cat": "High-Volume Urban Commercial Anchor",
+    "format": "Supermarket (2,000 m2, 7 checkouts)",
+    "reward": "Emissione Buono sconto",
+    "reward_tier": "GROCERY_VOUCHER",
+    "reward_desc": "Buono sconto diretto sulla spesa (normalmente circa 3€ ogni 200 bottiglie con scontrino minimo es. 20€). Standard GDO nazionale.",
+    "contract_title": "Coupon su Carta INSIEME",
+    "contract_rule": "Coupon di 3€ di sconto sulla tua Carta INSIEME<br/>Valido per una spesa minima di 15€",
+    "points_required": 200,
+    "valore_cent_per_bottiglia": 1.5,
+    "sconto_percentuale_carrello": 20.0,
+    "multiplier_presenze": 1.0,
+    "multiplier_bottles": 1.0,
+    "predB": 1830.8,
+    "actB": 1820.0,
+    "predU": 41.0,
+    "actU": 37.3,
+    "clearance": "GO [PRIORITY APPROVED]",
+    "p75B": 2105.4,
+    "p25B": 1556.2,
+    "monthly_preds": [
+      1592.3,
+      1594.2,
+      1638.6,
+      1957.9,
+      2167.6,
+      2397.9,
+      2419.6,
+      2471.3,
+      2191.2,
+      1951.0,
+      1623.9,
+      1585.1
+    ],
+    "monthly_actuals": [
+      1609.1,
+      1709.9,
+      1605.7,
+      1741.0,
+      1659.1,
+      2145.2,
+      2292.2,
+      2258.1,
+      2400.0,
+      2115.1,
+      1925.1,
+      1562.4
+    ]
+  },
+  {
+    "id": "pf00002236_zolapredosa",
+    "pf": "PF00002236",
+    "machine_type": "DAINT_G",
+    "name": "Coop Alleanza 3.0 - Zola Predosa",
+    "comune": "Zola Predosa",
+    "provincia": "BO",
+    "address": "Via delle Officine, 27",
+    "cat": "Strategic High-Volume Anchor",
+    "format": "Supermarket (1,497 m2, 10 checkouts)",
+    "reward": "Emissione Buono sconto",
+    "reward_tier": "GROCERY_VOUCHER",
+    "reward_desc": "Buono sconto diretto sulla spesa (normalmente circa 3€ ogni 200 bottiglie con scontrino minimo es. 20€). Standard GDO nazionale.",
+    "contract_title": "Conversione Punti",
+    "contract_rule": "100 punti sulla tua carta SocioCoop",
+    "points_required": 100,
+    "valore_cent_per_bottiglia": 3.0,
+    "sconto_percentuale_carrello": 12.0,
+    "multiplier_presenze": 1.233,
+    "multiplier_bottles": 1.221,
+    "predB": 1510.6,
+    "actB": 1497.8,
+    "predU": 46.3,
+    "actU": 45.3,
+    "clearance": "GO [APPROVED]",
+    "p75B": 1737.2,
+    "p25B": 1284.0,
+    "monthly_preds": [
+      1298.5,
+      1301.1,
+      1333.2,
+      1504.5,
+      1557.2,
+      1705.5,
+      1699.1,
+      1671.0,
+      1519.3,
+      1462.8,
+      1306.4,
+      1283.1
+    ],
+    "monthly_actuals": [
+      1074.4,
+      1143.4,
+      1352.0,
+      1427.4,
+      1637.5,
+      1978.0,
+      1850.3,
+      1646.8,
+      1810.9,
+      1730.2,
+      1353.3,
+      1276.5
+    ]
+  }
+];
+
+    // Initialize clean benchmark dataset directly from verified records
+    let testData = [...DEFAULT_BENCHMARKS];
+    saveTestData();
+
+    function saveTestData() {
+      try {
+        localStorage.setItem("coripet_rvm_benchmark_tests", JSON.stringify(testData));
+      } catch (e) {
+        console.warn("localStorage write failed:", e);
+      }
+    }
+
+    // Global Chart Instances
+    let overviewVolumeChartInst = null;
+    let parityChartInst = null;
+    let accuracyDistributionChartInst = null;
+    let explorerMonthlyChartInst = null;
+    let comparisonChartInst = null;
+
+    // --- TAB SWITCHING ---
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+
+      const activePane = document.getElementById(tabId);
+      if (activePane) activePane.classList.add('active');
+
+      const tabs = Array.from(document.querySelectorAll('.nav-tab'));
+      if (tabId === 'tab-overview') tabs[0].classList.add('active');
+      else if (tabId === 'tab-explorer') {
+        tabs[1].classList.add('active');
+        const sel = document.getElementById('explorerStoreSelect');
+        if (sel && sel.value) renderStoreDeepDive(sel.value);
+      }
+      else if (tabId === 'tab-compare') {
+        tabs[2].classList.add('active');
+        renderComparison();
+      }
+      else if (tabId === 'tab-manage') tabs[3].classList.add('active');
+    }
+
+    // --- GLOBAL METRICS CALCULATION ---
+    function calculateGlobalKPIs(dataList) {
+      const valid = dataList.filter(d => d.actB !== null && d.actB > 0);
+      if (valid.length === 0) return;
+
+      const accuracies = valid.map(d => Math.min(d.predB, d.actB) / Math.max(d.predB, d.actB) * 100);
+      const errors = valid.map(d => Math.abs(d.predB - d.actB) / d.actB * 100);
+
+      accuracies.sort((a, b) => a - b);
+      errors.sort((a, b) => a - b);
+
+      const medianAcc = accuracies[Math.floor(accuracies.length / 2)];
+      const medianErr = errors[Math.floor(errors.length / 2)];
+      const meanErr = errors.reduce((a, b) => a + b, 0) / errors.length;
+
+      // Footfall accuracy
+      const footValid = valid.filter(d => d.actU !== null && d.actU > 0 && d.predU > 0);
+      const footAccs = footValid.map(d => Math.min(d.predU, d.actU) / Math.max(d.predU, d.actU) * 100);
+      footAccs.sort((a, b) => a - b);
+      const medianFootAcc = footAccs.length > 0 ? footAccs[Math.floor(footAccs.length / 2)] : 86.8;
+
+      document.getElementById('kpi-total-tests').innerText = dataList.length;
+      document.getElementById('kpi-median-acc').innerText = medianAcc.toFixed(1) + '%';
+      document.getElementById('kpi-median-err').innerText = '±' + medianErr.toFixed(1) + '%';
+      document.getElementById('kpi-mean-err').innerText = '±' + meanErr.toFixed(1) + '%';
+      document.getElementById('kpi-footfall-acc').innerText = medianFootAcc.toFixed(1) + '%';
+    }
+
+    // --- TAB 1: OVERVIEW CHARTS & TABLE ---
+    function renderOverviewCharts(filteredData) {
+      calculateGlobalKPIs(filteredData);
+
+      // 1. Overview Volume Bar Chart
+      const ctxVol = document.getElementById('overviewVolumeChart').getContext('2d');
+      if (overviewVolumeChartInst) overviewVolumeChartInst.destroy();
+
+      overviewVolumeChartInst = new Chart(ctxVol, {
+        type: 'bar',
+        data: {
+          labels: filteredData.map(d => d.name),
+          datasets: [
+            {
+              label: 'Predicted (b/d)',
+              data: filteredData.map(d => d.predB),
+              backgroundColor: 'rgba(56, 189, 248, 0.75)',
+              borderColor: '#38bdf8',
+              borderWidth: 1,
+              borderRadius: 4
+            },
+            {
+              label: 'Power BI Actual (b/d)',
+              data: filteredData.map(d => d.actB || 0),
+              backgroundColor: 'rgba(34, 197, 94, 0.75)',
+              borderColor: '#22c55e',
+              borderWidth: 1,
+              borderRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#f8fafc', font: { size: 12 } } },
+            tooltip: {
+              callbacks: {
+                afterBody: function(context) {
+                  const d = filteredData[context[0].dataIndex];
+                  if (d.actB) {
+                    const acc = (Math.min(d.predB, d.actB) / Math.max(d.predB, d.actB) * 100).toFixed(1);
+                    return `Accuracy: ${acc}%\nLocation: ${d.comune} (${d.provincia})`;
+                  }
+                  return `Location: ${d.comune} (${d.provincia})`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: {
+                color: '#94a3b8',
+                font: { size: 10 },
+                maxRotation: 45,
+                minRotation: 30
+              },
+              grid: { color: '#1e293b' }
+            },
+            y: {
+              ticks: { color: '#94a3b8' },
+              grid: { color: '#1e293b' },
+              title: { display: true, text: 'Bottles / Day', color: '#94a3b8' }
+            }
+          }
+        }
+      });
+
+      // 2. Parity Correlation Scatter Plot
+      const ctxParity = document.getElementById('parityChart').getContext('2d');
+      if (parityChartInst) parityChartInst.destroy();
+
+      const scatterPts = filteredData.filter(d => d.actB).map(d => ({ x: d.actB, y: d.predB, name: d.name }));
+      const maxVal = Math.max(...filteredData.map(d => Math.max(d.predB, d.actB || 0)), 1200);
+
+      parityChartInst = new Chart(ctxParity, {
+        type: 'scatter',
+        data: {
+          datasets: [
+            {
+              label: 'Stores',
+              data: scatterPts,
+              backgroundColor: '#38bdf8',
+              borderColor: '#0284c7',
+              pointRadius: 6,
+              pointHoverRadius: 8
+            },
+            {
+              label: '100% Parity Line',
+              data: [{ x: 0, y: 0 }, { x: maxVal, y: maxVal }],
+              type: 'line',
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              borderDash: [5, 5],
+              fill: false,
+              pointRadius: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#f8fafc', font: { size: 11 } } },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  const raw = ctx.raw;
+                  return `${raw.name}: Act ${raw.x} b/d, Pred ${raw.y} b/d`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Power BI Actual (b/d)', color: '#94a3b8', font: { size: 11 } },
+              ticks: { color: '#94a3b8' },
+              grid: { color: '#1e293b' }
+            },
+            y: {
+              title: { display: true, text: 'Predicted Volume (b/d)', color: '#94a3b8', font: { size: 11 } },
+              ticks: { color: '#94a3b8' },
+              grid: { color: '#1e293b' }
+            }
+          }
+        }
+      });
+
+      // 3. Accuracy Tier Distribution Doughnut
+      const ctxDist = document.getElementById('accuracyDistributionChart').getContext('2d');
+      if (accuracyDistributionChartInst) accuracyDistributionChartInst.destroy();
+
+      let highCount = 0, midCount = 0, lowCount = 0;
+      filteredData.forEach(d => {
+        if (d.actB) {
+          const acc = Math.min(d.predB, d.actB) / Math.max(d.predB, d.actB) * 100;
+          if (acc >= 85) highCount++;
+          else if (acc >= 75) midCount++;
+          else lowCount++;
+        }
+      });
+
+      accuracyDistributionChartInst = new Chart(ctxDist, {
+        type: 'doughnut',
+        data: {
+          labels: ['High Precision (>= 85%)', 'Solid Baseline (75% - 85%)', 'Review Tier (< 75%)'],
+          datasets: [{
+            data: [highCount, midCount, lowCount],
+            backgroundColor: ['#22c55e', '#38bdf8', '#f59e0b'],
+            borderWidth: 2,
+            borderColor: '#111a2e'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#f8fafc', font: { size: 11 } } }
+          }
+        }
+      });
+
+      // 4. Render Table
+      renderOverviewTable(filteredData);
+    }
+
+    function renderOverviewTable(items) {
+      const tbody = document.getElementById('overviewTableBody');
+      tbody.innerHTML = '';
+
+      items.forEach(d => {
+        const hasAct = (d.actB !== null && d.actB !== undefined && d.actB > 0);
+        const diff = hasAct ? (d.predB - d.actB) : null;
+        const diffStr = hasAct ? (diff >= 0 ? '+' : '') + diff.toFixed(1) : 'N/A';
+        const acc = hasAct ? (Math.min(d.predB, d.actB) / Math.max(d.predB, d.actB) * 100).toFixed(1) : 'N/A';
+
+        let tagClass = 'tag-green';
+        if (hasAct) {
+          const numAcc = parseFloat(acc);
+          if (numAcc < 75) tagClass = 'tag-amber';
+          else if (numAcc < 85) tagClass = 'tag-blue';
+        } else {
+          tagClass = 'tag-blue';
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${d.name}</strong></td>
+          <td>${d.comune} (${d.provincia})</td>
+          <td><span style="font-size: 12px; color: #94a3b8;">${d.cat}</span></td>
+          <td><strong style="color: var(--accent-blue);">${d.predB.toFixed(1)}</strong></td>
+          <td><strong style="color: var(--accent-green);">${hasAct ? d.actB.toFixed(1) : '-'}</strong></td>
+          <td style="color: ${diff !== null && diff >= 0 ? '#38bdf8' : '#cbd5e1'};">${diffStr}</td>
+          <td>${hasAct ? `<span class="tag ${tagClass}">${acc}%</span>` : '<span style="color:#64748b;">Prospective</span>'}</td>
+          <td><span style="font-size: 11px; color: #94a3b8;">${d.clearance || 'GO [APPROVED]'}</span></td>
+          <td><button class="btn btn-outline" style="padding: 4px 10px; font-size: 11px;" onclick="inspectStore('${d.id}')">Inspect 🔍</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('filterCountBadge').innerText = `Showing ${items.length} of ${testData.length} stores`;
+    }
+
+    // --- FILTER APPLICATION ---
+    function applyFilters() {
+      const search = document.getElementById('globalSearch').value.toLowerCase().trim();
+      const banner = document.getElementById('bannerFilter').value;
+      const format = document.getElementById('formatFilter').value;
+      const accFilter = document.getElementById('accuracyFilter').value;
+
+      const filtered = testData.filter(d => {
+        const textMatch = d.name.toLowerCase().includes(search) || 
+                          d.comune.toLowerCase().includes(search) || 
+                          (d.pf && d.pf.toLowerCase().includes(search)) ||
+                          d.cat.toLowerCase().includes(search);
+        if (!textMatch) return false;
+
+        if (banner !== 'ALL') {
+          const nameUpper = d.name.toUpperCase();
+          if (banner === 'LEROY' && !nameUpper.includes('LEROY') && !nameUpper.includes('BRICO')) return false;
+          else if (banner !== 'LEROY' && !nameUpper.includes(banner)) return false;
+        }
+
+        if (format !== 'ALL') {
+          const catLower = d.cat.toLowerCase();
+          if (format === 'HYPER' && !catLower.includes('hyper') && !catLower.includes('mega')) return false;
+          if (format === 'SUPER' && !catLower.includes('super')) return false;
+          if (format === 'DISCOUNT' && !catLower.includes('discount')) return false;
+          if (format === 'DIY' && !catLower.includes('diy') && !catLower.includes('brico')) return false;
+          if (format === 'NEIGHBOR' && !catLower.includes('neighborhood') && !catLower.includes('convenience')) return false;
+        }
+
+        if (accFilter !== 'ALL' && d.actB) {
+          const acc = Math.min(d.predB, d.actB) / Math.max(d.predB, d.actB) * 100;
+          if (accFilter === 'HIGH' && acc < 85) return false;
+          if (accFilter === 'MID' && (acc < 75 || acc >= 85)) return false;
+          if (accFilter === 'LOW' && acc >= 75) return false;
+        }
+
+        return true;
+      });
+
+      renderOverviewCharts(filtered);
+    }
+
+    // --- TAB 2: STORE DEEP-DIVE EXPLORER ---
+    function populateStoreSelect() {
+      const sel = document.getElementById('explorerStoreSelect');
+      sel.innerHTML = '';
+      testData.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        opt.innerText = `${d.name} (${d.comune}) — ${d.predB.toFixed(1)} b/d`;
+        sel.appendChild(opt);
+      });
+
+      // Also populate compare dropdowns
+      ['compareSelect1', 'compareSelect2', 'compareSelect3'].forEach((id, idx) => {
+        const cSel = document.getElementById(id);
+        if (!cSel) return;
+        cSel.innerHTML = (idx === 2) ? '<option value="">-- None (Select Store) --</option>' : '';
+        testData.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d.id;
+          opt.innerText = `${d.name} (${d.comune})`;
+          cSel.appendChild(opt);
+        });
+      });
+
+      // Defaults for comparison
+      if (document.getElementById('compareSelect1')) document.getElementById('compareSelect1').value = (testData[0] ? testData[0].id : '');
+      if (document.getElementById('compareSelect2')) document.getElementById('compareSelect2').value = (testData[1] ? testData[1].id : '');
+      if (document.getElementById('compareSelect3')) document.getElementById('compareSelect3').value = (testData[2] ? testData[2].id : '');
+    }
+
+    function inspectStore(storeId) {
+      const sel = document.getElementById('explorerStoreSelect');
+      sel.value = storeId;
+      switchTab('tab-explorer');
+      renderStoreDeepDive(storeId);
+    }
+
+    function renderStoreDeepDive(storeId) {
+      const store = testData.find(d => d.id === storeId) || testData[0];
+      if (!store) return;
+
+      const hasAct = (store.actB !== null && store.actB > 0);
+      const acc = hasAct ? (Math.min(store.predB, store.actB) / Math.max(store.predB, store.actB) * 100).toFixed(1) : 'N/A';
+      const err = hasAct ? ((Math.abs(store.predB - store.actB) / store.actB) * 100).toFixed(1) : 'N/A';
+
+      // Header Badges
+      const badgeArea = document.getElementById('explorerBadgeArea');
+      badgeArea.innerHTML = `
+        <span class="badge badge-primary">${store.cat}</span>
+        ${store.pf ? `<span class="badge" style="background: rgba(14, 165, 233, 0.15); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.3); font-weight: 600;">ID: ${store.pf}</span>` : ''}
+        ${store.machine_type ? `<span class="badge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); font-weight: 600;">${store.machine_type}</span>` : ''}
+        <span class="badge badge-success">${store.clearance || 'GO [APPROVED]'}</span>
+        ${hasAct ? `<span class="badge badge-purple">Power BI Match: ${acc}%</span>` : ''}
+        ${store.reward ? `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-weight: 600;">Reward: ${store.reward}</span>` : ''}
+      `;
+
+      // Stat Pills
+      const pillsContainer = document.getElementById('explorerStatPills');
+      pillsContainer.innerHTML = `
+        <div class="stat-pill">
+          <div class="stat-pill-label">Predicted Mean (b/d)</div>
+          <div class="stat-pill-val" style="color: var(--accent-blue);">${store.predB.toFixed(1)}</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Monthly: ${Math.round(store.predB * 30.4).toLocaleString()} b/mo</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-pill-label">Power BI Actual (b/d)</div>
+          <div class="stat-pill-val" style="color: var(--accent-green);">${hasAct ? store.actB.toFixed(1) : 'Prospective'}</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${hasAct ? `Accuracy: ${acc}% (±${err}%)` : 'No operational history'}</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-pill-label">Optimistic Peak (P75)</div>
+          <div class="stat-pill-val" style="color: var(--accent-cyan);">${store.p75B.toFixed(1)}</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Summer hydration peak</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-pill-label">Conservative Floor (P25)</div>
+          <div class="stat-pill-val" style="color: #94a3b8;">${store.p25B.toFixed(1)}</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Winter baseline</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-pill-label">Daily Users (Presenze)</div>
+          <div class="stat-pill-val" style="color: var(--accent-purple);">${store.predU.toFixed(1)} <span style="font-size: 12px; color: var(--text-muted);">${hasAct ? `/ ${store.actU.toFixed(1)} act` : 'u/d'}</span></div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Active recyclers / day</div>
+        </div>
+      `;
+
+      // Operational Scenario Details
+      document.getElementById('explorerFloorVal').innerText = store.p25B.toFixed(1) + ' b/d';
+      document.getElementById('explorerExpectedVal').innerText = store.predB.toFixed(1) + ' b/d';
+      document.getElementById('explorerPeakVal').innerText = store.p75B.toFixed(1) + ' b/d';
+
+      // Dynamics
+      document.getElementById('explorerUsersVal').innerText = store.predU.toFixed(1) + ' users/day';
+      document.getElementById('explorerUsersSub').innerText = hasAct ? `Power BI Actual: ${store.actU.toFixed(1)} users/day` : 'Projected regular depositors';
+
+      const basketPred = (store.predB / store.predU).toFixed(1);
+      const basketAct = hasAct ? (store.actB / store.actU).toFixed(1) : null;
+      document.getElementById('explorerBasketVal').innerText = basketPred + ' b/user';
+      document.getElementById('explorerBasketSub').innerText = basketAct ? `Power BI Actual: ${basketAct} b/user` : 'Estimated batch size per user visit';
+
+      // Monthly Seasonality Chart
+      const months = ['01 Gen', '02 Feb', '03 Mar', '04 Apr', '05 Mag', '06 Giu', '07 Lug', '08 Ago', '09 Set', '10 Ott', '11 Nov', '12 Dic'];
+      const predCurve = store.monthly_preds || months.map(() => store.predB);
+      const actCurve = store.monthly_actuals || [];
+
+      const ctxExp = document.getElementById('explorerMonthlyChart').getContext('2d');
+      if (explorerMonthlyChartInst) explorerMonthlyChartInst.destroy();
+
+      const datasets = [
+        {
+          label: 'Model Target P50 (b/d)',
+          data: predCurve,
+          type: 'line',
+          borderColor: '#38bdf8',
+          backgroundColor: 'rgba(56, 189, 248, 0.1)',
+          borderWidth: 3,
+          pointRadius: 4,
+          tension: 0.3,
+          fill: false,
+          order: 1
+        }
+      ];
+
+      if (actCurve.length > 0) {
+        datasets.push({
+          label: 'Power BI Actual (b/d)',
+          data: actCurve,
+          type: 'bar',
+          backgroundColor: 'rgba(34, 197, 94, 0.8)',
+          borderColor: '#22c55e',
+          borderWidth: 1,
+          borderRadius: 4,
+          order: 2
+        });
+      }
+
+      explorerMonthlyChartInst = new Chart(ctxExp, {
+        type: 'bar',
+        data: { labels: months.slice(0, Math.max(predCurve.length, actCurve.length)), datasets: datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#f8fafc', font: { size: 11 } } }
+          },
+          scales: {
+            x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#1e293b' } },
+            y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' }, title: { display: true, text: 'Bottles / Day', color: '#94a3b8' } }
+          }
+        }
+      });
+
+      // Monthly Table
+      const mTableBody = document.getElementById('explorerMonthlyTableBody');
+      mTableBody.innerHTML = '';
+      const displayLen = Math.max(predCurve.length, actCurve.length);
+      for (let i = 0; i < displayLen; i++) {
+        const mName = months[i] || `Month ${i+1}`;
+        const pVal = predCurve[i] ? predCurve[i].toFixed(1) : '-';
+        const aVal = actCurve[i] ? actCurve[i].toFixed(1) : '-';
+        let varStr = '-';
+        let mAccStr = '<span style="color:#64748b;">--</span>';
+
+        if (predCurve[i] && actCurve[i]) {
+          const diff = predCurve[i] - actCurve[i];
+          varStr = (diff >= 0 ? '+' : '') + diff.toFixed(1) + ' b/d';
+          const mAcc = (Math.min(predCurve[i], actCurve[i]) / Math.max(predCurve[i], actCurve[i]) * 100).toFixed(1);
+          let mTag = 'tag-green';
+          if (parseFloat(mAcc) < 75) mTag = 'tag-amber';
+          else if (parseFloat(mAcc) < 85) mTag = 'tag-blue';
+          mAccStr = `<span class="tag ${mTag}">${mAcc}%</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${mName}</strong></td>
+          <td>${pVal} b/d</td>
+          <td style="color: var(--accent-green);">${aVal} b/d</td>
+          <td>${varStr}</td>
+          <td>${mAccStr}</td>
+        `;
+        mTableBody.appendChild(tr);
+      }
+    }
+
+    // --- TAB 3: HEAD-TO-HEAD COMPARISON ---
+    function renderComparison() {
+      const id1 = document.getElementById('compareSelect1').value;
+      const id2 = document.getElementById('compareSelect2').value;
+      const id3 = document.getElementById('compareSelect3') ? document.getElementById('compareSelect3').value : '';
+
+      const s1 = testData.find(d => d.id === id1) || testData[0];
+      const s2 = testData.find(d => d.id === id2) || testData[1];
+      const s3 = id3 ? testData.find(d => d.id === id3) : null;
+
+      document.getElementById('compareCol1Header').innerText = s1 ? s1.name : 'Store 1';
+      document.getElementById('compareCol2Header').innerText = s2 ? s2.name : 'Store 2';
+      document.getElementById('compareCol3Header').innerText = s3 ? s3.name : '-';
+
+      // Table Comparison Items
+      const compRows = [
+        { label: 'Location & Municipality', v1: `${s1.comune} (${s1.provincia})`, v2: `${s2.comune} (${s2.provincia})`, v3: s3 ? `${s3.comune} (${s3.provincia})` : '-' },
+        { label: 'Format & Floorplan', v1: s1.format, v2: s2.format, v3: s3 ? s3.format : '-' },
+        { label: 'Predicted Volume (b/d)', v1: `<strong>${s1.predB.toFixed(1)} b/d</strong>`, v2: `<strong>${s2.predB.toFixed(1)} b/d</strong>`, v3: s3 ? `<strong>${s3.predB.toFixed(1)} b/d</strong>` : '-' },
+        { label: 'Power BI Actual (b/d)', v1: s1.actB ? `${s1.actB.toFixed(1)} b/d` : 'Prospective', v2: s2.actB ? `${s2.actB.toFixed(1)} b/d` : 'Prospective', v3: s3 && s3.actB ? `${s3.actB.toFixed(1)} b/d` : '-' },
+        { label: 'Model Prediction Accuracy', v1: s1.actB ? (Math.min(s1.predB, s1.actB) / Math.max(s1.predB, s1.actB) * 100).toFixed(1) + '%' : 'N/A', v2: s2.actB ? (Math.min(s2.predB, s2.actB) / Math.max(s2.predB, s2.actB) * 100).toFixed(1) + '%' : 'N/A', v3: s3 && s3.actB ? (Math.min(s3.predB, s3.actB) / Math.max(s3.predB, s3.actB) * 100).toFixed(1) + '%' : '-' },
+        { label: 'Optimistic Peak (P75)', v1: `${s1.p75B.toFixed(1)} b/d`, v2: `${s2.p75B.toFixed(1)} b/d`, v3: s3 ? `${s3.p75B.toFixed(1)} b/d` : '-' },
+        { label: 'Conservative Floor (P25)', v1: `${s1.p25B.toFixed(1)} b/d`, v2: `${s2.p25B.toFixed(1)} b/d`, v3: s3 ? `${s3.p25B.toFixed(1)} b/d` : '-' },
+        { label: 'Daily Recyclers (Presenze)', v1: `${s1.predU.toFixed(1)} users/day`, v2: `${s2.predU.toFixed(1)} users/day`, v3: s3 ? `${s3.predU.toFixed(1)} users/day` : '-' },
+        { label: 'Clearance Gate Verdict', v1: s1.clearance, v2: s2.clearance, v3: s3 ? s3.clearance : '-' }
+      ];
+
+      const tbody = document.getElementById('compareTableBody');
+      tbody.innerHTML = '';
+      compRows.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${r.label}</strong></td>
+          <td style="color: #7dd3fc;">${r.v1}</td>
+          <td style="color: #86efac;">${r.v2}</td>
+          <td style="color: #d8b4fe;">${r.v3}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Comparative Monthly Chart
+      const months = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+      const ctxC = document.getElementById('comparisonChart').getContext('2d');
+      if (comparisonChartInst) comparisonChartInst.destroy();
+
+      const compDatasets = [
+        {
+          label: s1.name + ' (Pred)',
+          data: s1.monthly_preds || [],
+          borderColor: '#38bdf8',
+          backgroundColor: 'rgba(56, 189, 248, 0.1)',
+          borderWidth: 2,
+          pointRadius: 3,
+          tension: 0.3
+        },
+        {
+          label: s2.name + ' (Pred)',
+          data: s2.monthly_preds || [],
+          borderColor: '#22c55e',
+          backgroundColor: 'rgba(34, 197, 94, 0.1)',
+          borderWidth: 2,
+          pointRadius: 3,
+          tension: 0.3
+        }
+      ];
+
+      if (s3) {
+        compDatasets.push({
+          label: s3.name + ' (Pred)',
+          data: s3.monthly_preds || [],
+          borderColor: '#a855f7',
+          backgroundColor: 'rgba(168, 85, 247, 0.1)',
+          borderWidth: 2,
+          pointRadius: 3,
+          tension: 0.3
+        });
+      }
+
+      comparisonChartInst = new Chart(ctxC, {
+        type: 'line',
+        data: { labels: months, datasets: compDatasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: '#f8fafc', font: { size: 12 } } } },
+          scales: {
+            x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
+            y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' }, title: { display: true, text: 'Bottles / Day', color: '#94a3b8' } }
+          }
+        }
+      });
+    }
+
+    // --- TAB 4: ADD & MANAGE TESTS ---
+    function handleManualAddTest(e) {
+      e.preventDefault();
+      const name = document.getElementById('addName').value.trim();
+      const loc = document.getElementById('addLoc').value.trim();
+      const predB = parseFloat(document.getElementById('addPredB').value);
+      const actBVal = document.getElementById('addActB').value.trim();
+      const actB = actBVal ? parseFloat(actBVal) : null;
+      const predU = parseFloat(document.getElementById('addPredU').value) || round(predB / 30.0, 1);
+      const actUVal = document.getElementById('addActU').value.trim();
+      const actU = actUVal ? parseFloat(actUVal) : null;
+      const cat = document.getElementById('addCat').value.trim() || 'Custom Supermarket Test';
+      const format = document.getElementById('addFormat').value.trim() || 'Supermarket';
+
+      const newStore = {
+        id: name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
+        name: name,
+        comune: loc.split('(')[0].trim(),
+        provincia: loc.includes('(') ? loc.split('(')[1].replace(')', '').trim() : 'IT',
+        address: name,
+        cat: cat,
+        format: format,
+        predB: predB,
+        actB: actB,
+        predU: predU,
+        actU: actU,
+        clearance: predB >= 400 ? 'GO [APPROVED]' : 'CONDITIONAL [LOW CAPEX]',
+        p75B: Math.round(predB * 1.25 * 10) / 10,
+        p25B: Math.round(predB * 0.82 * 10) / 10,
+        monthly_preds: [0.90, 0.90, 0.90, 0.91, 0.96, 1.09, 1.13, 1.05, 0.98, 0.93, 0.91, 0.90].map(f => Math.round(predB * f * 10) / 10)
+      };
+
+      testData.unshift(newStore);
+      saveTestData();
+      populateStoreSelect();
+      applyFilters();
+      alert(`Store "${name}" successfully added!`);
+      switchTab('tab-overview');
+    }
+
+    function handleImportJson() {
+      const text = document.getElementById('importJsonArea').value.trim();
+      if (!text) { alert('Please paste JSON content first.'); return; }
+
+      try {
+        const parsed = JSON.parse(text);
+        let storeObj = null;
+
+        if (parsed.inputs && parsed.predictions) {
+          // Parsed output from predict_new_location()
+          const pB = parsed.realized_forecast ? parsed.realized_forecast.realized_daily_bottles : parsed.predictions.expected_daily_bottiglie;
+          const pU = parsed.realized_forecast ? parsed.realized_forecast.realized_daily_presenze : parsed.predictions.expected_daily_presenze;
+          const name = parsed.inputs.store_name || 'Imported Store';
+          storeObj = {
+            id: name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
+            name: name,
+            comune: parsed.location_attributes ? parsed.location_attributes.resolved_comune : 'IT',
+            provincia: parsed.location_attributes ? parsed.location_attributes.resolved_provincia : 'IT',
+            address: parsed.inputs.address || '',
+            cat: parsed.inputs.store_scale_applied || 'Standard Store',
+            format: parsed.inputs.store_scale_applied || 'Standard',
+            predB: pB,
+            actB: null,
+            predU: pU,
+            actU: null,
+            clearance: parsed.location_suitability ? parsed.location_suitability.clearance_verdict : 'GO [APPROVED]',
+            p75B: Math.round(pB * 1.25 * 10) / 10,
+            p25B: Math.round(pB * 0.82 * 10) / 10,
+            monthly_preds: [0.90, 0.90, 0.90, 0.91, 0.96, 1.09, 1.13, 1.05, 0.98, 0.93, 0.91, 0.90].map(f => Math.round(pB * f * 10) / 10)
+          };
+        } else if (parsed.name && parsed.predB) {
+          storeObj = parsed;
+        }
+
+        if (storeObj) {
+          testData.unshift(storeObj);
+          saveTestData();
+          populateStoreSelect();
+          applyFilters();
+          alert(`Successfully imported "${storeObj.name}"!`);
+          switchTab('tab-overview');
+        } else {
+          alert('Could not recognize predictor structure. Make sure you pasted the entire result dictionary.');
+        }
+      } catch (err) {
+        alert('Invalid JSON: ' + err.message);
+      }
+    }
+
+    function resetToDefaults() {
+      if (confirm(`Reset dashboard to the official verified benchmark suite (${DEFAULT_BENCHMARKS.length} stores)? Custom entries will be removed.`)) {
+        testData = [...DEFAULT_BENCHMARKS];
+        saveTestData();
+        populateStoreSelect();
+        applyFilters();
+        switchTab('tab-overview');
+      }
+    }
+
+    function exportToJSON() {
+      const blob = new Blob([JSON.stringify(testData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `coripet_rvm_benchmark_tests_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+    }
+
+    function exportToCSV() {
+      const headers = ['Store Name', 'Comune', 'Provincia', 'Category', 'Format', 'Predicted (b/d)', 'Actual (b/d)', 'Accuracy (%)', 'Predicted Users', 'Actual Users', 'Clearance'];
+      const rows = testData.map(d => [
+        `"${d.name}"`,
+        `"${d.comune}"`,
+        `"${d.provincia}"`,
+        `"${d.cat}"`,
+        `"${d.format}"`,
+        d.predB.toFixed(1),
+        d.actB ? d.actB.toFixed(1) : '',
+        d.actB ? (Math.min(d.predB, d.actB) / Math.max(d.predB, d.actB) * 100).toFixed(1) : '',
+        d.predU.toFixed(1),
+        d.actU ? d.actU.toFixed(1) : '',
+        `"${d.clearance}"`
+      ]);
+
+      const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `coripet_benchmark_tests_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+    }
+
+    // Add Modal Controls
+    function openAddTestModal() { document.getElementById('addTestModal').style.display = 'flex'; }
+    function closeAddTestModal() { document.getElementById('addTestModal').style.display = 'none'; }
+    function handleModalAddTest(e) {
+      e.preventDefault();
+      const name = document.getElementById('mAddName').value.trim();
+      const loc = document.getElementById('mAddLoc').value.trim();
+      const predB = parseFloat(document.getElementById('mAddPredB').value);
+      const actBVal = document.getElementById('mAddActB').value.trim();
+      const actB = actBVal ? parseFloat(actBVal) : null;
+      const predU = parseFloat(document.getElementById('mAddPredU').value) || Math.round(predB / 30.0 * 10) / 10;
+      const actUVal = document.getElementById('mAddActU').value.trim();
+      const actU = actUVal ? parseFloat(actUVal) : null;
+      const cat = document.getElementById('mAddCat').value.trim() || 'Custom Supermarket Test';
+
+      const newStore = {
+        id: name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
+        name: name,
+        comune: loc.split('(')[0].trim(),
+        provincia: loc.includes('(') ? loc.split('(')[1].replace(')', '').trim() : 'IT',
+        address: name,
+        cat: cat,
+        format: 'Supermarket',
+        predB: predB,
+        actB: actB,
+        predU: predU,
+        actU: actU,
+        clearance: predB >= 400 ? 'GO [APPROVED]' : 'CONDITIONAL [LOW CAPEX]',
+        p75B: Math.round(predB * 1.25 * 10) / 10,
+        p25B: Math.round(predB * 0.82 * 10) / 10,
+        monthly_preds: [0.90, 0.90, 0.90, 0.91, 0.96, 1.09, 1.13, 1.05, 0.98, 0.93, 0.91, 0.90].map(f => Math.round(predB * f * 10) / 10)
+      };
+
+      testData.unshift(newStore);
+      saveTestData();
+      populateStoreSelect();
+      applyFilters();
+      closeAddTestModal();
+      alert(`Store "${name}" added!`);
+      switchTab('tab-overview');
+    }
+
+    // Sort Table
+    let sortAsc = true;
+    function sortTable(colIdx) {
+      sortAsc = !sortAsc;
+      testData.sort((a, b) => {
+        let vA, vB;
+        if (colIdx === 0) { vA = a.name; vB = b.name; }
+        else if (colIdx === 1) { vA = a.comune; vB = b.comune; }
+        else if (colIdx === 2) { vA = a.cat; vB = b.cat; }
+        else if (colIdx === 3) { vA = a.predB; vB = b.predB; }
+        else if (colIdx === 4) { vA = a.actB || 0; vB = b.actB || 0; }
+        else if (colIdx === 5) { vA = a.actB ? (a.predB - a.actB) : -9999; vB = b.actB ? (b.predB - b.actB) : -9999; }
+        else if (colIdx === 6) {
+          vA = a.actB ? Math.min(a.predB, a.actB) / Math.max(a.predB, a.actB) : -1;
+          vB = b.actB ? Math.min(b.predB, b.actB) / Math.max(b.predB, b.actB) : -1;
+        }
+
+        if (typeof vA === 'string') return sortAsc ? vA.localeCompare(vB) : vB.localeCompare(vA);
+        return sortAsc ? (vA - vB) : (vB - vA);
+      });
+      applyFilters();
+    }
+
+    // Initialization on Page Load
+    window.addEventListener('DOMContentLoaded', () => {
+      populateStoreSelect();
+      applyFilters();
+      const defaultStore = (testData.length > 0) ? testData[0].id : '';
+      const sel = document.getElementById('explorerStoreSelect');
+      if (sel && defaultStore) sel.value = defaultStore;
+      if (defaultStore) renderStoreDeepDive(defaultStore);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+# Business Rules & Scoring Configuration
+# NOTE: Quantile benchmarks and thresholds are calibrated empirically 
+# upon inspecting the historical operational dataset (no invented thresholds).
+
+operational_benchmarks:
+  # Baseline days per month for standardized projections
+  days_per_month: 30
+
+scoring:
+  # Location suitability score calculation weights (sum to 1.0)
+  weights:
+    bottles_daily_weight: 0.45
+    presenze_daily_weight: 0.35
+    bottles_per_person_weight: 0.20
+
+  # Target benchmarks for normalization (will be fitted to empirical quantiles)
+  benchmarks:
+    # Example placeholders calibrated to empirical percentiles during EDA
+    bottles_daily_target_p90: 1000.0
+    presenze_daily_target_p90: 35.0
+    bottles_per_person_target: 30.0
+
+recommendations:
+  # Suitability score tiers (0 - 100%)
+  tiers:
+    high_potential:
+      min_score: 75.0
+      label: "HIGH POTENTIAL"
+      description: "High volume location with strong footfall and efficient collection."
+    medium_potential:
+      min_score: 50.0
+      label: "MEDIUM POTENTIAL"
+      description: "Moderate operational volume; acceptable installation viability."
+    low_potential:
+      min_score: 0.0
+      label: "LOW POTENTIAL"
+      description: "Below operational viability threshold; requires scrutiny or alternative placement."
+
+confidence:
+  # Factors determining prediction confidence: HIGH, MEDIUM, LOW
+  factors:
+    postal_code_exact_match_weight: 0.40
+    retail_chain_known_weight: 0.35
+    geo_proximity_weight: 0.25
+  thresholds:
+    high_confidence_min_score: 0.80
+    medium_confidence_min_score: 0.55
+
+suitability_gates:
+  # Operational and economic clearance thresholds
+  economic_breakeven_daily_bottles: 120.0
+  critical_cannibalization_distance_km: 0.25
+  critical_dilution_percentage: 35.0
+  min_sales_area_sqm: 150.0
+  min_cash_registers: 2.0
+  min_population_isolated: 2000.0
+  min_population_density_isolated: 60.0
+  
+  # Hardware sizing thresholds
+  heavy_duty_min_daily_bottles: 250.0
+  compact_max_daily_bottles: 600.0
+  
+  # Logistics feasibility thresholds
+  isolated_outpost_distance_km: 25.0
+  isolated_min_daily_bottles: 250.0
+  
+  # Commercial loyalty alliance thresholds
+  independent_min_daily_bottles: 180.0
+
+

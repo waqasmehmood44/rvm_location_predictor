@@ -1,0 +1,71 @@
+# Master Configuration for Coripet RVM Prediction System
+
+project:
+  name: "Coripet_RVM_Predictor"
+  version: "1.0.0"
+  random_seed: 42
+
+paths:
+  raw_operational: "data/raw/daily_bottles.csv"
+  raw_store_master: "data/raw/CaricaViewStoricoPuntoFisico.csv"
+  processed_data: "data/processed/modeling_daily_rvm.parquet"
+  model_checkpoint_dir: "models/best_model"
+  preprocessor_dir: "models/preprocessing"
+  business_rules: "configs/business_rules.yaml"
+
+data_schema:
+  # Linking keys between datasets
+  operational_key: "PF"
+  store_master_key: "PuntoFisico"
+  date_column: "GIORNO"
+  
+  # Target variables to predict simultaneously
+  targets:
+    - "PRESENZE"   # Number of unique people using the RVM per day
+    - "BOTTIGLIE"   # Number of PET bottles collected per day
+
+  # Input features realistically available when evaluating a brand-new store location
+  inference_inputs:
+    - "store_name"    # e.g., 'Esselunga Milano Certosa'
+    - "address"       # e.g., 'Via delle Forze Armate 12'
+    - "postal_code"   # 5-digit Italian CAP, e.g., '20147'
+    - "machine_type"  # e.g., 'Aneco Super', 'Eurven City'
+
+  # Categorical features for neural network entity embeddings
+  categorical_features:
+    - "retail_chain"
+    - "tipo_macchina"
+    - "provincia"
+    - "regione"
+    - "cap"
+
+  # Continuous / Numerical features
+  numerical_features:
+    - "latitudine"
+    - "longitudine"
+
+validation:
+  strategy: "time_and_group_split"  # Time-aware validation combined with GroupKFold on store (PF)
+  test_size_days: 90                # Out-of-time evaluation period in days
+  n_splits: 5
+  gap_days: 0
+
+training:
+  batch_size: 64
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  max_epochs: 100
+  patience: 12                      # Early stopping patience
+  min_delta: 0.001
+  loss_presenze_weight: 0.5
+  loss_bottiglie_weight: 0.5
+
+model:
+  architecture: "MultiTaskTabularNN"
+  shared_hidden_layers: [128, 64]
+  presenze_head_layers: [32, 16]
+  bottiglie_head_layers: [32, 16]
+  dropout_rate: 0.2
+  activation: "GELU"
+  use_batch_norm: true
+  embedding_dropout: 0.1

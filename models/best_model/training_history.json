@@ -1,0 +1,87 @@
+{
+  "split_info": {
+    "train_rows": 890395,
+    "val_rows": 215445,
+    "test_rows": 290704,
+    "train_pfs": 1061,
+    "val_pfs": 265,
+    "test_pfs": 331,
+    "total_rows": 1396544,
+    "total_pfs": 1657,
+    "seed": 42
+  },
+  "total_params": 73147,
+  "best_epoch": 1,
+  "best_val_loss": 0.876,
+  "total_train_time_min": 4.49,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 1.3632,
+      "train_loss_bottiglie": 1.017,
+      "train_loss_presenze": 0.3461,
+      "val_loss": 0.876,
+      "val_loss_bottiglie": 0.5941,
+      "val_loss_presenze": 0.2818,
+      "lr": 0.001,
+      "duration_sec": 56.4
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.7846,
+      "train_loss_bottiglie": 0.5526,
+      "train_loss_presenze": 0.232,
+      "val_loss": 0.8869,
+      "val_loss_bottiglie": 0.5963,
+      "val_loss_presenze": 0.2906,
+      "lr": 0.001,
+      "duration_sec": 52.8
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.7368,
+      "train_loss_bottiglie": 0.5235,
+      "train_loss_presenze": 0.2133,
+      "val_loss": 0.8993,
+      "val_loss_bottiglie": 0.6035,
+      "val_loss_presenze": 0.2958,
+      "lr": 0.001,
+      "duration_sec": 39.9
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.7142,
+      "train_loss_bottiglie": 0.509,
+      "train_loss_presenze": 0.2052,
+      "val_loss": 0.8981,
+      "val_loss_bottiglie": 0.6034,
+      "val_loss_presenze": 0.2947,
+      "lr": 0.001,
+      "duration_sec": 39.7
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.7001,
+      "train_loss_bottiglie": 0.4997,
+      "train_loss_presenze": 0.2003,
+      "val_loss": 0.8974,
+      "val_loss_bottiglie": 0.6024,
+      "val_loss_presenze": 0.295,
+      "lr": 0.0005,
+      "duration_sec": 39.4
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.6946,
+      "train_loss_bottiglie": 0.4962,
+      "train_loss_presenze": 0.1984,
+      "val_loss": 0.8961,
+      "val_loss_bottiglie": 0.6019,
+      "val_loss_presenze": 0.2942,
+      "lr": 0.0005,
+      "duration_sec": 41.2
+    }
+  ],
+  "weight_bottiglie": 1.0,
+  "weight_presenze": 1.0
+}

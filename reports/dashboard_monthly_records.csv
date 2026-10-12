@@ -1,0 +1,241 @@
+store_name,punto_fisico,comune,provincia,month_num,month_name,days_in_month,pred_bottles_day,actual_bottles_day,diff_bottles_day,pct_error_bottles,accuracy_bottles_pct,pred_monthly_total,actual_monthly_total,pred_presenze_day,actual_presenze_day,pred_presenze_total,actual_presenze_total,operational_context
+CONAD Gaggi,PF00002794,Gaggi,ME,1,01_Gennaio,31,127.2,118.13,9.07,7.7,92.3,3943,3662,7.2,4.45,223,138,Winter baseline / off-peak
+CONAD Gaggi,PF00002794,Gaggi,ME,2,02_Febbraio,28,127.2,123.25,3.95,3.2,96.8,3562,3451,7.2,4.96,202,139,Short winter cycle
+CONAD Gaggi,PF00002794,Gaggi,ME,3,03_Marzo,31,124.4,124.52,-0.12,-0.1,99.9,3856,3860,7.2,5.03,223,156,Early spring resumption
+CONAD Gaggi,PF00002794,Gaggi,ME,4,04_Aprile,30,134.9,153.63,-18.73,-12.2,87.8,4047,4609,7.2,6.03,216,181,Spring baseline
+CONAD Gaggi,PF00002794,Gaggi,ME,5,05_Maggio,31,146.5,122.0,24.5,20.1,79.9,4542,3782,7.2,4.65,223,144,Late spring ramp-up
+CONAD Gaggi,PF00002794,Gaggi,ME,6,06_Giugno,30,192.2,175.77,16.43,9.3,90.7,5766,5273,7.2,5.87,216,176,Early summer hydration ramp
+CONAD Gaggi,PF00002794,Gaggi,ME,7,07_Luglio,31,223.2,239.65,-16.45,-6.9,93.1,6919,7429,7.2,6.87,223,213,Summer peak hydration
+CONAD Gaggi,PF00002794,Gaggi,ME,8,08_Agosto,31,209.5,248.19,-38.69,-15.6,84.4,6494,7694,7.2,6.32,223,196,Mid-summer holiday rhythm
+CONAD Gaggi,PF00002794,Gaggi,ME,9,09_Settembre,30,163.1,242.2,-79.1,-32.7,67.3,4893,7266,7.2,6.9,216,207,Extended Sicilian late summer
+CONAD Gaggi,PF00002794,Gaggi,ME,10,10_Ottobre,31,145.9,135.0,10.9,8.1,91.9,4523,4185,7.2,5.0,223,155,Autumn steady-state
+CONAD Gaggi,PF00002794,Gaggi,ME,11,11_Novembre,30,129.6,111.43,18.17,16.3,83.7,3888,3343,7.2,4.97,216,149,Late autumn transition
+CONAD Gaggi,PF00002794,Gaggi,ME,12,12_Dicembre,31,127.2,111.77,15.43,13.8,86.2,3943,3465,7.2,4.19,223,130,Holiday shopping period
+CONAD Santa Croce sull'Arno,PF00002450,Santa Croce sull'Arno,PI,1,01_Gennaio,31,865.0,743.71,121.29,16.3,83.7,26815,23055,27.2,17.45,843,541,Winter baseline / off-peak
+CONAD Santa Croce sull'Arno,PF00002450,Santa Croce sull'Arno,PI,2,02_Febbraio,28,865.5,956.64,-91.14,-9.5,90.5,24234,26786,27.2,21.57,762,604,Short winter cycle
+CONAD Santa Croce sull'Arno,PF00002450,Santa Croce sull'Arno,PI,3,03_Marzo,31,873.5,878.32,-4.82,-0.5,99.5,27078,27228,27.2,19.58,843,607,Early spring resumption
+CONAD Santa Croce sull'Arno,PF00002450,Santa Croce sull'Arno,PI,4,04_Aprile,30,928.9,878.4,50.5,5.7,94.3,27867,26352,27.2,21.07,816,632,Spring baseline
+CONAD Santa Croce sull'Arno,PF00002450,Santa Croce sull'Arno,PI,5,05_Maggio,31,966.8,750.35,216.45,28.8,71.2,29971,23261,27.2,17.61,843,546,Late spring ramp-up
+CONAD Santa Croce sull'Arno,PF00002450,Santa Croce sull'Arno,PI,6,06_Giugno,30,1050.6,990.53,60.07,6.1,93.9,31518,29716,27.2,20.07,816,602,Early summer hydration ramp
+CONAD Santa Croce sull'Arno,PF00002450,Santa Croce sull'Arno,PI,7,07_Luglio,31,1121.3,898.65,222.65,24.8,75.2,34760,27858,27.2,18.55,843,575,Summer peak hydration
+CONAD Santa Croce sull'Arno,PF00002450,Santa Croce sull'Arno,PI,8,08_Agosto,31,1073.3,733.81,339.49,46.3,53.7,33272,22748,27.2,16.45,843,510,Industrial holiday pause
+CONAD Santa Croce sull'Arno,PF00002450,Santa Croce sull'Arno,PI,9,09_Settembre,30,984.7,907.17,77.53,8.5,91.5,29541,27215,27.2,20.4,816,612,School / work return
+CONAD Santa Croce sull'Arno,PF00002450,Santa Croce sull'Arno,PI,10,10_Ottobre,31,941.6,860.16,81.44,9.5,90.5,29190,26665,27.2,19.2,843,595,Autumn steady-state
+CONAD Santa Croce sull'Arno,PF00002450,Santa Croce sull'Arno,PI,11,11_Novembre,30,878.1,840.0,38.1,4.5,95.5,26343,25200,27.2,18.5,816,555,Late autumn transition
+CONAD Santa Croce sull'Arno,PF00002450,Santa Croce sull'Arno,PI,12,12_Dicembre,31,864.3,860.0,4.3,0.5,99.5,26793,26660,27.2,19.5,843,605,Holiday shopping period
+Bennet Villanova Monferrato,PF00002016,Villanova Monferrato,AL,1,01_Gennaio,31,236.7,207.23,29.47,14.2,85.8,7338,6424,6.8,4.77,211,148,Winter baseline / off-peak
+Bennet Villanova Monferrato,PF00002016,Villanova Monferrato,AL,2,02_Febbraio,28,236.8,269.86,-33.06,-12.3,87.7,6630,7556,6.8,5.21,190,146,Short winter cycle
+Bennet Villanova Monferrato,PF00002016,Villanova Monferrato,AL,3,03_Marzo,31,242.4,226.1,16.3,7.2,92.8,7514,7009,6.8,4.65,211,144,Early spring resumption
+Bennet Villanova Monferrato,PF00002016,Villanova Monferrato,AL,4,04_Aprile,30,269.4,249.7,19.7,7.9,92.1,8082,7491,6.8,5.6,204,168,Spring baseline
+Bennet Villanova Monferrato,PF00002016,Villanova Monferrato,AL,5,05_Maggio,31,290.0,287.55,2.45,0.9,99.1,8990,8914,6.8,6.0,211,186,Late spring ramp-up
+Bennet Villanova Monferrato,PF00002016,Villanova Monferrato,AL,6,06_Giugno,30,338.0,351.1,-13.1,-3.7,96.3,10140,10533,6.8,6.77,204,203,Early summer hydration ramp
+Bennet Villanova Monferrato,PF00002016,Villanova Monferrato,AL,7,07_Luglio,31,349.9,358.74,-8.84,-2.5,97.5,10847,11121,6.8,6.48,211,201,Summer peak hydration
+Bennet Villanova Monferrato,PF00002016,Villanova Monferrato,AL,8,08_Agosto,31,344.1,292.13,51.97,17.8,82.2,10667,9056,6.8,6.55,211,203,Mid-summer holiday rhythm
+Bennet Villanova Monferrato,PF00002016,Villanova Monferrato,AL,9,09_Settembre,30,297.9,372.2,-74.3,-20.0,80.0,8937,11166,6.8,7.57,204,227,School / work return
+Bennet Villanova Monferrato,PF00002016,Villanova Monferrato,AL,10,10_Ottobre,31,272.5,390.0,-117.5,-30.1,69.9,8448,390,6.8,7.0,211,7,Autumn steady-state (partial observation)
+Bennet Villanova Monferrato,PF00002016,Villanova Monferrato,AL,11,11_Novembre,30,242.4,290.73,-48.33,-16.6,83.4,7272,8722,6.8,6.0,204,180,Late autumn transition (annualized baseline)
+Bennet Villanova Monferrato,PF00002016,Villanova Monferrato,AL,12,12_Dicembre,31,236.6,290.73,-54.13,-18.6,81.4,7335,9013,6.8,6.0,211,186,Holiday shopping period (annualized baseline)
+MondoBrico - Tortona,MCGL2F0N5057,Tortona,AL,1,01_Gennaio,31,673.9,588.03,85.87,14.6,85.4,20891,18229,18.0,15.0,558,460,Winter baseline / off-peak
+MondoBrico - Tortona,MCGL2F0N5057,Tortona,AL,2,02_Febbraio,28,674.7,660.25,14.45,2.2,97.8,18892,18487,18.0,17.0,504,477,Short winter cycle
+MondoBrico - Tortona,MCGL2F0N5057,Tortona,AL,3,03_Marzo,31,694.6,637.06,57.54,9.0,91.0,21533,19749,18.0,17.0,558,523,Early spring resumption
+MondoBrico - Tortona,MCGL2F0N5057,Tortona,AL,4,04_Aprile,30,709.8,633.23,76.57,12.1,87.9,21294,18997,18.0,16.0,540,483,Spring baseline
+MondoBrico - Tortona,MCGL2F0N5057,Tortona,AL,5,05_Maggio,31,758.7,814.35,-55.65,-6.8,93.2,23520,25245,18.0,18.0,558,553,Late spring ramp-up
+MondoBrico - Tortona,MCGL2F0N5057,Tortona,AL,6,06_Giugno,30,834.2,831.97,2.23,0.3,99.7,25026,24959,18.0,20.0,540,602,Early summer hydration ramp
+MondoBrico - Tortona,MCGL2F0N5057,Tortona,AL,7,07_Luglio,31,878.9,901.97,-23.07,-2.6,97.4,27246,27961,18.0,19.0,558,602,Summer peak hydration
+MondoBrico - Tortona,MCGL2F0N5057,Tortona,AL,8,08_Agosto,31,854.5,871.84,-17.34,-2.0,98.0,26490,27027,18.0,20.0,558,630,Mid-summer holiday rhythm
+MondoBrico - Tortona,MCGL2F0N5057,Tortona,AL,9,09_Settembre,30,791.0,759.97,31.03,4.1,95.9,23730,22799,18.0,18.0,540,528,School / work return
+MondoBrico - Tortona,MCGL2F0N5057,Tortona,AL,10,10_Ottobre,31,727.5,744.26,-16.76,-2.3,97.7,22552,23072,18.0,17.8,558,552,Autumn steady-state
+MondoBrico - Tortona,MCGL2F0N5057,Tortona,AL,11,11_Novembre,30,707.0,744.26,-37.26,-5.0,95.0,21210,22328,18.0,17.8,540,534,Late autumn transition
+MondoBrico - Tortona,MCGL2F0N5057,Tortona,AL,12,12_Dicembre,31,685.1,744.26,-59.16,-7.9,92.1,21238,23072,18.0,17.8,558,552,Holiday shopping period
+Bennet Cassina Rizzardi,PF00001785,Cassina Rizzardi,CO,1,01_Gennaio,31,541.4,679.14,-137.74,-20.3,79.7,16783,21053,16.3,16.6,505,516,Winter baseline / off-peak
+Bennet Cassina Rizzardi,PF00001785,Cassina Rizzardi,CO,2,02_Febbraio,28,541.9,735.68,-193.78,-26.3,73.7,15173,20599,16.3,18.4,456,515,Short winter cycle
+Bennet Cassina Rizzardi,PF00001785,Cassina Rizzardi,CO,3,03_Marzo,31,550.9,730.42,-179.52,-24.6,75.4,17078,22643,16.3,15.4,505,477,Early spring resumption
+Bennet Cassina Rizzardi,PF00001785,Cassina Rizzardi,CO,4,04_Aprile,30,562.7,714.47,-151.77,-21.2,78.8,16881,21434,16.3,17.1,489,513,Spring baseline
+Bennet Cassina Rizzardi,PF00001785,Cassina Rizzardi,CO,5,05_Maggio,31,574.3,807.47,-233.17,-28.9,71.1,17803,25032,16.3,18.2,505,563,Late spring ramp-up
+Bennet Cassina Rizzardi,PF00001785,Cassina Rizzardi,CO,6,06_Giugno,30,649.2,862.29,-213.09,-24.7,75.3,19476,25869,16.3,17.6,489,528,Early summer hydration ramp
+Bennet Cassina Rizzardi,PF00001785,Cassina Rizzardi,CO,7,07_Luglio,31,658.4,846.52,-188.12,-22.2,77.8,20410,26242,16.3,16.7,505,518,Summer peak hydration
+Bennet Cassina Rizzardi,PF00001785,Cassina Rizzardi,CO,8,08_Agosto,31,634.2,804.43,-170.23,-21.2,78.8,19660,24937,16.3,16.8,505,520,Mid-summer holiday rhythm
+Bennet Cassina Rizzardi,PF00001785,Cassina Rizzardi,CO,9,09_Settembre,30,568.0,841.75,-273.75,-32.5,67.5,17040,25253,16.3,15.1,489,453,School / work return
+Bennet Cassina Rizzardi,PF00001785,Cassina Rizzardi,CO,10,10_Ottobre,31,553.8,675.17,-121.37,-18.0,82.0,17168,20930,16.3,15.8,505,490,Autumn steady-state
+Bennet Cassina Rizzardi,PF00001785,Cassina Rizzardi,CO,11,11_Novembre,30,543.1,627.13,-84.03,-13.4,86.6,16293,18814,16.3,15.8,489,474,Late autumn transition
+Bennet Cassina Rizzardi,PF00001785,Cassina Rizzardi,CO,12,12_Dicembre,31,541.4,669.94,-128.54,-19.2,80.8,16783,20768,16.3,15.8,505,490,Holiday shopping period
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Cantù,CO,1,01_Gennaio,31,852.3,1008.1,-155.8,-15.5,84.5,26421,31252,31.5,37.0,976,1147,Winter baseline / off-peak
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Cantù,CO,2,02_Febbraio,28,853.2,1068.5,-215.3,-20.1,79.9,23890,29918,31.5,37.0,882,1036,Short winter cycle
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Cantù,CO,3,03_Marzo,31,872.5,1083.9,-211.4,-19.5,80.5,27048,33602,31.5,37.0,976,1147,Early spring resumption
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Cantù,CO,4,04_Aprile,30,945.9,1078.2,-132.3,-12.3,87.7,28377,32346,31.5,37.0,945,1110,Spring baseline
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Cantù,CO,5,05_Maggio,31,1014.5,1148.7,-134.2,-11.7,88.3,31450,35610,31.5,37.0,976,1147,Late spring ramp-up
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Cantù,CO,6,06_Giugno,30,1096.4,1045.1,51.3,4.9,95.1,32892,31354,31.5,37.0,945,1110,Early summer hydration ramp
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Cantù,CO,7,07_Luglio,31,1139.4,1155.7,-16.3,-1.4,98.6,35321,35826,31.5,37.0,976,1147,Summer peak hydration
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Cantù,CO,8,08_Agosto,31,1093.8,1044.3,49.5,4.7,95.3,33908,32373,31.5,37.0,976,1147,Mid-summer holiday rhythm
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Cantù,CO,9,09_Settembre,30,1015.9,1131.0,-115.1,-10.2,89.8,30477,33931,31.5,37.0,945,1110,School / work return
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Cantù,CO,10,10_Ottobre,31,938.2,1080.9,-142.7,-13.2,86.8,29084,33507,31.5,37.0,976,1147,Autumn steady-state
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Cantù,CO,11,11_Novembre,30,874.1,953.4,-79.3,-8.3,91.7,26223,28603,31.5,37.0,945,1110,Late autumn transition
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Cantù,CO,12,12_Dicembre,31,858.5,1006.2,-147.7,-14.7,85.3,26614,31193,31.5,37.0,976,1147,Holiday shopping period
+Unicoop Tirreno Portoferraio,PF00001460,Portoferraio,LI,1,01_Gennaio,31,865.8,866.6,-0.8,-0.1,99.9,26840,26863,31.6,39.7,980,1231,Winter baseline / off-peak
+Unicoop Tirreno Portoferraio,PF00001460,Portoferraio,LI,2,02_Febbraio,28,866.9,865.7,1.2,0.1,99.9,24273,24240,31.6,39.7,885,1112,Short winter cycle
+Unicoop Tirreno Portoferraio,PF00001460,Portoferraio,LI,3,03_Marzo,31,872.5,866.8,5.7,0.7,99.3,27048,26870,31.6,39.7,980,1231,Early spring resumption
+Unicoop Tirreno Portoferraio,PF00001460,Portoferraio,LI,4,04_Aprile,30,987.7,970.4,17.3,1.8,98.2,29631,29111,31.6,39.7,948,1191,Spring baseline
+Unicoop Tirreno Portoferraio,PF00001460,Portoferraio,LI,5,05_Maggio,31,1062.4,1059.3,3.1,0.3,99.7,32934,32838,31.6,39.7,980,1231,Late spring ramp-up
+Unicoop Tirreno Portoferraio,PF00001460,Portoferraio,LI,6,06_Giugno,30,1268.7,1165.2,103.5,8.9,91.1,38061,34957,31.6,39.7,948,1191,Early summer hydration ramp
+Unicoop Tirreno Portoferraio,PF00001460,Portoferraio,LI,7,07_Luglio,31,1385.5,1371.6,13.9,1.0,99.0,42950,42518,31.6,39.7,980,1231,Summer peak hydration
+Unicoop Tirreno Portoferraio,PF00001460,Portoferraio,LI,8,08_Agosto,31,1330.0,1379.3,-49.3,-3.6,96.4,41230,42759,31.6,39.7,980,1231,Mid-summer holiday rhythm
+Unicoop Tirreno Portoferraio,PF00001460,Portoferraio,LI,9,09_Settembre,30,1107.5,1186.7,-79.2,-6.7,93.3,33225,35602,31.6,39.7,948,1191,School / work return
+Unicoop Tirreno Portoferraio,PF00001460,Portoferraio,LI,10,10_Ottobre,31,1020.8,1017.9,2.9,0.3,99.7,31645,31556,31.6,39.7,980,1231,Autumn steady-state
+Unicoop Tirreno Portoferraio,PF00001460,Portoferraio,LI,11,11_Novembre,30,874.9,902.2,-27.3,-3.0,97.0,26247,27065,31.6,39.7,948,1191,Late autumn transition
+Unicoop Tirreno Portoferraio,PF00001460,Portoferraio,LI,12,12_Dicembre,31,858.8,855.2,3.6,0.4,99.6,26623,26511,31.6,39.7,980,1231,Holiday shopping period
+Coop.fi - Prato (Parco Prato),PF00001636,Prato,PO,1,01_Gennaio,31,4677.6,3540.3,1137.3,32.1,67.9,145006,109749,98.5,118.6,3054,3677,Winter baseline / off-peak
+Coop.fi - Prato (Parco Prato),PF00001636,Prato,PO,2,02_Febbraio,28,4684.7,4864.0,-179.3,-3.7,96.3,131172,136192,98.5,118.6,2758,3321,Short winter cycle
+Coop.fi - Prato (Parco Prato),PF00001636,Prato,PO,3,03_Marzo,31,4789.6,5102.3,-312.7,-6.1,93.9,148478,158171,98.5,118.6,3054,3677,Early spring resumption
+Coop.fi - Prato (Parco Prato),PF00001636,Prato,PO,4,04_Aprile,30,4701.6,5848.8,-1147.2,-19.6,80.4,141048,175464,98.5,118.6,2955,3558,Spring baseline
+Coop.fi - Prato (Parco Prato),PF00001636,Prato,PO,5,05_Maggio,31,4824.6,6248.0,-1423.4,-22.8,77.2,149563,193688,98.5,118.6,3054,3677,Late spring ramp-up
+Coop.fi - Prato (Parco Prato),PF00001636,Prato,PO,6,06_Giugno,30,4385.6,6991.3,-2605.7,-37.3,62.7,131568,209739,98.5,118.6,2955,3558,Early summer hydration ramp
+Coop.fi - Prato (Parco Prato),PF00001636,Prato,PO,7,07_Luglio,31,4346.0,7725.1,-3379.1,-43.7,56.3,134726,239478,98.5,118.6,3054,3677,Summer peak hydration
+Coop.fi - Prato (Parco Prato),PF00001636,Prato,PO,8,08_Agosto,31,4264.6,6342.2,-2077.6,-32.8,67.2,132203,196608,98.5,118.6,3054,3677,Mid-summer holiday rhythm
+Coop.fi - Prato (Parco Prato),PF00001636,Prato,PO,9,09_Settembre,30,4747.5,7264.5,-2517.0,-34.6,65.4,142425,217935,98.5,118.6,2955,3558,School / work return
+Coop.fi - Prato (Parco Prato),PF00001636,Prato,PO,10,10_Ottobre,31,4627.7,6362.8,-1735.1,-27.3,72.7,143459,197247,98.5,118.6,3054,3677,Autumn steady-state
+Coop.fi - Prato (Parco Prato),PF00001636,Prato,PO,11,11_Novembre,30,4778.2,5893.2,-1115.0,-18.9,81.1,143346,176796,98.5,118.6,2955,3558,Late autumn transition
+Coop.fi - Prato (Parco Prato),PF00001636,Prato,PO,12,12_Dicembre,31,4642.6,5088.4,-445.8,-8.8,91.2,143921,147564,98.5,118.6,3054,3677,Holiday shopping period
+Coop.fi - Cascina,MC1Z14LFGRFG,Cascina,PI,1,01_Gennaio,31,3921.1,4083.5,-162.4,-4.0,96.0,121554,126589,78.4,76.5,2430,2372,Winter baseline / off-peak
+Coop.fi - Cascina,MC1Z14LFGRFG,Cascina,PI,2,02_Febbraio,28,3922.9,3856.1,66.8,1.7,98.3,109841,107971,78.4,76.5,2195,2142,Short winter cycle
+Coop.fi - Cascina,MC1Z14LFGRFG,Cascina,PI,3,03_Marzo,31,4150.3,4216.8,-66.5,-1.6,98.4,128659,130721,78.4,76.5,2430,2372,Early spring resumption
+Coop.fi - Cascina,MC1Z14LFGRFG,Cascina,PI,4,04_Aprile,30,4222.3,4234.1,-11.8,-0.3,99.7,126669,127023,78.4,76.5,2352,2295,Spring baseline
+Coop.fi - Cascina,MC1Z14LFGRFG,Cascina,PI,5,05_Maggio,31,4498.5,4517.2,-18.7,-0.4,99.6,139454,140033,78.4,76.5,2430,2372,Late spring ramp-up
+Coop.fi - Cascina,MC1Z14LFGRFG,Cascina,PI,6,06_Giugno,30,5003.8,4716.0,287.8,6.1,93.9,150114,141480,78.4,76.5,2352,2295,Early summer hydration ramp
+Coop.fi - Cascina,MC1Z14LFGRFG,Cascina,PI,7,07_Luglio,31,5073.1,5370.6,-297.5,-5.5,94.5,157266,166489,78.4,76.5,2430,2372,Summer peak hydration
+Coop.fi - Cascina,MC1Z14LFGRFG,Cascina,PI,8,08_Agosto,31,5180.7,5182.9,-2.2,-0.0,100.0,160602,160670,78.4,76.5,2430,2372,Mid-summer holiday rhythm
+Coop.fi - Cascina,MC1Z14LFGRFG,Cascina,PI,9,09_Settembre,30,4645.0,5265.9,-620.9,-11.8,88.2,139350,157977,78.4,76.5,2352,2295,School / work return
+Coop.fi - Cascina,MC1Z14LFGRFG,Cascina,PI,10,10_Ottobre,31,4290.5,4630.6,-340.1,-7.3,92.7,133006,143549,78.4,76.5,2430,2372,Autumn steady-state
+Coop.fi - Cascina,MC1Z14LFGRFG,Cascina,PI,11,11_Novembre,30,4159.0,4545.5,-386.5,-8.5,91.5,124770,136365,78.4,76.5,2352,2295,Late autumn transition
+Coop.fi - Cascina,MC1Z14LFGRFG,Cascina,PI,12,12_Dicembre,31,3907.8,3998.3,-90.5,-2.3,97.7,121142,123947,78.4,76.5,2430,2372,Holiday shopping period
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Alessandria,AL,1,01_Gennaio,31,1392.8,1542.8,-150.0,-9.7,90.3,43177,47827,21.5,34.5,666,1070,Winter baseline / off-peak
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Alessandria,AL,2,02_Febbraio,28,1392.8,1680.7,-287.9,-17.1,82.9,38998,47060,21.5,34.5,602,966,Short winter cycle
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Alessandria,AL,3,03_Marzo,31,1459.9,1812.1,-352.2,-19.4,80.6,45257,56175,21.5,34.5,666,1070,Early spring resumption
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Alessandria,AL,4,04_Aprile,30,1450.1,1696.0,-245.9,-14.5,85.5,43503,50880,21.5,34.5,645,1035,Spring baseline
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Alessandria,AL,5,05_Maggio,31,1536.1,1774.8,-238.7,-13.4,86.6,47619,55019,21.5,34.5,666,1070,Late spring ramp-up
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Alessandria,AL,6,06_Giugno,30,1616.5,2020.8,-404.3,-20.0,80.0,48495,60624,21.5,34.5,645,1035,Early summer hydration ramp
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Alessandria,AL,7,07_Luglio,31,1605.7,2010.7,-405.0,-20.1,79.9,49777,62332,21.5,34.5,666,1070,Summer peak hydration
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Alessandria,AL,8,08_Agosto,31,1625.0,1944.6,-319.6,-16.4,83.6,50375,60283,21.5,34.5,666,1070,Mid-summer holiday rhythm
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Alessandria,AL,9,09_Settembre,30,1555.5,1956.4,-400.9,-20.5,79.5,46665,58692,21.5,34.5,645,1035,School / work return
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Alessandria,AL,10,10_Ottobre,31,1453.8,1697.5,-243.7,-14.4,85.6,45068,52623,21.5,34.5,666,1070,Autumn steady-state
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Alessandria,AL,11,11_Novembre,30,1444.1,1617.4,-173.3,-10.7,89.3,43323,48522,21.5,34.5,645,1035,Late autumn transition
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Alessandria,AL,12,12_Dicembre,31,1360.1,1545.1,-185.0,-12.0,88.0,42163,47898,21.5,34.5,666,1070,Holiday shopping period
+Piccolo di Nola - Via Variante,PF00001201,Nola,NA,1,01_Gennaio,31,1315.0,1761.1,-446.1,-25.3,74.7,40765,54594,16.0,44.5,496,1380,Winter baseline / off-peak
+Piccolo di Nola - Via Variante,PF00001201,Nola,NA,2,02_Febbraio,28,1322.9,1831.0,-508.1,-27.7,72.3,37041,51268,16.0,44.5,448,1246,Short winter cycle
+Piccolo di Nola - Via Variante,PF00001201,Nola,NA,3,03_Marzo,31,1371.6,1715.9,-344.3,-20.1,79.9,42520,53193,16.0,44.5,496,1380,Early spring resumption
+Piccolo di Nola - Via Variante,PF00001201,Nola,NA,4,04_Aprile,30,1590.2,1828.7,-238.5,-13.0,87.0,47706,54861,16.0,44.5,480,1335,Spring baseline
+Piccolo di Nola - Via Variante,PF00001201,Nola,NA,5,05_Maggio,31,1734.3,2095.7,-361.4,-17.2,82.8,53763,64967,16.0,44.5,496,1380,Late spring ramp-up
+Piccolo di Nola - Via Variante,PF00001201,Nola,NA,6,06_Giugno,30,1918.2,2303.3,-385.1,-16.7,83.3,57546,69099,16.0,44.5,480,1335,Early summer hydration ramp
+Piccolo di Nola - Via Variante,PF00001201,Nola,NA,7,07_Luglio,31,2005.1,2570.2,-565.1,-22.0,78.0,62158,79676,16.0,44.5,496,1380,Summer peak hydration
+Piccolo di Nola - Via Variante,PF00001201,Nola,NA,8,08_Agosto,31,1986.1,2372.3,-386.2,-16.3,83.7,61569,73541,16.0,44.5,496,1380,Mid-summer holiday rhythm
+Piccolo di Nola - Via Variante,PF00001201,Nola,NA,9,09_Settembre,30,1825.5,2330.6,-505.1,-21.7,78.3,54765,69918,16.0,44.5,480,1335,School / work return
+Piccolo di Nola - Via Variante,PF00001201,Nola,NA,10,10_Ottobre,31,1629.2,2117.0,-487.8,-23.0,77.0,50505,65627,16.0,44.5,496,1380,Autumn steady-state
+Piccolo di Nola - Via Variante,PF00001201,Nola,NA,11,11_Novembre,30,1379.0,1955.5,-576.5,-29.5,70.5,41370,58665,16.0,44.5,480,1335,Late autumn transition
+Piccolo di Nola - Via Variante,PF00001201,Nola,NA,12,12_Dicembre,31,1311.5,1670.5,-359.0,-21.5,78.5,40656,51786,16.0,44.5,496,1380,Holiday shopping period
+CONAD Schio - Via Vicenza,PF00001367,Schio,VI,1,01_Gennaio,31,603.2,566.8,36.4,6.4,93.6,18699,17571,17.7,18.2,549,564,Winter baseline / off-peak
+CONAD Schio - Via Vicenza,PF00001367,Schio,VI,2,02_Febbraio,28,602.8,648.5,-45.7,-7.0,93.0,16878,18158,17.7,18.2,496,510,Short winter cycle
+CONAD Schio - Via Vicenza,PF00001367,Schio,VI,3,03_Marzo,31,604.0,661.7,-57.7,-8.7,91.3,18724,20513,17.7,18.2,549,564,Early spring resumption
+CONAD Schio - Via Vicenza,PF00001367,Schio,VI,4,04_Aprile,30,614.2,685.4,-71.2,-10.4,89.6,18426,20562,17.7,18.2,531,546,Spring baseline
+CONAD Schio - Via Vicenza,PF00001367,Schio,VI,5,05_Maggio,31,653.9,672.6,-18.7,-2.8,97.2,20271,20851,17.7,18.2,549,564,Late spring ramp-up
+CONAD Schio - Via Vicenza,PF00001367,Schio,VI,6,06_Giugno,30,773.9,782.7,-8.8,-1.1,98.9,23217,23481,17.7,18.2,531,546,Early summer hydration ramp
+CONAD Schio - Via Vicenza,PF00001367,Schio,VI,7,07_Luglio,31,848.0,885.4,-37.4,-4.2,95.8,26288,27447,17.7,18.2,549,564,Summer peak hydration
+CONAD Schio - Via Vicenza,PF00001367,Schio,VI,8,08_Agosto,31,796.7,736.8,59.9,8.1,91.9,24698,22841,17.7,18.2,549,564,Mid-summer holiday rhythm
+CONAD Schio - Via Vicenza,PF00001367,Schio,VI,9,09_Settembre,30,681.1,700.1,-19.0,-2.7,97.3,20433,21003,17.7,18.2,531,546,School / work return
+CONAD Schio - Via Vicenza,PF00001367,Schio,VI,10,10_Ottobre,31,638.0,634.7,3.3,0.5,99.5,19778,19676,17.7,18.2,549,564,Autumn steady-state
+CONAD Schio - Via Vicenza,PF00001367,Schio,VI,11,11_Novembre,30,618.1,584.3,33.8,5.8,94.2,18543,17529,17.7,18.2,531,546,Late autumn transition
+CONAD Schio - Via Vicenza,PF00001367,Schio,VI,12,12_Dicembre,31,610.1,563.2,46.9,8.3,91.7,18913,17459,17.7,18.2,549,564,Holiday shopping period
+Coop Città di Castello Le Fonti,PF00002687,Città di Castello,PG,1,01_Gennaio,31,633.0,711.3,-78.3,-11.0,89.0,19623,22050,14.0,22.6,434,701,Winter baseline / off-peak
+Coop Città di Castello Le Fonti,PF00002687,Città di Castello,PG,2,02_Febbraio,28,633.7,868.9,-235.2,-27.1,72.9,17744,24329,14.0,22.6,392,633,Short winter cycle
+Coop Città di Castello Le Fonti,PF00002687,Città di Castello,PG,3,03_Marzo,31,658.3,1051.2,-392.9,-37.4,62.6,20407,32587,14.0,22.6,434,701,Early spring resumption
+Coop Città di Castello Le Fonti,PF00002687,Città di Castello,PG,4,04_Aprile,30,702.2,1113.8,-411.6,-37.0,63.0,21066,33414,14.0,22.6,420,678,Spring baseline
+Coop Città di Castello Le Fonti,PF00002687,Città di Castello,PG,5,05_Maggio,31,749.5,911.3,-161.8,-17.8,82.2,23234,28250,14.0,22.6,434,701,Late spring ramp-up
+Coop Città di Castello Le Fonti,PF00002687,Città di Castello,PG,6,06_Giugno,30,865.8,998.7,-132.9,-13.3,86.7,25974,29961,14.0,22.6,420,678,Early summer hydration ramp
+Coop Città di Castello Le Fonti,PF00002687,Città di Castello,PG,7,07_Luglio,31,868.4,1018.2,-149.8,-14.7,85.3,26920,31564,14.0,22.6,434,701,Summer peak hydration
+Coop Città di Castello Le Fonti,PF00002687,Città di Castello,PG,8,08_Agosto,31,868.4,990.1,-121.7,-12.3,87.7,26920,30693,14.0,22.6,434,701,Mid-summer holiday rhythm
+Coop Città di Castello Le Fonti,PF00002687,Città di Castello,PG,9,09_Settembre,30,758.5,1012.7,-254.2,-25.1,74.9,22755,30381,14.0,22.6,420,678,School / work return
+Coop Città di Castello Le Fonti,PF00002687,Città di Castello,PG,10,10_Ottobre,31,702.9,829.3,-126.4,-15.2,84.8,21790,25708,14.0,22.6,434,701,Autumn steady-state
+Coop Città di Castello Le Fonti,PF00002687,Città di Castello,PG,11,11_Novembre,30,652.9,800.2,-147.3,-18.4,81.6,19587,24006,14.0,22.6,420,678,Late autumn transition
+Coop Città di Castello Le Fonti,PF00002687,Città di Castello,PG,12,12_Dicembre,31,627.9,729.0,-101.1,-13.9,86.1,19465,22599,14.0,22.6,434,701,Holiday shopping period
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Fabrica di Roma,VT,1,01_Gennaio,31,1121.8,1347.2,-225.4,-16.7,83.3,34776,41763,16.9,48.5,524,1504,Winter baseline / off-peak
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Fabrica di Roma,VT,2,02_Febbraio,28,1123.7,1463.7,-340.0,-23.2,76.8,31464,40984,16.9,48.5,473,1358,Short winter cycle
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Fabrica di Roma,VT,3,03_Marzo,31,1148.6,1487.7,-339.1,-22.8,77.2,35607,46117,16.9,48.5,524,1504,Early spring resumption
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Fabrica di Roma,VT,4,04_Aprile,30,1266.7,1555.5,-288.8,-18.6,81.4,38001,46664,16.9,48.5,507,1455,Spring baseline
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Fabrica di Roma,VT,5,05_Maggio,31,1334.2,1508.7,-174.5,-11.6,88.4,41360,46769,16.9,48.5,524,1504,Late spring ramp-up
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Fabrica di Roma,VT,6,06_Giugno,30,1469.8,1836.2,-366.4,-20.0,80.0,44094,55085,16.9,48.5,507,1455,Early summer hydration ramp
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Fabrica di Roma,VT,7,07_Luglio,31,1554.6,1992.9,-438.3,-22.0,78.0,48193,61781,16.9,48.5,524,1504,Summer peak hydration
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Fabrica di Roma,VT,8,08_Agosto,31,1514.0,2002.5,-488.5,-24.4,75.6,46934,62076,16.9,48.5,524,1504,Mid-summer holiday rhythm
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Fabrica di Roma,VT,9,09_Settembre,30,1355.1,1935.1,-580.0,-30.0,70.0,40653,58054,16.9,48.5,507,1455,School / work return
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Fabrica di Roma,VT,10,10_Ottobre,31,1268.7,1422.9,-154.2,-10.8,89.2,39330,44111,16.9,48.5,524,1504,Autumn steady-state
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Fabrica di Roma,VT,11,11_Novembre,30,1129.1,1375.6,-246.5,-17.9,82.1,33873,41268,16.9,48.5,507,1455,Late autumn transition
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Fabrica di Roma,VT,12,12_Dicembre,31,1111.6,1321.9,-210.3,-15.9,84.1,34460,40980,16.9,48.5,524,1504,Holiday shopping period
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Sesto Fiorentino,FI,1,01_Gennaio,31,4371.8,3700.0,671.8,18.2,81.8,135526,114700,104.6,107.5,3243,3332,Winter baseline / off-peak
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Sesto Fiorentino,FI,2,02_Febbraio,28,4372.9,4100.0,272.9,6.7,93.3,122441,114800,104.6,107.5,2929,3010,Short winter cycle
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Sesto Fiorentino,FI,3,03_Marzo,31,4812.7,4200.0,612.7,14.6,85.4,149194,130200,104.6,107.5,3243,3332,Early spring resumption
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Sesto Fiorentino,FI,4,04_Aprile,30,5193.2,4300.0,893.2,20.8,79.2,155796,129000,104.6,107.5,3138,3225,Spring baseline
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Sesto Fiorentino,FI,5,05_Maggio,31,5545.4,5000.0,545.4,10.9,89.1,171907,155000,104.6,107.5,3243,3332,Late spring ramp-up
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Sesto Fiorentino,FI,6,06_Giugno,30,5589.4,5800.0,-210.6,-3.6,96.4,167682,174000,104.6,107.5,3138,3225,Early summer hydration ramp
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Sesto Fiorentino,FI,7,07_Luglio,31,5505.3,5600.0,-94.7,-1.7,98.3,170664,173600,104.6,107.5,3243,3332,Summer peak hydration
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Sesto Fiorentino,FI,8,08_Agosto,31,5684.8,5200.0,484.8,9.3,90.7,176229,161200,104.6,107.5,3243,3332,Mid-summer holiday rhythm
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Sesto Fiorentino,FI,9,09_Settembre,30,5628.5,4400.0,1228.5,27.9,72.1,168855,132000,104.6,107.5,3138,3225,School / work return
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Sesto Fiorentino,FI,10,10_Ottobre,31,5236.1,4300.0,936.1,21.8,78.2,162319,133300,104.6,107.5,3243,3332,Autumn steady-state
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Sesto Fiorentino,FI,11,11_Novembre,30,4827.1,3800.0,1027.1,27.0,73.0,144813,114000,104.6,107.5,3138,3225,Late autumn transition
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Sesto Fiorentino,FI,12,12_Dicembre,31,4369.6,3600.0,769.6,21.4,78.6,135458,111600,104.6,107.5,3243,3332,Holiday shopping period
+Unicoop.Fi San Miniato,MCSM09LNT70O,San Miniato,PI,1,01_Gennaio,31,3525.8,2741.9,783.9,28.6,71.4,109300,85000,73.9,54.3,2291,1683,Winter baseline / off-peak
+Unicoop.Fi San Miniato,MCSM09LNT70O,San Miniato,PI,2,02_Febbraio,28,3527.1,2535.7,991.4,39.1,60.9,98759,71000,73.9,54.3,2069,1520,Short winter cycle
+Unicoop.Fi San Miniato,MCSM09LNT70O,San Miniato,PI,3,03_Marzo,31,3805.7,3645.2,160.5,4.4,95.6,117977,113000,73.9,54.3,2291,1683,Early spring resumption
+Unicoop.Fi San Miniato,MCSM09LNT70O,San Miniato,PI,4,04_Aprile,30,3936.8,3666.7,270.1,7.4,92.6,118104,110000,73.9,54.3,2217,1629,Spring baseline
+Unicoop.Fi San Miniato,MCSM09LNT70O,San Miniato,PI,5,05_Maggio,31,4287.2,3677.4,609.8,16.6,83.4,132903,114000,73.9,54.3,2291,1683,Late spring ramp-up
+Unicoop.Fi San Miniato,MCSM09LNT70O,San Miniato,PI,6,06_Giugno,30,4811.7,4133.3,678.4,16.4,83.6,144351,124000,73.9,54.3,2217,1629,Early summer hydration ramp
+Unicoop.Fi San Miniato,MCSM09LNT70O,San Miniato,PI,7,07_Luglio,31,4741.9,4387.1,354.8,8.1,91.9,146999,136000,73.9,54.3,2291,1683,Summer peak hydration
+Unicoop.Fi San Miniato,MCSM09LNT70O,San Miniato,PI,8,08_Agosto,31,4977.5,4032.3,945.2,23.4,76.6,154302,125000,73.9,54.3,2291,1683,Mid-summer holiday rhythm
+Unicoop.Fi San Miniato,MCSM09LNT70O,San Miniato,PI,9,09_Settembre,30,4422.6,4100.0,322.6,7.9,92.1,132678,123000,73.9,54.3,2217,1629,School / work return
+Unicoop.Fi San Miniato,MCSM09LNT70O,San Miniato,PI,10,10_Ottobre,31,3994.2,3871.0,123.2,3.2,96.8,123820,120000,73.9,54.3,2291,1683,Autumn steady-state
+Unicoop.Fi San Miniato,MCSM09LNT70O,San Miniato,PI,11,11_Novembre,30,3813.2,3733.3,79.9,2.1,97.9,114396,112000,73.9,54.3,2217,1629,Late autumn transition
+Unicoop.Fi San Miniato,MCSM09LNT70O,San Miniato,PI,12,12_Dicembre,31,3513.6,3354.8,158.8,4.7,95.3,108922,104000,73.9,54.3,2291,1683,Holiday shopping period
+Coop.fi - Pistoia,PF00001535,Pistoia,PT,1,01_Gennaio,31,3138.4,2451.6,686.8,28.0,72.0,97290,76000,72.4,98.5,2244,3054,Winter baseline / off-peak
+Coop.fi - Pistoia,PF00001535,Pistoia,PT,2,02_Febbraio,28,3155.5,2464.3,691.2,28.0,72.0,88354,69000,72.4,98.5,2027,2758,Short winter cycle
+Coop.fi - Pistoia,PF00001535,Pistoia,PT,3,03_Marzo,31,3291.1,3354.8,-63.7,-1.9,98.1,102024,104000,72.4,98.5,2244,3054,Early spring resumption
+Coop.fi - Pistoia,PF00001535,Pistoia,PT,4,04_Aprile,30,3530.4,3600.0,-69.6,-1.9,98.1,105912,108000,72.4,98.5,2172,2955,Spring baseline
+Coop.fi - Pistoia,PF00001535,Pistoia,PT,5,05_Maggio,31,3383.5,3838.7,-455.2,-11.9,88.1,104888,119000,72.4,98.5,2244,3054,Late spring ramp-up
+Coop.fi - Pistoia,PF00001535,Pistoia,PT,6,06_Giugno,30,3367.7,4266.7,-899.0,-21.1,78.9,101031,128000,72.4,98.5,2172,2955,Early summer hydration ramp
+Coop.fi - Pistoia,PF00001535,Pistoia,PT,7,07_Luglio,31,3904.1,4548.4,-644.3,-14.2,85.8,121027,141000,72.4,98.5,2244,3054,Summer peak hydration
+Coop.fi - Pistoia,PF00001535,Pistoia,PT,8,08_Agosto,31,3023.0,4064.5,-1041.5,-25.6,74.4,93713,126000,72.4,98.5,2244,3054,Mid-summer holiday rhythm
+Coop.fi - Pistoia,PF00001535,Pistoia,PT,9,09_Settembre,30,3603.0,3957.4,-354.4,-9.0,91.0,108090,118723,72.4,98.5,2172,2955,School / work return
+Coop.fi - Pistoia,PF00001535,Pistoia,PT,10,10_Ottobre,31,3620.8,3200.0,420.8,13.2,86.8,112245,99200,72.4,98.5,2244,3054,Autumn steady-state
+Coop.fi - Pistoia,PF00001535,Pistoia,PT,11,11_Novembre,30,3321.8,3100.0,221.8,7.2,92.8,99654,93000,72.4,98.5,2172,2955,Late autumn transition
+Coop.fi - Pistoia,PF00001535,Pistoia,PT,12,12_Dicembre,31,3190.3,3000.0,190.3,6.3,93.7,98899,93000,72.4,98.5,2244,3054,Holiday shopping period
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Sesto Fiorentino,FI,1,01_Gennaio,31,2465.4,2483.9,-18.5,-0.7,99.3,76427,77000,56.1,80.1,1739,2483,Winter baseline / off-peak
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Sesto Fiorentino,FI,2,02_Febbraio,28,2466.1,2642.9,-176.8,-6.7,93.3,69051,74000,56.1,80.1,1571,2243,Short winter cycle
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Sesto Fiorentino,FI,3,03_Marzo,31,2692.2,2741.9,-49.7,-1.8,98.2,83458,85000,56.1,80.1,1739,2483,Early spring resumption
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Sesto Fiorentino,FI,4,04_Aprile,30,2764.1,2933.3,-169.2,-5.8,94.2,82923,88000,56.1,80.1,1683,2403,Spring baseline
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Sesto Fiorentino,FI,5,05_Maggio,31,2905.7,2935.5,-29.8,-1.0,99.0,90077,91000,56.1,80.1,1739,2483,Late spring ramp-up
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Sesto Fiorentino,FI,6,06_Giugno,30,2988.8,3433.3,-444.5,-12.9,87.1,89664,103000,56.1,80.1,1683,2403,Early summer hydration ramp
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Sesto Fiorentino,FI,7,07_Luglio,31,2934.9,3741.9,-807.0,-21.6,78.4,90982,116000,56.1,80.1,1739,2483,Summer peak hydration
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Sesto Fiorentino,FI,8,08_Agosto,31,3038.1,2967.7,70.4,2.4,97.6,94181,92000,56.1,80.1,1739,2483,Mid-summer holiday rhythm
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Sesto Fiorentino,FI,9,09_Settembre,30,2971.0,3333.3,-362.3,-10.9,89.1,89130,100000,56.1,80.1,1683,2403,School / work return
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Sesto Fiorentino,FI,10,10_Ottobre,31,2807.0,2741.9,65.1,2.4,97.6,87017,85000,56.1,80.1,1739,2483,Autumn steady-state
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Sesto Fiorentino,FI,11,11_Novembre,30,2719.3,2666.7,52.6,2.0,98.0,81579,80000,56.1,80.1,1683,2403,Late autumn transition
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Sesto Fiorentino,FI,12,12_Dicembre,31,2462.7,2419.4,43.3,1.8,98.2,76344,75000,56.1,80.1,1739,2483,Holiday shopping period
+Coop - Montevarchi (Levane),PF00002600,Montevarchi,AR,1,01_Gennaio,31,643.2,670.7,-27.5,-4.1,95.9,19939,20793,18.1,21.2,561,657,Winter baseline / off-peak
+Coop - Montevarchi (Levane),PF00002600,Montevarchi,AR,2,02_Febbraio,28,642.7,557.4,85.3,15.3,84.7,17996,15608,18.1,21.2,507,594,Short winter cycle
+Coop - Montevarchi (Levane),PF00002600,Montevarchi,AR,3,03_Marzo,31,652.7,712.2,-59.5,-8.4,91.6,20234,22077,18.1,21.2,561,657,Early spring resumption
+Coop - Montevarchi (Levane),PF00002600,Montevarchi,AR,4,04_Aprile,30,615.1,714.8,-99.7,-13.9,86.1,18453,21444,18.1,21.2,543,636,Spring baseline
+Coop - Montevarchi (Levane),PF00002600,Montevarchi,AR,5,05_Maggio,31,607.6,587.1,20.5,3.5,96.5,18836,18201,18.1,21.2,561,657,Late spring ramp-up
+Coop - Montevarchi (Levane),PF00002600,Montevarchi,AR,6,06_Giugno,30,675.6,787.4,-111.8,-14.2,85.8,20268,23623,18.1,21.2,543,636,Early summer hydration ramp
+Coop - Montevarchi (Levane),PF00002600,Montevarchi,AR,7,07_Luglio,31,710.9,777.6,-66.7,-8.6,91.4,22038,24105,18.1,21.2,561,657,Summer peak hydration
+Coop - Montevarchi (Levane),PF00002600,Montevarchi,AR,8,08_Agosto,31,689.3,586.3,103.0,17.6,82.4,21368,18175,18.1,21.2,561,657,Mid-summer holiday rhythm
+Coop - Montevarchi (Levane),PF00002600,Montevarchi,AR,9,09_Settembre,30,622.6,655.1,-32.5,-5.0,95.0,18678,19652,18.1,21.2,543,636,School / work return
+Coop - Montevarchi (Levane),PF00002600,Montevarchi,AR,10,10_Ottobre,31,624.6,569.0,55.6,9.8,90.2,19363,17638,18.1,21.2,561,657,Autumn steady-state
+Coop - Montevarchi (Levane),PF00002600,Montevarchi,AR,11,11_Novembre,30,654.8,649.6,5.2,0.8,99.2,19644,19487,18.1,21.2,543,636,Late autumn transition
+Coop - Montevarchi (Levane),PF00002600,Montevarchi,AR,12,12_Dicembre,31,639.6,589.9,49.7,8.4,91.6,19828,18287,18.1,21.2,561,657,Holiday shopping period
+CONAD - Aci Sant'Antonio,PF00002012,Aci Sant'Antonio,CT,1,01_Gennaio,31,1592.3,1609.1,-16.8,-1.0,99.0,49361,49882,41.0,37.3,1271,1156,Winter baseline / off-peak
+CONAD - Aci Sant'Antonio,PF00002012,Aci Sant'Antonio,CT,2,02_Febbraio,28,1594.2,1709.9,-115.7,-6.8,93.2,44638,47878,41.0,37.3,1148,1044,Short winter cycle
+CONAD - Aci Sant'Antonio,PF00002012,Aci Sant'Antonio,CT,3,03_Marzo,31,1638.6,1605.7,32.9,2.0,98.0,50797,49778,41.0,37.3,1271,1156,Early spring resumption
+CONAD - Aci Sant'Antonio,PF00002012,Aci Sant'Antonio,CT,4,04_Aprile,30,1957.9,1741.0,216.9,12.5,87.5,58737,52230,41.0,37.3,1230,1119,Spring baseline
+CONAD - Aci Sant'Antonio,PF00002012,Aci Sant'Antonio,CT,5,05_Maggio,31,2167.6,1659.1,508.5,30.6,69.4,67196,51432,41.0,37.3,1271,1156,Late spring ramp-up
+CONAD - Aci Sant'Antonio,PF00002012,Aci Sant'Antonio,CT,6,06_Giugno,30,2397.9,2145.2,252.7,11.8,88.2,71937,64357,41.0,37.3,1230,1119,Early summer hydration ramp
+CONAD - Aci Sant'Antonio,PF00002012,Aci Sant'Antonio,CT,7,07_Luglio,31,2419.6,2292.2,127.4,5.6,94.4,75008,71058,41.0,37.3,1271,1156,Summer peak hydration
+CONAD - Aci Sant'Antonio,PF00002012,Aci Sant'Antonio,CT,8,08_Agosto,31,2471.3,2258.1,213.2,9.4,90.6,76610,70001,41.0,37.3,1271,1156,Mid-summer holiday rhythm
+CONAD - Aci Sant'Antonio,PF00002012,Aci Sant'Antonio,CT,9,09_Settembre,30,2191.2,2400.0,-208.8,-8.7,91.3,65736,72000,41.0,37.3,1230,1119,School / work return
+CONAD - Aci Sant'Antonio,PF00002012,Aci Sant'Antonio,CT,10,10_Ottobre,31,1951.0,2115.1,-164.1,-7.8,92.2,60481,65568,41.0,37.3,1271,1156,Autumn steady-state
+CONAD - Aci Sant'Antonio,PF00002012,Aci Sant'Antonio,CT,11,11_Novembre,30,1623.9,1925.1,-301.2,-15.6,84.4,48717,57753,41.0,37.3,1230,1119,Late autumn transition
+CONAD - Aci Sant'Antonio,PF00002012,Aci Sant'Antonio,CT,12,12_Dicembre,31,1585.1,1562.4,22.7,1.5,98.5,49138,48434,41.0,37.3,1271,1156,Holiday shopping period

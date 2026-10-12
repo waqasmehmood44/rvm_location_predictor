@@ -1,0 +1,1737 @@
+{
+  "datasets": {
+    "daily_bottles": {
+      "name": "daily_bottles",
+      "n_rows": 1889479,
+      "n_cols": 8,
+      "columns": [
+        "CLIENTE",
+        "GIORNO",
+        "BOTTIGLIE",
+        "PRESENZE",
+        "PF",
+        "CODICEMACCHINAPROD",
+        "CODICEMACCHINA",
+        "REFCORIPET"
+      ],
+      "dtypes": {
+        "CLIENTE": "str",
+        "GIORNO": "str",
+        "BOTTIGLIE": "int64",
+        "PRESENZE": "int64",
+        "PF": "str",
+        "CODICEMACCHINAPROD": "str",
+        "CODICEMACCHINA": "str",
+        "REFCORIPET": "str"
+      },
+      "missing_counts": {
+        "CLIENTE": 0,
+        "GIORNO": 0,
+        "BOTTIGLIE": 0,
+        "PRESENZE": 0,
+        "PF": 0,
+        "CODICEMACCHINAPROD": 0,
+        "CODICEMACCHINA": 0,
+        "REFCORIPET": 7
+      },
+      "missing_pcts": {
+        "CLIENTE": 0.0,
+        "GIORNO": 0.0,
+        "BOTTIGLIE": 0.0,
+        "PRESENZE": 0.0,
+        "PF": 0.0,
+        "CODICEMACCHINAPROD": 0.0,
+        "CODICEMACCHINA": 0.0,
+        "REFCORIPET": 0.0
+      },
+      "full_duplicate_rows": 2,
+      "candidate_unique_keys": [],
+      "date_ranges": {
+        "GIORNO": {
+          "min": "2023-01-01 00:00:00",
+          "max": "2026-08-31 00:00:00",
+          "valid_count": 1889479,
+          "valid_pct": 100.0
+        }
+      },
+      "categorical_variables": {
+        "CLIENTE": {
+          "nunique": 499,
+          "top_5": {
+            "CONAD": 342548,
+            "Dec\u00f2": 118549,
+            "Penny Market": 80777,
+            "ESSELUNGA": 78504,
+            "Leroy Merlin": 67855
+          }
+        },
+        "GIORNO": {
+          "nunique": 1339,
+          "top_5": {
+            "07/08/2026 00:00:00": 1827,
+            "08/08/2026 00:00:00": 1827,
+            "09/08/2026 00:00:00": 1827,
+            "10/08/2026 00:00:00": 1827,
+            "11/08/2026 00:00:00": 1827
+          }
+        },
+        "PF": {
+          "nunique": 2142,
+          "top_5": {
+            "MC4UPOQ39Q2T": 1341,
+            "MCDLNZA06N86": 1341,
+            "MCPLT9R75IOU": 1341,
+            "MC03NB75I90S": 1340,
+            "MC0VMPC6EBSB": 1340
+          }
+        },
+        "CODICEMACCHINAPROD": {
+          "nunique": 2186,
+          "top_5": {
+            "Ripet0126": 1340,
+            "Ripet0311": 1340,
+            "13154": 1339,
+            "Ripet0133": 1339,
+            "13196": 1339
+          }
+        },
+        "CODICEMACCHINA": {
+          "nunique": 2186,
+          "top_5": {
+            "MC7O0Z2U4RQ7": 1340,
+            "MC2022093007": 1340,
+            "MC00IBSMT523": 1339,
+            "MC069OUNP53U": 1339,
+            "MC0RRDHBCA6U": 1339
+          }
+        },
+        "REFCORIPET": {
+          "nunique": 23,
+          "top_5": {
+            "Albano": 285997,
+            "Graldi": 260415,
+            "Ivaldi": 233054,
+            "Cavallini": 216368,
+            "Ferretti": 207800
+          }
+        }
+      },
+      "numerical_variables": {
+        "BOTTIGLIE": {
+          "min": 0.0,
+          "max": 12867.0,
+          "mean": 506.27,
+          "median": 319.0,
+          "std": 648.93,
+          "p25": 114.0,
+          "p75": 665.0
+        },
+        "PRESENZE": {
+          "min": 0.0,
+          "max": 488.0,
+          "mean": 15.35,
+          "median": 11.0,
+          "std": 16.31,
+          "p25": 5.0,
+          "p75": 20.0
+        }
+      }
+    },
+    "CaricaViewStoricoPuntoFisico": {
+      "name": "CaricaViewStoricoPuntoFisico",
+      "n_rows": 5632,
+      "n_cols": 30,
+      "columns": [
+        "PuntoFisico",
+        "DataInizioRange",
+        "DataFineRange",
+        "TipologiaPuntoFisico",
+        "NascondiAPP",
+        "Indirizzo",
+        "Cap",
+        "Comune",
+        "Provincia",
+        "Regione",
+        "Nazione",
+        "Latitudine",
+        "Longitudine",
+        "Stato",
+        "Attributo",
+        "Cooperativa",
+        "Filiera",
+        "Descrizione",
+        "TipoContenitore",
+        "ReferenteCommerciale",
+        "ReferenteCoripet",
+        "Comodatario",
+        "NomeFiliera",
+        "Raggruppamento",
+        "Macchina",
+        "CodiceMacchinaProd",
+        "TipoMacchina",
+        "Fornitore",
+        "DataInstallazione",
+        "DataPrimaAttivazione"
+      ],
+      "dtypes": {
+        "PuntoFisico": "str",
+        "DataInizioRange": "str",
+        "DataFineRange": "str",
+        "TipologiaPuntoFisico": "str",
+        "NascondiAPP": "bool",
+        "Indirizzo": "str",
+        "Cap": "int64",
+        "Comune": "str",
+        "Provincia": "str",
+        "Regione": "str",
+        "Nazione": "str",
+        "Latitudine": "str",
+        "Longitudine": "str",
+        "Stato": "str",
+        "Attributo": "str",
+        "Cooperativa": "str",
+        "Filiera": "str",
+        "Descrizione": "str",
+        "TipoContenitore": "str",
+        "ReferenteCommerciale": "str",
+        "ReferenteCoripet": "str",
+        "Comodatario": "str",
+        "NomeFiliera": "str",
+        "Raggruppamento": "str",
+        "Macchina": "str",
+        "CodiceMacchinaProd": "str",
+        "TipoMacchina": "str",
+        "Fornitore": "str",
+        "DataInstallazione": "str",
+        "DataPrimaAttivazione": "str"
+      },
+      "missing_counts": {
+        "PuntoFisico": 0,
+        "DataInizioRange": 0,
+        "DataFineRange": 0,
+        "TipologiaPuntoFisico": 0,
+        "NascondiAPP": 0,
+        "Indirizzo": 1,
+        "Cap": 0,
+        "Comune": 4,
+        "Provincia": 328,
+        "Regione": 0,
+        "Nazione": 0,
+        "Latitudine": 103,
+        "Longitudine": 103,
+        "Stato": 8,
+        "Attributo": 8,
+        "Cooperativa": 298,
+        "Filiera": 298,
+        "Descrizione": 298,
+        "TipoContenitore": 2202,
+        "ReferenteCommerciale": 5072,
+        "ReferenteCoripet": 62,
+        "Comodatario": 891,
+        "NomeFiliera": 342,
+        "Raggruppamento": 636,
+        "Macchina": 2184,
+        "CodiceMacchinaProd": 2184,
+        "TipoMacchina": 2184,
+        "Fornitore": 2184,
+        "DataInstallazione": 2184,
+        "DataPrimaAttivazione": 525
+      },
+      "missing_pcts": {
+        "PuntoFisico": 0.0,
+        "DataInizioRange": 0.0,
+        "DataFineRange": 0.0,
+        "TipologiaPuntoFisico": 0.0,
+        "NascondiAPP": 0.0,
+        "Indirizzo": 0.02,
+        "Cap": 0.0,
+        "Comune": 0.07,
+        "Provincia": 5.82,
+        "Regione": 0.0,
+        "Nazione": 0.0,
+        "Latitudine": 1.83,
+        "Longitudine": 1.83,
+        "Stato": 0.14,
+        "Attributo": 0.14,
+        "Cooperativa": 5.29,
+        "Filiera": 5.29,
+        "Descrizione": 5.29,
+        "TipoContenitore": 39.1,
+        "ReferenteCommerciale": 90.06,
+        "ReferenteCoripet": 1.1,
+        "Comodatario": 15.82,
+        "NomeFiliera": 6.07,
+        "Raggruppamento": 11.29,
+        "Macchina": 38.78,
+        "CodiceMacchinaProd": 38.78,
+        "TipoMacchina": 38.78,
+        "Fornitore": 38.78,
+        "DataInstallazione": 38.78,
+        "DataPrimaAttivazione": 9.32
+      },
+      "full_duplicate_rows": 0,
+      "candidate_unique_keys": [],
+      "date_ranges": {
+        "DataInizioRange": {
+          "min": "2019-05-01 00:00:00",
+          "max": "2026-09-11 00:00:00",
+          "valid_count": 5632,
+          "valid_pct": 100.0
+        },
+        "DataFineRange": {
+          "min": "2019-07-21 00:00:00",
+          "max": "2026-09-11 00:00:00",
+          "valid_count": 5632,
+          "valid_pct": 100.0
+        },
+        "DataInstallazione": {
+          "min": "2019-05-01 00:00:00",
+          "max": "2026-09-11 05:00:00",
+          "valid_count": 3448,
+          "valid_pct": 61.22
+        },
+        "DataPrimaAttivazione": {
+          "min": "2019-05-01 00:00:00",
+          "max": "2026-09-11 00:00:00",
+          "valid_count": 5107,
+          "valid_pct": 90.68
+        }
+      },
+      "categorical_variables": {
+        "PuntoFisico": {
+          "nunique": 2539,
+          "top_5": {
+            "MCF09CZFCPP8": 6,
+            "MCPLT9R75IOU": 6,
+            "PF00001330": 6,
+            "PF00001758": 6,
+            "PF00001745": 6
+          }
+        },
+        "DataInizioRange": {
+          "nunique": 1296,
+          "top_5": {
+            "01/07/2026": 116,
+            "01/05/2019": 88,
+            "01/07/2025": 61,
+            "01/08/2024": 51,
+            "01/11/2024": 50
+          }
+        },
+        "DataFineRange": {
+          "nunique": 816,
+          "top_5": {
+            "11/09/2026": 2539,
+            "30/06/2026": 115,
+            "30/06/2025": 57,
+            "31/10/2024": 50,
+            "31/07/2024": 40
+          }
+        },
+        "TipologiaPuntoFisico": {
+          "nunique": 4,
+          "top_5": {
+            "PUNTOVENDITA": 5222,
+            "COMUNE": 353,
+            "PRIVATO": 56,
+            "UFFICIOCOMUNALE": 1
+          }
+        },
+        "NascondiAPP": {
+          "nunique": 2,
+          "top_5": {
+            "False": 5574,
+            "True": 58
+          }
+        },
+        "Indirizzo": {
+          "nunique": 2481,
+          "top_5": {
+            "Via Papa Giovanni XXIII": 9,
+            "Via Tricesimo, 149": 9,
+            "Via Don Minzoni": 9,
+            "Strada Statale Sempione, 28": 8,
+            "Largo Benito Jacovitti, Str. Ugozzolo": 8
+          }
+        },
+        "Comune": {
+          "nunique": 1265,
+          "top_5": {
+            "Roma": 369,
+            "Genova": 84,
+            "Torino": 71,
+            "Napoli": 60,
+            "Palermo": 52
+          }
+        },
+        "Provincia": {
+          "nunique": 106,
+          "top_5": {
+            "RM": 542,
+            "nan": 328,
+            "TO": 311,
+            "MI": 178,
+            "PG": 123
+          }
+        },
+        "Regione": {
+          "nunique": 20,
+          "top_5": {
+            "Lazio": 743,
+            "Campania": 657,
+            "Toscana": 624,
+            "Piemonte": 610,
+            "Lombardia": 463
+          }
+        },
+        "Nazione": {
+          "nunique": 1,
+          "top_5": {
+            "Italia": 5632
+          }
+        },
+        "Latitudine": {
+          "nunique": 2414,
+          "top_5": {
+            "nan": 103,
+            "44.830933": 8,
+            "44.40286648": 6,
+            "40.96556656": 6,
+            "44.6908667": 6
+          }
+        },
+        "Longitudine": {
+          "nunique": 2415,
+          "top_5": {
+            "nan": 103,
+            "10.364095": 8,
+            "14.04662": 7,
+            "7.7308079": 7,
+            "8.9830104": 6
+          }
+        },
+        "Stato": {
+          "nunique": 6,
+          "top_5": {
+            "ATTVO": 3380,
+            "POT": 1296,
+            "SPL": 581,
+            "DISATT": 331,
+            "SOSP": 28
+          }
+        },
+        "Attributo": {
+          "nunique": 2,
+          "top_5": {
+            "STANDARD": 5493,
+            "PROMO": 131,
+            "nan": 8
+          }
+        },
+        "Cooperativa": {
+          "nunique": 12,
+          "top_5": {
+            "GRUPPI_PF_GEN": 3472,
+            "CONAD_CNO": 780,
+            "CONAD_PAC2000": 448,
+            "nan": 298,
+            "CONAD_CIA": 177
+          }
+        },
+        "Filiera": {
+          "nunique": 501,
+          "top_5": {
+            "CONAD_ITALIA": 1665,
+            "nan": 298,
+            "Dec\u00f2": 241,
+            "FilieraTEMP": 209,
+            "Carrefour": 136
+          }
+        },
+        "Descrizione": {
+          "nunique": 2607,
+          "top_5": {
+            "nan": 298,
+            "EKOM Genova - Via Isonzo": 6,
+            "Dec\u00f2 - Orta di Atella": 6,
+            "Carrefour Market di Alba - Corso Piave": 6,
+            "Conad Arzignano - Via dell'Industria": 6
+          }
+        },
+        "TipoContenitore": {
+          "nunique": 3,
+          "top_5": {
+            "nan": 2202,
+            "Cestone": 2105,
+            "Cassonetto": 742,
+            "Sacco": 583
+          }
+        },
+        "ReferenteCommerciale": {
+          "nunique": 4,
+          "top_5": {
+            "nan": 5072,
+            "Ripet_Ref": 555,
+            "Graldi": 2,
+            "CoripetRef": 2,
+            "Diomede": 1
+          }
+        },
+        "ReferenteCoripet": {
+          "nunique": 19,
+          "top_5": {
+            "Graldi": 864,
+            "Albano": 670,
+            "Ivaldi": 533,
+            "Ferretti": 530,
+            "Corcimar": 509
+          }
+        },
+        "Comodatario": {
+          "nunique": 1087,
+          "top_5": {
+            "nan": 891,
+            "Comodatario Vuoto": 201,
+            "UNES CENTRO SOCIETA' COOPERATIVA": 128,
+            "BENNET S.P.A.": 110,
+            "ESSELUNGA SPA": 95
+          }
+        },
+        "NomeFiliera": {
+          "nunique": 501,
+          "top_5": {
+            "CONAD": 1665,
+            "nan": 342,
+            "Dec\u00f2": 241,
+            "FilieraTEMP": 209,
+            "Carrefour": 136
+          }
+        },
+        "Raggruppamento": {
+          "nunique": 275,
+          "top_5": {
+            "Raggruppamento_Conad": 1675,
+            "nan": 636,
+            "Multicedi": 325,
+            "Carrefour Italia": 136,
+            "UNES": 128
+          }
+        },
+        "Macchina": {
+          "nunique": 2212,
+          "top_5": {
+            "nan": 2184,
+            "MC2023014094": 7,
+            "MC2023101940": 7,
+            "MC2022071101": 6,
+            "MC2023111304": 6
+          }
+        },
+        "CodiceMacchinaProd": {
+          "nunique": 2212,
+          "top_5": {
+            "nan": 2184,
+            "Ripet0381": 7,
+            "Ripet0583": 7,
+            "Ripet0284": 6,
+            "Ripet0606": 6
+          }
+        },
+        "TipoMacchina": {
+          "nunique": 21,
+          "top_5": {
+            "nan": 2184,
+            "DAINT_G": 1424,
+            "Ripet_C-front": 1123,
+            "DAINT_A-bis": 360,
+            "Ripet_C-Ter": 90
+          }
+        },
+        "Fornitore": {
+          "nunique": 4,
+          "top_5": {
+            "nan": 2184,
+            "DAINT": 1902,
+            "RIPET": 1347,
+            "EURVEN": 137,
+            "DENTISTECH": 62
+          }
+        },
+        "DataInstallazione": {
+          "nunique": 1105,
+          "top_5": {
+            "nan": 2184,
+            "01/05/2019 00:00:00": 85,
+            "15/12/2023 00:00:00": 33,
+            "28/03/2024 00:00:00": 27,
+            "28/03/2024 05:00:00": 26
+          }
+        },
+        "DataPrimaAttivazione": {
+          "nunique": 878,
+          "top_5": {
+            "nan": 525,
+            "01/05/2019 00:00:00": 200,
+            "28/03/2024 00:00:00": 58,
+            "15/12/2023 00:00:00": 43,
+            "19/12/2024 00:00:00": 39
+          }
+        }
+      },
+      "numerical_variables": {
+        "Cap": {
+          "min": 10.0,
+          "max": 98121.0,
+          "mean": 41559.86,
+          "median": 40121.0,
+          "std": 31183.15,
+          "p25": 10121.0,
+          "p75": 70013.0
+        }
+      }
+    },
+    "filenielsen_1203": {
+      "name": "filenielsen_1203",
+      "n_rows": 25104,
+      "n_cols": 60,
+      "columns": [
+        "COUNTRY SHOP ID",
+        "TIPO NEGOZIO",
+        "GRUPPO",
+        "CEDEC",
+        "INSEGNA",
+        "RAGIONE SOCIALE",
+        "INDIRIZZO",
+        "INDIRIZZO ALTRO INGRESSO",
+        "COMUNE",
+        "PROVINCIA",
+        "CAP",
+        "FRAZIONE",
+        "TELEFONO",
+        "METRI QUADRI SUPERFICIE VENDITA",
+        "PIVA",
+        "REGIONE",
+        "CODICE ISTAT",
+        "AREA NIELSEN",
+        "PRESENZA BANCO SURGELATI",
+        "COD. CEDEC",
+        "CANALE",
+        "STATUS",
+        "CENTRALE",
+        "CONSORZIO",
+        "PRESENZA POSTEGGIO",
+        "PRESENZA REPARTO SALUMI",
+        "PRESENZA REPARTO FRUTTA VERDURA",
+        "PRESENZA REPARTO CARNE",
+        "PRESENZA REPARTO PASTICCERIA FRESCA",
+        "PRESENZA REPARTO PANE FRESCO",
+        "PRESENZA REPARTO PESCE FRESCO",
+        "NUMERO CASSE TOTALI",
+        "PRESENZA BANCO PROFUMERIA ASSISTITO",
+        "PRESENZA CORNER FARMACIA",
+        "PUNTO VENDITA IN CENTRO COMMERCIALE",
+        "INSEGNA CENTRO COMMERCIALE",
+        "FASCIA ADDETTI",
+        "PRESENZA BANCO ASSISTITO",
+        "IVA CEDEC",
+        "PROPRIA CARTA FEDELTA",
+        "BANCOMAT",
+        "CARTE DI CREDITO",
+        "EMISSIONE CARTE FEDELTA",
+        "SVOLGE ATTIVIT\u00c0 VENDITA ONLINE",
+        "TOT",
+        "LCC",
+        "FRESH",
+        "NOFOOD",
+        "LCC ECR",
+        "BEVANDE",
+        "CARNI",
+        "CURA CASA",
+        "CURA PERSONA",
+        "DROGHERIA ALIMENTARE",
+        "FREDDO",
+        "FRESCO",
+        "ITTICO",
+        "ORTOFRUTTA",
+        "PET CARE",
+        "DRUG"
+      ],
+      "dtypes": {
+        "COUNTRY SHOP ID": "int64",
+        "TIPO NEGOZIO": "str",
+        "GRUPPO": "str",
+        "CEDEC": "str",
+        "INSEGNA": "str",
+        "RAGIONE SOCIALE": "str",
+        "INDIRIZZO": "str",
+        "INDIRIZZO ALTRO INGRESSO": "str",
+        "COMUNE": "str",
+        "PROVINCIA": "str",
+        "CAP": "float64",
+        "FRAZIONE": "str",
+        "TELEFONO": "str",
+        "METRI QUADRI SUPERFICIE VENDITA": "int64",
+        "PIVA": "float64",
+        "REGIONE": "str",
+        "CODICE ISTAT": "int64",
+        "AREA NIELSEN": "int64",
+        "PRESENZA BANCO SURGELATI": "float64",
+        "COD. CEDEC": "int64",
+        "CANALE": "str",
+        "STATUS": "str",
+        "CENTRALE": "str",
+        "CONSORZIO": "str",
+        "PRESENZA POSTEGGIO": "float64",
+        "PRESENZA REPARTO SALUMI": "float64",
+        "PRESENZA REPARTO FRUTTA VERDURA": "float64",
+        "PRESENZA REPARTO CARNE": "float64",
+        "PRESENZA REPARTO PASTICCERIA FRESCA": "float64",
+        "PRESENZA REPARTO PANE FRESCO": "float64",
+        "PRESENZA REPARTO PESCE FRESCO": "float64",
+        "NUMERO CASSE TOTALI": "int64",
+        "PRESENZA BANCO PROFUMERIA ASSISTITO": "float64",
+        "PRESENZA CORNER FARMACIA": "float64",
+        "PUNTO VENDITA IN CENTRO COMMERCIALE": "float64",
+        "INSEGNA CENTRO COMMERCIALE": "str",
+        "FASCIA ADDETTI": "str",
+        "PRESENZA BANCO ASSISTITO": "float64",
+        "IVA CEDEC": "float64",
+        "PROPRIA CARTA FEDELTA": "float64",
+        "BANCOMAT": "float64",
+        "CARTE DI CREDITO": "float64",
+        "EMISSIONE CARTE FEDELTA": "float64",
+        "SVOLGE ATTIVIT\u00c0 VENDITA ONLINE": "float64",
+        "TOT": "str",
+        "LCC": "str",
+        "FRESH": "str",
+        "NOFOOD": "str",
+        "LCC ECR": "str",
+        "BEVANDE": "str",
+        "CARNI": "str",
+        "CURA CASA": "str",
+        "CURA PERSONA": "str",
+        "DROGHERIA ALIMENTARE": "str",
+        "FREDDO": "str",
+        "FRESCO": "str",
+        "ITTICO": "str",
+        "ORTOFRUTTA": "str",
+        "PET CARE": "str",
+        "DRUG": "str"
+      },
+      "missing_counts": {
+        "COUNTRY SHOP ID": 0,
+        "TIPO NEGOZIO": 0,
+        "GRUPPO": 0,
+        "CEDEC": 0,
+        "INSEGNA": 0,
+        "RAGIONE SOCIALE": 0,
+        "INDIRIZZO": 0,
+        "INDIRIZZO ALTRO INGRESSO": 19715,
+        "COMUNE": 0,
+        "PROVINCIA": 1201,
+        "CAP": 3,
+        "FRAZIONE": 20029,
+        "TELEFONO": 2476,
+        "METRI QUADRI SUPERFICIE VENDITA": 0,
+        "PIVA": 1024,
+        "REGIONE": 0,
+        "CODICE ISTAT": 0,
+        "AREA NIELSEN": 0,
+        "PRESENZA BANCO SURGELATI": 293,
+        "COD. CEDEC": 0,
+        "CANALE": 0,
+        "STATUS": 3082,
+        "CENTRALE": 0,
+        "CONSORZIO": 0,
+        "PRESENZA POSTEGGIO": 10898,
+        "PRESENZA REPARTO SALUMI": 95,
+        "PRESENZA REPARTO FRUTTA VERDURA": 2058,
+        "PRESENZA REPARTO CARNE": 4620,
+        "PRESENZA REPARTO PASTICCERIA FRESCA": 14709,
+        "PRESENZA REPARTO PANE FRESCO": 2096,
+        "PRESENZA REPARTO PESCE FRESCO": 18109,
+        "NUMERO CASSE TOTALI": 0,
+        "PRESENZA BANCO PROFUMERIA ASSISTITO": 24885,
+        "PRESENZA CORNER FARMACIA": 24636,
+        "PUNTO VENDITA IN CENTRO COMMERCIALE": 23989,
+        "INSEGNA CENTRO COMMERCIALE": 23989,
+        "FASCIA ADDETTI": 0,
+        "PRESENZA BANCO ASSISTITO": 3104,
+        "IVA CEDEC": 1890,
+        "PROPRIA CARTA FEDELTA": 23196,
+        "BANCOMAT": 12461,
+        "CARTE DI CREDITO": 13147,
+        "EMISSIONE CARTE FEDELTA": 21192,
+        "SVOLGE ATTIVIT\u00c0 VENDITA ONLINE": 23475,
+        "TOT": 0,
+        "LCC": 0,
+        "FRESH": 0,
+        "NOFOOD": 0,
+        "LCC ECR": 0,
+        "BEVANDE": 0,
+        "CARNI": 0,
+        "CURA CASA": 0,
+        "CURA PERSONA": 0,
+        "DROGHERIA ALIMENTARE": 0,
+        "FREDDO": 0,
+        "FRESCO": 0,
+        "ITTICO": 0,
+        "ORTOFRUTTA": 0,
+        "PET CARE": 0,
+        "DRUG": 0
+      },
+      "missing_pcts": {
+        "COUNTRY SHOP ID": 0.0,
+        "TIPO NEGOZIO": 0.0,
+        "GRUPPO": 0.0,
+        "CEDEC": 0.0,
+        "INSEGNA": 0.0,
+        "RAGIONE SOCIALE": 0.0,
+        "INDIRIZZO": 0.0,
+        "INDIRIZZO ALTRO INGRESSO": 78.53,
+        "COMUNE": 0.0,
+        "PROVINCIA": 4.78,
+        "CAP": 0.01,
+        "FRAZIONE": 79.78,
+        "TELEFONO": 9.86,
+        "METRI QUADRI SUPERFICIE VENDITA": 0.0,
+        "PIVA": 4.08,
+        "REGIONE": 0.0,
+        "CODICE ISTAT": 0.0,
+        "AREA NIELSEN": 0.0,
+        "PRESENZA BANCO SURGELATI": 1.17,
+        "COD. CEDEC": 0.0,
+        "CANALE": 0.0,
+        "STATUS": 12.28,
+        "CENTRALE": 0.0,
+        "CONSORZIO": 0.0,
+        "PRESENZA POSTEGGIO": 43.41,
+        "PRESENZA REPARTO SALUMI": 0.38,
+        "PRESENZA REPARTO FRUTTA VERDURA": 8.2,
+        "PRESENZA REPARTO CARNE": 18.4,
+        "PRESENZA REPARTO PASTICCERIA FRESCA": 58.59,
+        "PRESENZA REPARTO PANE FRESCO": 8.35,
+        "PRESENZA REPARTO PESCE FRESCO": 72.14,
+        "NUMERO CASSE TOTALI": 0.0,
+        "PRESENZA BANCO PROFUMERIA ASSISTITO": 99.13,
+        "PRESENZA CORNER FARMACIA": 98.14,
+        "PUNTO VENDITA IN CENTRO COMMERCIALE": 95.56,
+        "INSEGNA CENTRO COMMERCIALE": 95.56,
+        "FASCIA ADDETTI": 0.0,
+        "PRESENZA BANCO ASSISTITO": 12.36,
+        "IVA CEDEC": 7.53,
+        "PROPRIA CARTA FEDELTA": 92.4,
+        "BANCOMAT": 49.64,
+        "CARTE DI CREDITO": 52.37,
+        "EMISSIONE CARTE FEDELTA": 84.42,
+        "SVOLGE ATTIVIT\u00c0 VENDITA ONLINE": 93.51,
+        "TOT": 0.0,
+        "LCC": 0.0,
+        "FRESH": 0.0,
+        "NOFOOD": 0.0,
+        "LCC ECR": 0.0,
+        "BEVANDE": 0.0,
+        "CARNI": 0.0,
+        "CURA CASA": 0.0,
+        "CURA PERSONA": 0.0,
+        "DROGHERIA ALIMENTARE": 0.0,
+        "FREDDO": 0.0,
+        "FRESCO": 0.0,
+        "ITTICO": 0.0,
+        "ORTOFRUTTA": 0.0,
+        "PET CARE": 0.0,
+        "DRUG": 0.0
+      },
+      "full_duplicate_rows": 0,
+      "candidate_unique_keys": [
+        "COUNTRY SHOP ID"
+      ],
+      "date_ranges": {},
+      "categorical_variables": {
+        "TIPO NEGOZIO": {
+          "nunique": 4,
+          "top_5": {
+            "LIS": 10141,
+            "SUP": 8443,
+            "DIS": 5605,
+            "IPR": 915
+          }
+        },
+        "GRUPPO": {
+          "nunique": 25,
+          "top_5": {
+            "CONAD": 3171,
+            "SELEX COMMERCIALE": 3131,
+            "GRUPPO VEGE": 2472,
+            "COOP ITALIA": 2025,
+            "GRUPPO CARREFOUR ITALIA SPA": 1679
+          }
+        },
+        "CEDEC": {
+          "nunique": 183,
+          "top_5": {
+            "N. D.": 1593,
+            "PAC 2000 SOC.COOP.R.L.": 1462,
+            "MD SPA": 822,
+            "LIDL ITALIA": 736,
+            "DIV. PROSSIMITA E INGROSSO": 680
+          }
+        },
+        "INSEGNA": {
+          "nunique": 343,
+          "top_5": {
+            "N. D.": 2240,
+            "EUROSPIN": 1184,
+            "CONAD": 1156,
+            "COOP": 1080,
+            "CONAD CITY": 1023
+          }
+        },
+        "RAGIONE SOCIALE": {
+          "nunique": 12335,
+          "top_5": {
+            "LIDL ITALIA SRL": 736,
+            "MD SPA": 564,
+            "IN'S MERCATO SPA": 476,
+            "PENNY MARKET ITALIA SRL": 440,
+            "MAXI DI SRL": 374
+          }
+        },
+        "INDIRIZZO": {
+          "nunique": 23391,
+          "top_5": {
+            "VIA ROMA": 28,
+            "VIA NAZIONALE": 21,
+            "VIALE EUROPA": 18,
+            "VIA PROVINCIALE": 15,
+            "VIA PAPA GIOVANNI XXIII": 14
+          }
+        },
+        "INDIRIZZO ALTRO INGRESSO": {
+          "nunique": 4490,
+          "top_5": {
+            "nan": 19715,
+            "VIA ROMA": 53,
+            "VIA NAZIONALE": 30,
+            "VIA GARIBALDI": 16,
+            "VIA MARCONI": 14
+          }
+        },
+        "COMUNE": {
+          "nunique": 5086,
+          "top_5": {
+            "ROMA": 997,
+            "MILANO": 398,
+            "TORINO": 344,
+            "NAPOLI": 328,
+            "GENOVA": 275
+          }
+        },
+        "PROVINCIA": {
+          "nunique": 106,
+          "top_5": {
+            "RM": 1519,
+            "nan": 1201,
+            "TO": 866,
+            "MI": 860,
+            "BA": 567
+          }
+        },
+        "FRAZIONE": {
+          "nunique": 3389,
+          "top_5": {
+            "nan": 20029,
+            "MARINA": 78,
+            "SCALO": 55,
+            "LIDO": 32,
+            "MESTRE": 29
+          }
+        },
+        "TELEFONO": {
+          "nunique": 21505,
+          "top_5": {
+            "nan": 2476,
+            "800480048": 420,
+            "800595595": 195,
+            "800901290": 195,
+            "800370370": 157
+          }
+        },
+        "REGIONE": {
+          "nunique": 20,
+          "top_5": {
+            "LOMBARDIA": 3017,
+            "CAMPANIA": 2535,
+            "LAZIO": 2297,
+            "SICILIA": 2172,
+            "VENETO": 1927
+          }
+        },
+        "CANALE": {
+          "nunique": 2,
+          "top_5": {
+            "DO": 18609,
+            "GD": 6495
+          }
+        },
+        "STATUS": {
+          "nunique": 3,
+          "top_5": {
+            "A": 12332,
+            "D": 9688,
+            "nan": 3082,
+            "PROPRIETA'                    ": 2
+          }
+        },
+        "CENTRALE": {
+          "nunique": 9,
+          "top_5": {
+            "ALTRI": 5389,
+            "FORUM": 4467,
+            "AICUBE": 4151,
+            "ESD ITALIA": 4133,
+            "CONAD + FINIPER": 3420
+          }
+        },
+        "CONSORZIO": {
+          "nunique": 162,
+          "top_5": {
+            "N. D.": 1593,
+            "PAC 2000 SOC.COOP.R.L.": 1462,
+            "MD SPA": 822,
+            "LIDL ITALIA": 736,
+            "DIV. PROSSIMITA E INGROSSO": 680
+          }
+        },
+        "INSEGNA CENTRO COMMERCIALE": {
+          "nunique": 889,
+          "top_5": {
+            "nan": 23989,
+            "COOP": 18,
+            "ESSELUNGA": 12,
+            "ITALMARK": 10,
+            "EUROSPIN": 10
+          }
+        },
+        "FASCIA ADDETTI": {
+          "nunique": 6,
+          "top_5": {
+            "C": 8676,
+            "D": 6697,
+            "B": 4990,
+            "A": 2045,
+            "E": 1936
+          }
+        },
+        "TOT": {
+          "nunique": 531,
+          "top_5": {
+            "0,001": 1371,
+            "0,006": 843,
+            "0,007": 816,
+            "0,008": 806,
+            "0,005": 741
+          }
+        },
+        "LCC": {
+          "nunique": 522,
+          "top_5": {
+            "0,001": 1371,
+            "0,006": 804,
+            "0,008": 779,
+            "0,007": 747,
+            "0,005": 720
+          }
+        },
+        "FRESH": {
+          "nunique": 510,
+          "top_5": {
+            "0,001": 1737,
+            "0,006": 823,
+            "0,007": 799,
+            "0,004": 775,
+            "0,008": 758
+          }
+        },
+        "NOFOOD": {
+          "nunique": 657,
+          "top_5": {
+            "0,001": 2070,
+            "0,003": 1211,
+            "0,002": 1174,
+            "0,004": 1171,
+            "0,005": 1073
+          }
+        },
+        "LCC ECR": {
+          "nunique": 521,
+          "top_5": {
+            "0,001": 1500,
+            "0,005": 858,
+            "0,007": 831,
+            "0,004": 792,
+            "0,006": 781
+          }
+        },
+        "BEVANDE": {
+          "nunique": 517,
+          "top_5": {
+            "0,001": 1609,
+            "0,006": 725,
+            "0,007": 684,
+            "0,005": 673,
+            "0,008": 668
+          }
+        },
+        "CARNI": {
+          "nunique": 597,
+          "top_5": {
+            "0,008": 10372,
+            "0,007": 707,
+            "0,005": 570,
+            "0,009": 549,
+            "0,01": 468
+          }
+        },
+        "CURA CASA": {
+          "nunique": 550,
+          "top_5": {
+            "0,001": 1794,
+            "0,006": 772,
+            "0,008": 746,
+            "0,007": 715,
+            "0,01": 708
+          }
+        },
+        "CURA PERSONA": {
+          "nunique": 628,
+          "top_5": {
+            "0,001": 1521,
+            "0,003": 1359,
+            "0,004": 1006,
+            "0,006": 936,
+            "0,005": 913
+          }
+        },
+        "DROGHERIA ALIMENTARE": {
+          "nunique": 508,
+          "top_5": {
+            "0,001": 1594,
+            "0,009": 778,
+            "0,007": 766,
+            "0,006": 756,
+            "0,008": 736
+          }
+        },
+        "FREDDO": {
+          "nunique": 488,
+          "top_5": {
+            "0,001": 1700,
+            "0,007": 777,
+            "0,006": 775,
+            "0,009": 747,
+            "0,005": 746
+          }
+        },
+        "FRESCO": {
+          "nunique": 523,
+          "top_5": {
+            "0,001": 2446,
+            "0,004": 929,
+            "0,005": 889,
+            "0,003": 887,
+            "0,002": 833
+          }
+        },
+        "ITTICO": {
+          "nunique": 682,
+          "top_5": {
+            "0,007": 8148,
+            "0,006": 5972,
+            "0,003": 727,
+            "0,005": 528,
+            "0,008": 371
+          }
+        },
+        "ORTOFRUTTA": {
+          "nunique": 552,
+          "top_5": {
+            "0,001": 4277,
+            "0,002": 1133,
+            "0,003": 953,
+            "0,004": 801,
+            "0,005": 797
+          }
+        },
+        "PET CARE": {
+          "nunique": 568,
+          "top_5": {
+            "0,001": 2461,
+            "0,003": 998,
+            "0,005": 942,
+            "0,004": 934,
+            "0,002": 913
+          }
+        },
+        "DRUG": {
+          "nunique": 589,
+          "top_5": {
+            "0,001": 1637,
+            "0,005": 891,
+            "0,004": 827,
+            "0,006": 824,
+            "0,007": 820
+          }
+        }
+      },
+      "numerical_variables": {
+        "COUNTRY SHOP ID": {
+          "min": 1.0,
+          "max": 2002715.0,
+          "mean": 76478.35,
+          "median": 82143.0,
+          "std": 42206.47,
+          "p25": 38305.5,
+          "p75": 116564.25
+        },
+        "CAP": {
+          "min": 10.0,
+          "max": 98168.0,
+          "mean": 45196.92,
+          "median": 39030.0,
+          "std": 31135.55,
+          "p25": 18100.0,
+          "p75": 76013.0
+        },
+        "METRI QUADRI SUPERFICIE VENDITA": {
+          "min": 100.0,
+          "max": 13500.0,
+          "mean": 721.48,
+          "median": 450.0,
+          "std": 910.08,
+          "p25": 250.0,
+          "p75": 880.0
+        },
+        "PIVA": {
+          "min": 127621.0,
+          "max": 109712260962.0,
+          "mean": 3347625389.51,
+          "median": 2348690211.0,
+          "std": 3472834225.31,
+          "p25": 1274580248.0,
+          "p75": 4048740825.0
+        },
+        "CODICE ISTAT": {
+          "min": 1001.0,
+          "max": 111107.0,
+          "mean": 51360.08,
+          "median": 58079.0,
+          "std": 29532.1,
+          "p25": 24039.75,
+          "p75": 75016.0
+        },
+        "AREA NIELSEN": {
+          "min": 1.0,
+          "max": 4.0,
+          "mean": 2.71,
+          "median": 3.0,
+          "std": 1.16,
+          "p25": 2.0,
+          "p75": 4.0
+        },
+        "PRESENZA BANCO SURGELATI": {
+          "min": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "p25": 1.0,
+          "p75": 1.0
+        },
+        "COD. CEDEC": {
+          "min": 1.0,
+          "max": 9999.0,
+          "mean": 1316.74,
+          "median": 510.0,
+          "std": 2611.4,
+          "p25": 169.0,
+          "p75": 1010.0
+        },
+        "PRESENZA POSTEGGIO": {
+          "min": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "p25": 1.0,
+          "p75": 1.0
+        },
+        "PRESENZA REPARTO SALUMI": {
+          "min": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "p25": 1.0,
+          "p75": 1.0
+        },
+        "PRESENZA REPARTO FRUTTA VERDURA": {
+          "min": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "p25": 1.0,
+          "p75": 1.0
+        },
+        "PRESENZA REPARTO CARNE": {
+          "min": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "p25": 1.0,
+          "p75": 1.0
+        },
+        "PRESENZA REPARTO PASTICCERIA FRESCA": {
+          "min": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "p25": 1.0,
+          "p75": 1.0
+        },
+        "PRESENZA REPARTO PANE FRESCO": {
+          "min": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "p25": 1.0,
+          "p75": 1.0
+        },
+        "PRESENZA REPARTO PESCE FRESCO": {
+          "min": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "p25": 1.0,
+          "p75": 1.0
+        },
+        "NUMERO CASSE TOTALI": {
+          "min": 1.0,
+          "max": 57.0,
+          "mean": 4.1,
+          "median": 3.0,
+          "std": 4.92,
+          "p25": 2.0,
+          "p75": 4.0
+        },
+        "PRESENZA BANCO PROFUMERIA ASSISTITO": {
+          "min": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "p25": 1.0,
+          "p75": 1.0
+        },
+        "PRESENZA CORNER FARMACIA": {
+          "min": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "p25": 1.0,
+          "p75": 1.0
+        },
+        "PUNTO VENDITA IN CENTRO COMMERCIALE": {
+          "min": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "p25": 1.0,
+          "p75": 1.0
+        },
+        "PRESENZA BANCO ASSISTITO": {
+          "min": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "p25": 1.0,
+          "p75": 1.0
+        },
+        "IVA CEDEC": {
+          "min": 35120625.0,
+          "max": 15944108886.0,
+          "mean": 2358190064.12,
+          "median": 1527900540.0,
+          "std": 2840815473.86,
+          "p25": 353411203.0,
+          "p75": 2616640617.0
+        },
+        "PROPRIA CARTA FEDELTA": {
+          "min": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "p25": 1.0,
+          "p75": 1.0
+        },
+        "BANCOMAT": {
+          "min": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "p25": 1.0,
+          "p75": 1.0
+        },
+        "CARTE DI CREDITO": {
+          "min": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "p25": 1.0,
+          "p75": 1.0
+        },
+        "EMISSIONE CARTE FEDELTA": {
+          "min": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "p25": 1.0,
+          "p75": 1.0
+        },
+        "SVOLGE ATTIVIT\u00c0 VENDITA ONLINE": {
+          "min": 1.0,
+          "max": 1.0,
+          "mean": 1.0,
+          "median": 1.0,
+          "std": 0.0,
+          "p25": 1.0,
+          "p75": 1.0
+        }
+      }
+    },
+    "PIL": {
+      "name": "PIL",
+      "n_rows": 7903,
+      "n_cols": 2,
+      "columns": [
+        "Comune",
+        "PIL"
+      ],
+      "dtypes": {
+        "Comune": "str",
+        "PIL": "int64"
+      },
+      "missing_counts": {
+        "Comune": 1,
+        "PIL": 0
+      },
+      "missing_pcts": {
+        "Comune": 0.01,
+        "PIL": 0.0
+      },
+      "full_duplicate_rows": 0,
+      "candidate_unique_keys": [],
+      "date_ranges": {},
+      "categorical_variables": {
+        "Comune": {
+          "nunique": 7896,
+          "top_5": {
+            "Samone": 2,
+            "Calliano": 2,
+            "Livo": 2,
+            "Peglio": 2,
+            "Castro": 2
+          }
+        }
+      },
+      "numerical_variables": {
+        "PIL": {
+          "min": 382921.0,
+          "max": 49195511468.0,
+          "mean": 105481144.7,
+          "median": 29985877.0,
+          "std": 751972956.69,
+          "p25": 11833617.5,
+          "p75": 81747524.0
+        }
+      }
+    },
+    "population": {
+      "name": "population",
+      "n_rows": 7901,
+      "n_cols": 2,
+      "columns": [
+        "Comune",
+        "Popolazione"
+      ],
+      "dtypes": {
+        "Comune": "str",
+        "Popolazione": "int64"
+      },
+      "missing_counts": {
+        "Comune": 0,
+        "Popolazione": 0
+      },
+      "missing_pcts": {
+        "Comune": 0.0,
+        "Popolazione": 0.0
+      },
+      "full_duplicate_rows": 0,
+      "candidate_unique_keys": [],
+      "date_ranges": {},
+      "categorical_variables": {
+        "Comune": {
+          "nunique": 7896,
+          "top_5": {
+            "CASTRO": 2,
+            "LIVO": 2,
+            "PEGLIO": 2,
+            "SAMONE": 2,
+            "SAN TEODORO": 2
+          }
+        }
+      },
+      "numerical_variables": {
+        "Popolazione": {
+          "min": 31.0,
+          "max": 2749031.0,
+          "mean": 7471.22,
+          "median": 2406.0,
+          "std": 41514.4,
+          "p25": 987.0,
+          "p75": 6237.0
+        }
+      }
+    },
+    "surface": {
+      "name": "surface",
+      "n_rows": 8094,
+      "n_cols": 2,
+      "columns": [
+        "Comune",
+        "Superficie"
+      ],
+      "dtypes": {
+        "Comune": "str",
+        "Superficie": "str"
+      },
+      "missing_counts": {
+        "Comune": 2,
+        "Superficie": 1
+      },
+      "missing_pcts": {
+        "Comune": 0.02,
+        "Superficie": 0.01
+      },
+      "full_duplicate_rows": 0,
+      "candidate_unique_keys": [],
+      "date_ranges": {},
+      "categorical_variables": {
+        "Comune": {
+          "nunique": 8084,
+          "top_5": {
+            "nan": 2,
+            "Samone": 2,
+            "Calliano": 2,
+            "Livo": 2,
+            "Peglio": 2
+          }
+        },
+        "Superficie": {
+          "nunique": 4855,
+          "top_5": {
+            "4,59": 10,
+            "11,77": 8,
+            "16,01": 8,
+            "11,22": 8,
+            "6,2": 7
+          }
+        }
+      },
+      "numerical_variables": {}
+    }
+  },
+  "relationships": {
+    "pf_overlap": {
+      "db_unique_pfs": 2142,
+      "sp_unique_pfs": 2539,
+      "fn_unique_pfs": 0,
+      "db_in_sp": 2142,
+      "db_in_sp_pct": 100.0,
+      "db_not_in_sp": 0,
+      "sp_in_fn": 0,
+      "sp_in_fn_pct": 0.0,
+      "db_in_fn": 0,
+      "db_in_fn_pct": 0.0
+    },
+    "machine_overlap": {
+      "db_unique_machines": 2186,
+      "sp_unique_machines": 2212,
+      "db_machines_in_sp": 2186,
+      "db_machines_in_sp_pct": 100.0
+    },
+    "macprod_overlap": {
+      "db_unique_macprod": 2186,
+      "sp_unique_macprod": 2212,
+      "db_macprod_in_sp": 2186,
+      "db_macprod_in_sp_pct": 100.0
+    },
+    "sp_pf_distribution": {
+      "total_records": 5632,
+      "unique_pfs": 2539,
+      "pfs_with_single_record": 772,
+      "pfs_with_multiple_records": 1767,
+      "max_records_for_single_pf": 6
+    },
+    "cardinality": {
+      "pfs_with_multiple_distinct_machines": 122,
+      "machines_associated_with_multiple_pfs": 88,
+      "max_pfs_per_machine": 3
+    },
+    "date_intervals": {
+      "null_start_dates": 0,
+      "null_end_dates": 0,
+      "start_min": "2019-05-01 00:00:00",
+      "start_max": "2026-09-11 00:00:00",
+      "end_min": "2019-07-21 00:00:00",
+      "end_max": "2026-09-11 00:00:00"
+    },
+    "interval_consistency": {
+      "total_multi_record_pfs": 1767,
+      "pfs_with_overlapping_intervals": 30,
+      "pfs_with_gap_intervals": 0
+    },
+    "field_stability": {
+      "strictly_stable_across_all_pfs": [
+        "PuntoFisico",
+        "TipologiaPuntoFisico",
+        "NascondiAPP",
+        "Indirizzo",
+        "Cap",
+        "Comune",
+        "Provincia",
+        "Regione",
+        "Nazione",
+        "Latitudine",
+        "Longitudine",
+        "ReferenteCommerciale",
+        "DataPrimaAttivazione"
+      ],
+      "time_varying_fields": [
+        {
+          "column": "Stato",
+          "pfs_varying": 1190,
+          "pct_varying": 46.87
+        },
+        {
+          "column": "Attributo",
+          "pfs_varying": 5,
+          "pct_varying": 0.2
+        },
+        {
+          "column": "Cooperativa",
+          "pfs_varying": 9,
+          "pct_varying": 0.35
+        },
+        {
+          "column": "Filiera",
+          "pfs_varying": 128,
+          "pct_varying": 5.04
+        },
+        {
+          "column": "Descrizione",
+          "pfs_varying": 79,
+          "pct_varying": 3.11
+        },
+        {
+          "column": "TipoContenitore",
+          "pfs_varying": 33,
+          "pct_varying": 1.3
+        },
+        {
+          "column": "ReferenteCoripet",
+          "pfs_varying": 459,
+          "pct_varying": 18.08
+        },
+        {
+          "column": "Comodatario",
+          "pfs_varying": 103,
+          "pct_varying": 4.06
+        },
+        {
+          "column": "NomeFiliera",
+          "pfs_varying": 128,
+          "pct_varying": 5.04
+        },
+        {
+          "column": "Raggruppamento",
+          "pfs_varying": 100,
+          "pct_varying": 3.94
+        },
+        {
+          "column": "Macchina",
+          "pfs_varying": 122,
+          "pct_varying": 4.81
+        },
+        {
+          "column": "CodiceMacchinaProd",
+          "pfs_varying": 122,
+          "pct_varying": 4.81
+        },
+        {
+          "column": "TipoMacchina",
+          "pfs_varying": 94,
+          "pct_varying": 3.7
+        },
+        {
+          "column": "Fornitore",
+          "pfs_varying": 57,
+          "pct_varying": 2.24
+        },
+        {
+          "column": "DataInstallazione",
+          "pfs_varying": 132,
+          "pct_varying": 5.2
+        }
+      ]
+    },
+    "macro_datasets": {
+      "PIL_columns": [
+        "Comune",
+        "PIL"
+      ],
+      "PIL_shape": [
+        7903,
+        2
+      ],
+      "population_columns": [
+        "Comune",
+        "Popolazione"
+      ],
+      "population_shape": [
+        7901,
+        2
+      ],
+      "surface_columns": [
+        "Comune",
+        "Superficie"
+      ],
+      "surface_shape": [
+        8094,
+        2
+      ]
+    }
+  }
+}

@@ -1,0 +1,13 @@
+Month_Num,Month_Name,Days,PowerBI_2024_Actual_b,PowerBI_2025_Actual_b,PowerBI_2Yr_Avg_b,AI_Model_Target_b,Variance_b,Accuracy_Pct,Operational_Context
+1,January,31,5100,6000,5550,5825.2,275.2,95.0%,Winter baseline / off-peak
+2,February,28,4900,5800,5350,5834.0,484.0,91.0%,Short winter cycle
+3,March,31,6200,7300,6750,5964.6,-785.4,88.4%,Early spring resumption
+4,April,30,5800,7500,6650,5855.0,-795.0,88.0%,Spring baseline
+5,May,31,7700,6700,7200,6008.2,-1191.8,83.4%,Late spring ramp-up
+6,June,30,6300,6600,6450,5461.6,-988.4,84.7%,Early summer hydration ramp
+7,July,31,7300,5300,6300,5412.1,-887.9,85.9%,Summer peak hydration
+8,August,31,6400,5400,5900,5310.9,-589.1,90.0%,Mid-summer holiday rhythm
+9,September,30,5900,4400,5150,5912.3,762.3,85.2%,School / work return
+10,October,31,5500,4400,4950,5763.0,813.0,83.6%,Autumn steady-state
+11,November,30,5300,5000,5150,5950.4,800.4,84.5%,Late autumn transition
+12,December,31,5300,4700,5000,5781.6,781.6,84.4%,Holiday shopping period

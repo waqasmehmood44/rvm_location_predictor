@@ -1,0 +1,141 @@
+store_name,punto_fisico,day_of_week,pred_bottles_mean,pred_bottles_median,operational_context
+CONAD Gaggi,PF00002794,Monday,157.8,141.8,Weekday baseline
+CONAD Gaggi,PF00002794,Tuesday,154.6,140.4,Weekday baseline
+CONAD Gaggi,PF00002794,Wednesday,152.9,138.6,Weekday baseline
+CONAD Gaggi,PF00002794,Thursday,153.4,139.2,Weekday baseline
+CONAD Gaggi,PF00002794,Friday,157.6,143.3,Pre-weekend shopping ramp
+CONAD Gaggi,PF00002794,Saturday,175.6,173.1,Peak Saturday family grocery trip
+CONAD Gaggi,PF00002794,Sunday,94.1,87.0,Sunday reduced supermarket hours
+CONAD Santa Croce sull'Arno,PF00002450,Monday,967.8,946.1,Weekday baseline
+CONAD Santa Croce sull'Arno,PF00002450,Tuesday,951.7,935.3,Weekday baseline
+CONAD Santa Croce sull'Arno,PF00002450,Wednesday,948.0,932.3,Weekday baseline
+CONAD Santa Croce sull'Arno,PF00002450,Thursday,948.6,932.9,Weekday baseline
+CONAD Santa Croce sull'Arno,PF00002450,Friday,975.2,955.3,Pre-weekend shopping ramp
+CONAD Santa Croce sull'Arno,PF00002450,Saturday,1093.6,1130.0,Peak Saturday family grocery trip
+CONAD Santa Croce sull'Arno,PF00002450,Sunday,884.5,864.5,Sunday shopping
+Bennet Villanova Monferrato,PF00002016,Monday,266.2,264.0,Weekday baseline
+Bennet Villanova Monferrato,PF00002016,Tuesday,266.3,265.9,Weekday baseline
+Bennet Villanova Monferrato,PF00002016,Wednesday,265.2,264.7,Weekday baseline
+Bennet Villanova Monferrato,PF00002016,Thursday,266.0,265.5,Weekday baseline
+Bennet Villanova Monferrato,PF00002016,Friday,269.2,267.0,Pre-weekend shopping ramp
+Bennet Villanova Monferrato,PF00002016,Saturday,337.5,347.8,Peak Saturday family grocery trip
+Bennet Villanova Monferrato,PF00002016,Sunday,274.1,269.4,Sunday shopping
+MondoBrico - Tortona,MCGL2F0N5057,Monday,744.1,713.2,Weekday baseline
+MondoBrico - Tortona,MCGL2F0N5057,Tuesday,748.8,718.0,Weekday baseline
+MondoBrico - Tortona,MCGL2F0N5057,Wednesday,747.4,717.4,Weekday baseline
+MondoBrico - Tortona,MCGL2F0N5057,Thursday,748.3,718.2,Weekday baseline
+MondoBrico - Tortona,MCGL2F0N5057,Friday,752.5,720.2,Pre-weekend shopping ramp
+MondoBrico - Tortona,MCGL2F0N5057,Saturday,938.2,958.1,Peak Saturday DIY & bulk recycling trip
+MondoBrico - Tortona,MCGL2F0N5057,Sunday,774.4,760.6,Sunday shopping
+Bennet Cassina Rizzardi,PF00001785,Monday,577.3,558.2,Weekday baseline
+Bennet Cassina Rizzardi,PF00001785,Tuesday,560.5,544.9,Weekday baseline
+Bennet Cassina Rizzardi,PF00001785,Wednesday,561.1,547.2,Weekday baseline
+Bennet Cassina Rizzardi,PF00001785,Thursday,564.1,549.6,Weekday baseline
+Bennet Cassina Rizzardi,PF00001785,Friday,591.6,575.1,Pre-weekend shopping ramp
+Bennet Cassina Rizzardi,PF00001785,Saturday,781.8,813.6,Peak Saturday grocery & family recycling trip
+Bennet Cassina Rizzardi,PF00001785,Sunday,627.4,612.6,Sunday shopping
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Monday,979.7,979.7,Weekday baseline
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Tuesday,950.7,950.7,Weekday baseline
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Wednesday,952.9,952.9,Weekday baseline
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Thursday,960.1,960.1,Weekday baseline
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Friday,1002.0,1002.0,Pre-weekend shopping ramp
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Saturday,1147.0,1147.0,Peak Saturday family grocery trip
+Coop Lombardia Cantù - CC Mirabello,PF00001305,Sunday,939.2,939.2,Sunday shopping
+Unicoop Tirreno Portoferraio,PF00001460,Monday,1069.4,1069.4,Weekday baseline
+Unicoop Tirreno Portoferraio,PF00001460,Tuesday,1042.7,1042.7,Weekday baseline
+Unicoop Tirreno Portoferraio,PF00001460,Wednesday,1035.7,1035.7,Weekday baseline
+Unicoop Tirreno Portoferraio,PF00001460,Thursday,1036.2,1036.2,Weekday baseline
+Unicoop Tirreno Portoferraio,PF00001460,Friday,1071.5,1071.5,Pre-weekend shopping ramp
+Unicoop Tirreno Portoferraio,PF00001460,Saturday,1164.5,1164.5,Peak Saturday family grocery trip
+Unicoop Tirreno Portoferraio,PF00001460,Sunday,955.8,955.8,Sunday shopping
+Coop.fi - Prato (Parco Prato),PF00001636,Monday,4651.3,4651.3,Weekday baseline
+Coop.fi - Prato (Parco Prato),PF00001636,Tuesday,4616.7,4616.7,Weekday baseline
+Coop.fi - Prato (Parco Prato),PF00001636,Wednesday,4624.2,4624.2,Weekday baseline
+Coop.fi - Prato (Parco Prato),PF00001636,Thursday,4617.1,4617.1,Weekday baseline
+Coop.fi - Prato (Parco Prato),PF00001636,Friday,4696.9,4696.9,Pre-weekend shopping ramp
+Coop.fi - Prato (Parco Prato),PF00001636,Saturday,4716.9,4716.9,Peak Saturday family grocery trip
+Coop.fi - Prato (Parco Prato),PF00001636,Sunday,4453.2,4453.2,Sunday shopping
+Coop.fi - Cascina,MC1Z14LFGRFG,Monday,4418.9,4418.9,Weekday baseline
+Coop.fi - Cascina,MC1Z14LFGRFG,Tuesday,4418.5,4418.5,Weekday baseline
+Coop.fi - Cascina,MC1Z14LFGRFG,Wednesday,4416.4,4416.4,Weekday baseline
+Coop.fi - Cascina,MC1Z14LFGRFG,Thursday,4409.8,4409.8,Weekday baseline
+Coop.fi - Cascina,MC1Z14LFGRFG,Friday,4447.7,4447.7,Pre-weekend shopping ramp
+Coop.fi - Cascina,MC1Z14LFGRFG,Saturday,4870.3,4870.3,Peak Saturday family grocery trip
+Coop.fi - Cascina,MC1Z14LFGRFG,Sunday,4276.5,4276.5,Sunday shopping
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Monday,1494.1,1494.1,Weekday baseline
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Tuesday,1474.3,1474.3,Weekday baseline
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Wednesday,1478.3,1478.3,Weekday baseline
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Thursday,1498.7,1498.7,Weekday baseline
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Friday,1561.0,1561.0,Pre-weekend shopping ramp
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Saturday,1795.2,1795.2,Peak Saturday family grocery trip
+Mercatò di Alessandria - Via Vecchia Torino,MC5EPG7E0RZS,Sunday,1396.2,1396.2,Sunday shopping
+Piccolo di Nola - Via Variante,PF00001201,Monday,1629.2,1629.2,Weekday baseline
+Piccolo di Nola - Via Variante,PF00001201,Tuesday,1615.0,1615.0,Weekday baseline
+Piccolo di Nola - Via Variante,PF00001201,Wednesday,1611.3,1611.3,Weekday baseline
+Piccolo di Nola - Via Variante,PF00001201,Thursday,1615.8,1615.8,Weekday baseline
+Piccolo di Nola - Via Variante,PF00001201,Friday,1648.2,1648.2,Pre-weekend shopping ramp
+Piccolo di Nola - Via Variante,PF00001201,Saturday,1768.8,1768.8,Peak Saturday family grocery trip
+Piccolo di Nola - Via Variante,PF00001201,Sunday,1235.4,1235.4,Sunday shopping
+CONAD Schio - Via Vicenza,PF00001367,Monday,682.3,682.3,Weekday baseline
+CONAD Schio - Via Vicenza,PF00001367,Tuesday,660.8,660.8,Weekday baseline
+CONAD Schio - Via Vicenza,PF00001367,Wednesday,657.3,657.3,Weekday baseline
+CONAD Schio - Via Vicenza,PF00001367,Thursday,657.5,657.5,Weekday baseline
+CONAD Schio - Via Vicenza,PF00001367,Friday,683.0,683.0,Pre-weekend shopping ramp
+CONAD Schio - Via Vicenza,PF00001367,Saturday,855.5,855.5,Peak Saturday family grocery trip
+CONAD Schio - Via Vicenza,PF00001367,Sunday,652.4,652.4,Sunday shopping
+Coop Città di Castello Le Fonti,PF00002687,Monday,741.4,741.4,Weekday baseline
+Coop Città di Castello Le Fonti,PF00002687,Tuesday,727.2,727.2,Weekday baseline
+Coop Città di Castello Le Fonti,PF00002687,Wednesday,724.2,724.2,Weekday baseline
+Coop Città di Castello Le Fonti,PF00002687,Thursday,724.4,724.4,Weekday baseline
+Coop Città di Castello Le Fonti,PF00002687,Friday,741.1,741.1,Pre-weekend shopping ramp
+Coop Città di Castello Le Fonti,PF00002687,Saturday,883.6,883.6,Peak Saturday family grocery trip
+Coop Città di Castello Le Fonti,PF00002687,Sunday,670.1,670.1,Sunday shopping
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Monday,1309.3,1309.3,Weekday baseline
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Tuesday,1283.7,1283.7,Weekday baseline
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Wednesday,1280.1,1280.1,Weekday baseline
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Thursday,1283.5,1283.5,Weekday baseline
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Friday,1306.6,1306.6,Pre-weekend shopping ramp
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Saturday,1284.4,1284.4,Peak Saturday family grocery trip
+Coop Fabrica di Roma - Via del Campo Sportivo,PF00002527,Sunday,980.6,980.6,Sunday shopping
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Monday,5202.5,5202.5,Weekday baseline
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Tuesday,5097.6,5097.6,Weekday baseline
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Wednesday,5082.6,5082.6,Weekday baseline
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Thursday,5075.7,5075.7,Weekday baseline
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Friday,5200.6,5200.6,Pre-weekend shopping ramp
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Saturday,5078.8,5078.8,Peak Saturday family grocery trip
+Coop.fi - Sesto Fiorentino (Centro*Sesto),MCMS8UEC2QVH,Sunday,4235.8,4235.8,Sunday shopping
+Unicoop.Fi San Miniato,MCSM09LNT70O,Monday,4116.7,4116.7,Weekday baseline
+Unicoop.Fi San Miniato,MCSM09LNT70O,Tuesday,4116.9,4116.9,Weekday baseline
+Unicoop.Fi San Miniato,MCSM09LNT70O,Wednesday,4114.8,4114.8,Weekday baseline
+Unicoop.Fi San Miniato,MCSM09LNT70O,Thursday,4108.8,4108.8,Weekday baseline
+Unicoop.Fi San Miniato,MCSM09LNT70O,Friday,4152.0,4152.0,Pre-weekend shopping ramp
+Unicoop.Fi San Miniato,MCSM09LNT70O,Saturday,4640.3,4640.3,Peak Saturday family grocery trip
+Unicoop.Fi San Miniato,MCSM09LNT70O,Sunday,3986.4,3986.4,Sunday shopping
+Coop.fi - Pistoia,PF00001535,Monday,3488.5,3488.5,Weekday baseline
+Coop.fi - Pistoia,PF00001535,Tuesday,3387.8,3387.8,Weekday baseline
+Coop.fi - Pistoia,PF00001535,Wednesday,3375.9,3375.9,Weekday baseline
+Coop.fi - Pistoia,PF00001535,Thursday,3348.1,3348.1,Weekday baseline
+Coop.fi - Pistoia,PF00001535,Friday,3449.3,3449.3,Pre-weekend shopping ramp
+Coop.fi - Pistoia,PF00001535,Saturday,3931.3,3931.3,Peak Saturday family grocery trip
+Coop.fi - Pistoia,PF00001535,Sunday,2788.7,2788.7,Sunday shopping
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Monday,2822.7,2822.7,Weekday baseline
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Tuesday,2769.6,2769.6,Weekday baseline
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Wednesday,2760.8,2760.8,Weekday baseline
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Thursday,2756.6,2756.6,Weekday baseline
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Friday,2821.1,2821.1,Pre-weekend shopping ramp
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Saturday,2887.1,2887.1,Peak Saturday family grocery trip
+Coop.fi - Sesto Fiorentino - Viale Pratese,PF00001941,Sunday,2354.2,2354.2,Sunday shopping
+Coop - Montevarchi (Levane),PF00002600,Monday,661.8,661.8,Weekday baseline
+Coop - Montevarchi (Levane),PF00002600,Tuesday,637.5,637.5,Weekday baseline
+Coop - Montevarchi (Levane),PF00002600,Wednesday,637.1,637.1,Weekday baseline
+Coop - Montevarchi (Levane),PF00002600,Thursday,640.4,640.4,Weekday baseline
+Coop - Montevarchi (Levane),PF00002600,Friday,679.0,679.0,Pre-weekend shopping ramp
+Coop - Montevarchi (Levane),PF00002600,Saturday,750.0,750.0,Peak Saturday family grocery trip
+Coop - Montevarchi (Levane),PF00002600,Sunday,641.1,641.1,Sunday shopping
+CONAD - Aci Sant'Antonio,PF00002012,Monday,1978.1,1978.1,Weekday baseline
+CONAD - Aci Sant'Antonio,PF00002012,Tuesday,1954.4,1954.4,Weekday baseline
+CONAD - Aci Sant'Antonio,PF00002012,Wednesday,1947.9,1947.9,Weekday baseline
+CONAD - Aci Sant'Antonio,PF00002012,Thursday,1949.0,1949.0,Weekday baseline
+CONAD - Aci Sant'Antonio,PF00002012,Friday,1971.3,1971.3,Pre-weekend shopping ramp
+CONAD - Aci Sant'Antonio,PF00002012,Saturday,1965.4,1965.4,Peak Saturday family grocery trip
+CONAD - Aci Sant'Antonio,PF00002012,Sunday,1480.0,1480.0,Sunday shopping

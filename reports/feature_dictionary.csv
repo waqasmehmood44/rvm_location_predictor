@@ -1,0 +1,73 @@
+Column,Source,Description,Data type,Missing %,Unique values,Pre-installation available?,Allowed for NEW-LOCATION model?,Potential leakage?,Reason
+CLIENTE,daily_bottles.csv,Customer / retail brand partner name in operational log,str,0.0,294,YES,YES,NO,Proxy for retail chain identity; can be used if standardized/matched to Store Name
+GIORNO,daily_bottles.csv,Date of daily observation (DD/MM/YYYY),str,0.0,1339,NO,NO,NO,Timestamp; not a static property of a new store. Used only to extract calendar components for training conditioning
+BOTTIGLIE,daily_bottles.csv,Target 1: Total beverage bottles collected by machine in that day,int64,0.0,7463,NO,NO,YES,PRIMARY TARGET; strictly forbidden as a predictor feature for new location model
+PRESENZE,daily_bottles.csv,Target 2: Total unique customer recycling sessions in that day,int64,0.0,207,NO,NO,YES,PRIMARY TARGET; strictly forbidden as a predictor feature for new location model
+PF,daily_bottles.csv,Physical point unique identifier (e.g. PF000123),str,0.0,1657,YES,NO,YES,High-cardinality database entity ID; would cause neural net to memorize historical stores rather than learning generalizable patterns
+CODICEMACCHINAPROD,daily_bottles.csv,Manufacturer physical serial number from operational log,str,0.0,1743,NO,NO,YES,Hardware asset serial; memorizes individual machine instances (entity leakage)
+CODICEMACCHINA,daily_bottles.csv,Internal Coripet machine asset ID from operational log,str,0.0,1743,NO,NO,YES,Hardware asset serial; memorizes individual machine instances (entity leakage)
+REFCORIPET,daily_bottles.csv,Coripet commercial account manager reference code,str,0.0,16,NO,NO,NO,Internal organizational administrative code; irrelevant to store foot traffic
+giorno_dt,processed pipeline,Parsed datetime timestamp of GIORNO,datetime64[us],0.0,1339,NO,NO,NO,Internal parsed timestamp; used only for feature extraction
+PuntoFisico,CaricaViewStoricoPuntoFisico.csv,Physical point identifier in historical table (identical to PF),str,0.0,1657,YES,NO,YES,Redundant primary key; identical to PF
+Indirizzo,CaricaViewStoricoPuntoFisico.csv,Store street address string (e.g. Via Roma 12),str,0.0,1636,YES,NO,NO,"Raw unstandardized text; used by geocoding pipeline to produce lat/lon and municipality, but not fed directly to neural net"
+Cap,CaricaViewStoricoPuntoFisico.csv,Italian 5-digit postal code (CAP),int64,0.0,920,YES,YES,NO,Core location feature; spatial clustering and administrative routing
+Comune,CaricaViewStoricoPuntoFisico.csv,"Municipality name (e.g. Milano, Roma)",str,0.1,962,YES,YES,NO,Core location feature; links store to ISTAT census demographics
+Provincia,CaricaViewStoricoPuntoFisico.csv,"Two-letter province code (e.g. MI, RM, NA)",str,7.43,105,YES,YES,NO,Core location feature; intermediate administrative grouping
+Regione,CaricaViewStoricoPuntoFisico.csv,"Administrative region (e.g. Lombardia, Lazio, Sicilia)",str,0.0,20,YES,YES,NO,Core location feature; macro-geographic clustering capturing regional recycling propensity
+Nazione,CaricaViewStoricoPuntoFisico.csv,Country name (ITALIA),str,0.0,1,YES,NO,NO,Constant value ('ITALIA'); zero variance
+Latitudine,CaricaViewStoricoPuntoFisico.csv,WGS84 Latitude coordinate (decimal degrees),str,0.0,1649,YES,YES,NO,Core spatial coordinate; allows spatial neural embeddings and distance calculations
+Longitudine,CaricaViewStoricoPuntoFisico.csv,WGS84 Longitude coordinate (decimal degrees),str,0.0,1649,YES,YES,NO,Core spatial coordinate; allows spatial neural embeddings and distance calculations
+Stato,CaricaViewStoricoPuntoFisico.csv,Operational status in historical table ('Attivo'),str,0.0,2,NO,NO,NO,Operational status; 100% Attivo in certified population (zero variance)
+TipologiaPuntoFisico,CaricaViewStoricoPuntoFisico.csv,Type of physical installation ('PUNTOVENDITA'),str,0.0,1,YES,NO,NO,Business eligibility gate; 100% PUNTOVENDITA in certified population (zero variance)
+Attributo,CaricaViewStoricoPuntoFisico.csv,RVM machine incentive configuration ('STANDARD'),str,0.0,1,YES,NO,NO,Business eligibility gate; 100% STANDARD in certified population (zero variance)
+Cooperativa,CaricaViewStoricoPuntoFisico.csv,Retail cooperative or consortium name,str,0.0,12,YES,YES,NO,Optional retail organization grouping
+Filiera,CaricaViewStoricoPuntoFisico.csv,Coripet supply chain operational routing code,str,0.0,288,NO,NO,NO,Internal logistics routing; not known pre-installation for prospective store
+Descrizione,CaricaViewStoricoPuntoFisico.csv,"Location description inside store (e.g. Ingresso, Parcheggio)",str,0.0,1724,YES,NO,NO,Unstandardized free text; high missingness/inconsistency
+TipoContenitore,CaricaViewStoricoPuntoFisico.csv,"Internal waste collection receptacle type (Big Bag, Roll)",str,0.21,3,NO,NO,NO,Post-installation logistics configuration; not a store driver
+ReferenteCommerciale,CaricaViewStoricoPuntoFisico.csv,Coripet commercial sales representative name,str,97.55,3,NO,NO,NO,97.5% missing; internal administrative personnel field
+ReferenteCoripet,CaricaViewStoricoPuntoFisico.csv,Coripet operations representative code,str,0.0,16,NO,NO,NO,Internal administrative personnel field
+Comodatario,CaricaViewStoricoPuntoFisico.csv,Legal corporate name of store holding bailment contract,str,0.03,804,YES,NO,NO,High-cardinality corporate text; redundant with store name
+NomeFiliera,CaricaViewStoricoPuntoFisico.csv,Descriptive name of logistics recycling supply chain,str,0.0,288,NO,NO,NO,Internal logistics network label
+Raggruppamento,CaricaViewStoricoPuntoFisico.csv,Commercial grouping of stores,str,0.0,137,YES,YES,NO,Optional retail chain grouping if available
+Macchina,CaricaViewStoricoPuntoFisico.csv,Machine serial / asset tag in historical configuration,str,0.0,1743,NO,NO,YES,Hardware asset serial; memorizes individual machine instances (entity leakage)
+CodiceMacchinaProd,CaricaViewStoricoPuntoFisico.csv,Manufacturer serial number in historical configuration,str,0.0,1743,NO,NO,YES,Hardware asset serial; memorizes individual machine instances (entity leakage)
+TipoMacchina,CaricaViewStoricoPuntoFisico.csv,"Hardware model type / family (e.g. DAINT_G, Ripet_C-front)",str,0.0,14,YES,YES,NO,"CORE HARDWARE FEATURE; represents machine physical footprint, bin volume, and intake speed"
+Fornitore,CaricaViewStoricoPuntoFisico.csv,"Hardware OEM vendor (DAINT, RIPET, EURVEN, DENTISTECH)",str,0.0,4,YES,YES,NO,Hardware manufacturer category; directly derived from TipoMacchina
+DataInstallazione,CaricaViewStoricoPuntoFisico.csv,Physical installation date of machine,str,0.0,887,NO,NO,NO,Operational date; not available for prospective pre-installation location
+DataPrimaAttivazione,CaricaViewStoricoPuntoFisico.csv,First operational turn-on date of physical point,str,0.0,714,NO,NO,NO,Operational ramp-up anchor date; not available for prospective location
+historical_match_status,processed pipeline,Audit status of historical version join ('MATCHED'),str,0.0,2,NO,NO,NO,Pipeline audit diagnostic flag
+nielsen_match_status,processed pipeline,"Nielsen enrichment status (MATCHED, UNMATCHED, AMBIGUOUS)",str,0.0,3,YES,YES,NO,Missingness indicator flag; crucial for handling optional Nielsen enrichment
+nielsen_match_method,processed pipeline,Heuristic match method used in Nielsen integration,str,0.0,7,NO,NO,NO,Pipeline audit diagnostic flag
+nielsen_match_confidence,processed pipeline,"Confidence tier of Nielsen match (HIGH, MEDIUM, LOW, NONE)",str,0.0,4,YES,YES,NO,Data quality weight / confidence indicator for store features
+nielsen_country_shop_id,filenielsen_1203.csv,Nielsen census unique store ID,float64,41.86,939,NO,NO,YES,Nielsen database primary key; entity identifier
+nielsen_tipo_negozio,filenielsen_1203.csv,"Nielsen store format (IPR=Hyper, SUP=Super, LIS=Superette, DIS=Discount)",str,41.86,4,YES,YES,NO,OPTIONAL ENRICHMENT; strong predictor of store customer volume and shopping format
+nielsen_superficie_vendita,filenielsen_1203.csv,Store sales floor surface area in square meters,float64,41.86,417,YES,YES,NO,OPTIONAL ENRICHMENT; continuous capacity proxy directly correlated with foot traffic
+nielsen_numero_casse,filenielsen_1203.csv,Total number of checkout cash registers in store,float64,41.86,47,YES,YES,NO,OPTIONAL ENRICHMENT; checkout count is an industry standard proxy for daily shoppers
+nielsen_insegna,filenielsen_1203.csv,"Standardized retail store banner (e.g. Conad, Coop, Esselunga)",str,41.86,77,YES,YES,NO,OPTIONAL ENRICHMENT; brand identity captures customer loyalty and promotional affinity
+nielsen_gruppo,filenielsen_1203.csv,"Retail parent alliance / buying consortium (e.g. Selex, Coop, Conad)",str,41.86,18,YES,YES,NO,OPTIONAL ENRICHMENT; macro corporate alliance grouping
+nielsen_area,filenielsen_1203.csv,"Nielsen macro geographic area code (1=NW, 2=NE, 3=Center, 4=South)",float64,41.86,4,YES,YES,NO,OPTIONAL ENRICHMENT; macro-regional market segmentation
+population,population.csv,Municipality total resident population (ISTAT),float64,0.43,951,YES,YES,NO,CORE DEMOGRAPHIC FEATURE; municipality catchment population
+surface,surface.csv,Municipality geographic surface area in square kilometers,float64,1.06,908,YES,YES,NO,CORE GEOGRAPHIC FEATURE; physical size of municipality
+PIL,PIL.csv,Municipality aggregate Gross Domestic Product in Euros,float64,0.38,957,YES,YES,NO,CORE ECONOMIC FEATURE; overall economic output of the local market
+population_density,integrated pipeline,Population density (residents per sq km),float64,1.22,945,YES,YES,NO,CORE URBANICITY FEATURE; distinguishes dense urban centers from rural/suburban locations
+PIL_per_capita,integrated pipeline,Gross Domestic Product per resident (EUR / capita),float64,0.54,955,YES,YES,NO,CORE WEALTH FEATURE; local purchasing power proxy
+municipality_match_status,processed pipeline,Audit match status for municipality demographics,str,0.0,3,NO,NO,NO,Pipeline audit diagnostic flag
+puntovendita_eligible,processed pipeline,Eligibility flag for PUNTOVENDITA filter (100% = 1),int64,0.0,1,NO,NO,NO,Filter indicator; constant = 1
+active_as_of_2026_08_31,processed pipeline,Eligibility flag for active status as of 31/08/2026 (100% = 1),int64,0.0,1,NO,NO,NO,Filter indicator; constant = 1
+daily_standard_eligible,processed pipeline,Eligibility flag for STANDARD attribute (100% = 1),int64,0.0,1,NO,NO,NO,Filter indicator; constant = 1
+maturity_date,processed pipeline,Date 3 calendar months after DataPrimaAttivazione,str,0.0,706,NO,NO,NO,Operational ramp-up anchor date; not available for new location
+days_since_activation,processed pipeline,Days elapsed since machine first activation,int64,0.0,2591,NO,NO,NO,Installation lifecycle age; not available for prospective new store
+months_since_activation,processed pipeline,Months elapsed since machine first activation,float64,0.0,2591,NO,NO,NO,Installation lifecycle age; not available for prospective new store
+maturity_status,processed pipeline,Maturity status flag (100% = 'MATURE'),str,0.0,1,NO,NO,NO,Filter indicator; constant = 'MATURE'
+modeling_eligible,processed pipeline,Final modeling eligibility flag (100% = 1),int64,0.0,1,NO,NO,NO,Filter indicator; constant = 1
+PRESENZA POSTEGGIO (nielsen_parcheggio),filenielsen_1203.csv,"Binary indicator for dedicated store parking lot (1=Yes, 0/null=No)",int64 / binary,58.2,2,YES,YES,NO,OPTIONAL ENRICHMENT; customer convenience factor: stores with parking facilitate carrying large bags of bottles
+PUNTO VENDITA IN CENTRO COMMERCIALE (nielsen_centro_commerciale),filenielsen_1203.csv,Binary indicator if store is located inside an enclosed shopping mall,int64 / binary,58.2,2,YES,YES,NO,OPTIONAL ENRICHMENT; context factor: shopping malls exhibit high weekend foot traffic and different visitation patterns
+FASCIA ADDETTI (nielsen_addetti),filenielsen_1203.csv,"Categorical employee headcount bracket (A: 1-5, B: 6-15, C: 16-30, D: 31-50, E: >50)",str / category,58.2,6,YES,YES,NO,OPTIONAL ENRICHMENT; operational scale proxy
+day_of_week,derived from GIORNO,Day of the week (0=Monday to 6=Sunday),int64 / cyclical,0.0,7,NO,NO,NO,Training conditioning feature; not a static location feature. Used to marginalize/average over the week to compute Model A baseline expectation
+month_of_year,derived from GIORNO,Month of the year (1=January to 12=December),int64 / cyclical,0.0,12,NO,NO,NO,Training conditioning feature; captures summer beverage consumption peaks. Marginalized across 12 months for annual expected potential
+is_weekend,derived from GIORNO,Indicator for Saturday or Sunday,int64 / binary,0.0,2,NO,NO,NO,Training conditioning feature
+is_italian_holiday,derived from GIORNO,"National Italian public holidays (Christmas, Easter, Ferragosto, etc.)",int64 / binary,0.0,2,NO,NO,NO,Training conditioning feature; accounts for store closure days
+User_Input_Store_Name,Application User Input,Store banner / commercial name entered by user (e.g. Conad Superstore),str,0.0,Dynamic,YES,YES,NO,APPLICATION INPUT 1; parsed to extract standardized retail brand/insegna
+User_Input_Address,Application User Input,Street address entered by user (e.g. Via Roma 15),str,0.0,Dynamic,YES,NO,NO,APPLICATION INPUT 2; passed to geocoding API to resolve coordinates and municipality
+User_Input_CAP,Application User Input,5-digit postal code entered by user (e.g. 20121),str / int,0.0,Dynamic,YES,YES,NO,APPLICATION INPUT 3; validates geocoded locality and provides spatial postal code
+User_Input_Machine_Type,Application User Input,"RVM hardware model selected by user (e.g. DAINT_G, Ripet_C-front)",str / category,0.0,14,YES,YES,NO,APPLICATION INPUT 4; maps directly to TipoMacchina hardware profile

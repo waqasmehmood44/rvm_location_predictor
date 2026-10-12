@@ -1,0 +1,357 @@
+{
+  "test_split_info": {
+    "test_rows": 290704,
+    "test_unique_pfs": 331
+  },
+  "neural_network": {
+    "bottiglie": {
+      "MAE": 360.06,
+      "RMSE": 674.54,
+      "R2": 0.2223,
+      "MedAE": 199.98,
+      "MAE_pct_mean": 59.74
+    },
+    "presenze": {
+      "MAE": 8.82,
+      "RMSE": 13.03,
+      "R2": 0.3615,
+      "MedAE": 5.87,
+      "MAE_pct_mean": 50.96
+    }
+  },
+  "baselines": {
+    "global_train_mean": {
+      "bottiglie": {
+        "MAE": 455.97,
+        "RMSE": 764.99,
+        "R2": -0.0002,
+        "MedAE": 353.72,
+        "MAE_pct_mean": 75.66
+      },
+      "presenze": {
+        "MAE": 11.35,
+        "RMSE": 16.31,
+        "R2": -0.0001,
+        "MedAE": 9.47,
+        "MAE_pct_mean": 65.62
+      }
+    },
+    "machine_type_mean": {
+      "bottiglie": {
+        "MAE": 442.4,
+        "RMSE": 745.48,
+        "R2": 0.0501,
+        "MedAE": 328.21,
+        "MAE_pct_mean": 73.4
+      },
+      "presenze": {
+        "MAE": 11.07,
+        "RMSE": 15.95,
+        "R2": 0.0429,
+        "MedAE": 8.89,
+        "MAE_pct_mean": 64.02
+      }
+    },
+    "machine_regional_mean": {
+      "bottiglie": {
+        "MAE": 434.34,
+        "RMSE": 705.1,
+        "R2": 0.1503,
+        "MedAE": 300.13,
+        "MAE_pct_mean": 72.07
+      },
+      "presenze": {
+        "MAE": 10.75,
+        "RMSE": 15.09,
+        "R2": 0.1433,
+        "MedAE": 8.13,
+        "MAE_pct_mean": 62.11
+      }
+    }
+  },
+  "breakdown_by_machine": {
+    "DAINT_A-bis": {
+      "observations": 41771,
+      "unique_pfs": 36,
+      "bottiglie_mae": 166.62,
+      "bottiglie_r2": 0.4007,
+      "presenze_mae": 6.24,
+      "presenze_r2": 0.3387
+    },
+    "DAINT_B-bis": {
+      "observations": 6035,
+      "unique_pfs": 5,
+      "bottiglie_mae": 239.4,
+      "bottiglie_r2": -0.4239,
+      "presenze_mae": 8.12,
+      "presenze_r2": -0.7137
+    },
+    "DAINT_G": {
+      "observations": 110820,
+      "unique_pfs": 175,
+      "bottiglie_mae": 306.84,
+      "bottiglie_r2": 0.2308,
+      "presenze_mae": 8.99,
+      "presenze_r2": 0.2297
+    },
+    "RVM_Mod.E": {
+      "observations": 1378,
+      "unique_pfs": 2,
+      "bottiglie_mae": 127.47,
+      "bottiglie_r2": 0.4036,
+      "presenze_mae": 3.59,
+      "presenze_r2": 0.4128
+    },
+    "RVM_Mod.E_Nuova": {
+      "observations": 1879,
+      "unique_pfs": 3,
+      "bottiglie_mae": 178.73,
+      "bottiglie_r2": -0.3889,
+      "presenze_mae": 5.18,
+      "presenze_r2": -0.4482
+    },
+    "Ripet_C-Bis": {
+      "observations": 10654,
+      "unique_pfs": 8,
+      "bottiglie_mae": 335.95,
+      "bottiglie_r2": -0.1231,
+      "presenze_mae": 6.16,
+      "presenze_r2": -0.3251
+    },
+    "Ripet_C-Ter": {
+      "observations": 7870,
+      "unique_pfs": 6,
+      "bottiglie_mae": 436.82,
+      "bottiglie_r2": 0.171,
+      "presenze_mae": 9.17,
+      "presenze_r2": 0.1259
+    },
+    "Ripet_C-front": {
+      "observations": 99777,
+      "unique_pfs": 96,
+      "bottiglie_mae": 523.67,
+      "bottiglie_r2": 0.1602,
+      "presenze_mae": 10.47,
+      "presenze_r2": 0.4196
+    },
+    "Ripet_Smarpet": {
+      "observations": 2241,
+      "unique_pfs": 2,
+      "bottiglie_mae": 336.49,
+      "bottiglie_r2": 0.5478,
+      "presenze_mae": 6.92,
+      "presenze_r2": 0.1479
+    },
+    "Ripet_V1": {
+      "observations": 163,
+      "unique_pfs": 1,
+      "bottiglie_mae": 168.35,
+      "bottiglie_r2": -2.9154,
+      "presenze_mae": 8.89,
+      "presenze_r2": -4.3573
+    },
+    "Ripet_V2": {
+      "observations": 8034,
+      "unique_pfs": 6,
+      "bottiglie_mae": 210.37,
+      "bottiglie_r2": -0.9723,
+      "presenze_mae": 5.3,
+      "presenze_r2": -1.1251
+    },
+    "SUPERMARPET01S": {
+      "observations": 59,
+      "unique_pfs": 1,
+      "bottiglie_mae": 129.65,
+      "bottiglie_r2": -0.2247,
+      "presenze_mae": 3.24,
+      "presenze_r2": -0.1975
+    }
+  },
+  "breakdown_by_region": {
+    "Abruzzo": {
+      "observations": 8174,
+      "unique_pfs": 11,
+      "bottiglie_mae": 220.44,
+      "bottiglie_r2": -0.0067,
+      "presenze_mae": 7.45,
+      "presenze_r2": 0.1036
+    },
+    "Basilicata": {
+      "observations": 1030,
+      "unique_pfs": 2,
+      "bottiglie_mae": 363.19,
+      "bottiglie_r2": 0.6222,
+      "presenze_mae": 7.88,
+      "presenze_r2": 0.7599
+    },
+    "Calabria": {
+      "observations": 12045,
+      "unique_pfs": 17,
+      "bottiglie_mae": 384.4,
+      "bottiglie_r2": -0.0915,
+      "presenze_mae": 8.39,
+      "presenze_r2": 0.2201
+    },
+    "Campania": {
+      "observations": 44954,
+      "unique_pfs": 46,
+      "bottiglie_mae": 258.92,
+      "bottiglie_r2": 0.141,
+      "presenze_mae": 6.49,
+      "presenze_r2": 0.1564
+    },
+    "Emilia-Romagna": {
+      "observations": 14727,
+      "unique_pfs": 21,
+      "bottiglie_mae": 295.47,
+      "bottiglie_r2": 0.4099,
+      "presenze_mae": 8.03,
+      "presenze_r2": 0.4282
+    },
+    "Friuli-Venezia Giulia": {
+      "observations": 6051,
+      "unique_pfs": 7,
+      "bottiglie_mae": 283.14,
+      "bottiglie_r2": 0.2321,
+      "presenze_mae": 7.52,
+      "presenze_r2": 0.2195
+    },
+    "Lazio": {
+      "observations": 31509,
+      "unique_pfs": 38,
+      "bottiglie_mae": 320.21,
+      "bottiglie_r2": 0.1779,
+      "presenze_mae": 10.61,
+      "presenze_r2": 0.0593
+    },
+    "Liguria": {
+      "observations": 8522,
+      "unique_pfs": 9,
+      "bottiglie_mae": 336.22,
+      "bottiglie_r2": 0.2823,
+      "presenze_mae": 10.41,
+      "presenze_r2": 0.1536
+    },
+    "Lombardia": {
+      "observations": 34316,
+      "unique_pfs": 32,
+      "bottiglie_mae": 272.65,
+      "bottiglie_r2": 0.1565,
+      "presenze_mae": 7.19,
+      "presenze_r2": 0.3023
+    },
+    "Marche": {
+      "observations": 13710,
+      "unique_pfs": 16,
+      "bottiglie_mae": 412.24,
+      "bottiglie_r2": -0.1042,
+      "presenze_mae": 12.57,
+      "presenze_r2": -0.1391
+    },
+    "Molise": {
+      "observations": 1970,
+      "unique_pfs": 2,
+      "bottiglie_mae": 286.25,
+      "bottiglie_r2": -0.1551,
+      "presenze_mae": 9.0,
+      "presenze_r2": -0.2375
+    },
+    "Piemonte": {
+      "observations": 24897,
+      "unique_pfs": 26,
+      "bottiglie_mae": 486.96,
+      "bottiglie_r2": 0.0796,
+      "presenze_mae": 9.69,
+      "presenze_r2": 0.1368
+    },
+    "Puglia": {
+      "observations": 10355,
+      "unique_pfs": 9,
+      "bottiglie_mae": 225.72,
+      "bottiglie_r2": -0.0032,
+      "presenze_mae": 6.28,
+      "presenze_r2": -0.1526
+    },
+    "Sardegna": {
+      "observations": 14701,
+      "unique_pfs": 17,
+      "bottiglie_mae": 291.19,
+      "bottiglie_r2": 0.2559,
+      "presenze_mae": 6.82,
+      "presenze_r2": 0.3875
+    },
+    "Sicilia": {
+      "observations": 9110,
+      "unique_pfs": 11,
+      "bottiglie_mae": 197.14,
+      "bottiglie_r2": 0.2763,
+      "presenze_mae": 5.87,
+      "presenze_r2": 0.2117
+    },
+    "Toscana": {
+      "observations": 34313,
+      "unique_pfs": 41,
+      "bottiglie_mae": 725.17,
+      "bottiglie_r2": 0.1839,
+      "presenze_mae": 13.72,
+      "presenze_r2": 0.5078
+    },
+    "Umbria": {
+      "observations": 10698,
+      "unique_pfs": 13,
+      "bottiglie_mae": 337.4,
+      "bottiglie_r2": -0.0752,
+      "presenze_mae": 8.67,
+      "presenze_r2": -0.2305
+    },
+    "Valle d'Aosta": {
+      "observations": 1123,
+      "unique_pfs": 2,
+      "bottiglie_mae": 274.84,
+      "bottiglie_r2": -0.6373,
+      "presenze_mae": 5.08,
+      "presenze_r2": 0.1522
+    },
+    "Veneto": {
+      "observations": 7612,
+      "unique_pfs": 9,
+      "bottiglie_mae": 289.03,
+      "bottiglie_r2": 0.301,
+      "presenze_mae": 6.02,
+      "presenze_r2": 0.5269
+    }
+  },
+  "volume_tiers": {
+    "Low_Volume (<= 25th pct, <= 182)": {
+      "N": 72994,
+      "BOTTIGLIE_MAE": 223.7,
+      "PRESENZE_MAE": 6.7
+    },
+    "Mid_Volume (25th-75th pct, 183-763)": {
+      "N": 145114,
+      "BOTTIGLIE_MAE": 200.8,
+      "PRESENZE_MAE": 6.3
+    },
+    "High_Volume (> 75th pct, > 763)": {
+      "N": 72596,
+      "BOTTIGLIE_MAE": 815.5,
+      "PRESENZE_MAE": 16.0
+    }
+  },
+  "temporal_benchmark_2026": {
+    "bottiglie": {
+      "MAE": 368.55,
+      "RMSE": 640.46,
+      "R2": 0.2189,
+      "MedAE": 213.52,
+      "MAE_pct_mean": 60.03
+    },
+    "presenze": {
+      "MAE": 8.61,
+      "RMSE": 12.27,
+      "R2": 0.3396,
+      "MedAE": 5.85,
+      "MAE_pct_mean": 51.24
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "blend_weight_bottiglie_lgb": 0.9,
+  "blend_weight_bottiglie_nn": 0.09999999999999998,
+  "blend_weight_presenze_lgb": 0.65,
+  "blend_weight_presenze_nn": 0.35,
+  "metrics": {
+    "bottiglie": {
+      "MAE": 340.53,
+      "RMSE": 617.52,
+      "R2": 0.3482,
+      "MedAE": 193.68
+    },
+    "presenze": {
+      "MAE": 8.58,
+      "RMSE": 12.82,
+      "R2": 0.3815,
+      "MedAE": 5.73
+    }
+  }
+}
