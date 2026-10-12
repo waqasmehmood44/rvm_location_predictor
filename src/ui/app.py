@@ -692,6 +692,315 @@ def render_seasonality_chart(monthly_data: Any, steady_state_benchmark: Optional
     return fig
 
 
+@st.cache_data
+def load_historical_machines():
+    """Loads and enriches historical machine records for SPL and POT statuses from CaricaViewStoricoPuntoFisico.csv."""
+    path = Path("data/raw/CaricaViewStoricoPuntoFisico.csv")
+    if not path.exists():
+        return pd.DataFrame(), pd.DataFrame()
+
+    df = pd.read_csv(path, sep=";", dtype=str)
+
+    # Fast enrichment of missing attributes across historical records for the same PuntoFisico
+    enrich_cols = ["Descrizione", "TipoMacchina", "NomeFiliera", "Filiera", "Indirizzo", "Cap", "Comune", "Provincia", "Regione"]
+    for c in enrich_cols:
+        valid = df[df[c].notna() & (df[c].str.strip() != "") & (df[c].str.strip().str.lower() != "nan")]
+        if not valid.empty:
+            c_map = valid.drop_duplicates("PuntoFisico", keep="last").set_index("PuntoFisico")[c].to_dict()
+            df[c] = df[c].fillna(df["PuntoFisico"].map(c_map))
+
+    df["Stato_Clean"] = df["Stato"].astype(str).str.upper().str.strip()
+
+    valid_machine_options = [
+        "Ripet_C-front", "DAINT_G", "DAINT_A-bis", "Ripet_C-Bis", "Ripet_V2",
+        "Ripet_C-Ter", "DAINT_B-bis", "RVM_Mod.E_Nuova", "Ripet_Smarpet",
+        "RVM_Mod.E", "Ripet_V1", "SUPERMARPET01S"
+    ]
+
+    def process_status(status_str: str) -> pd.DataFrame:
+        sub = df[df["Stato_Clean"] == status_str].copy()
+        if sub.empty:
+            return pd.DataFrame()
+
+        # Deduplicate to keep the latest physical record per PuntoFisico
+        sub = sub.drop_duplicates(subset=["PuntoFisico"], keep="last").copy()
+
+        # Sanitize location fields
+        sub["Indirizzo"] = sub["Indirizzo"].apply(
+            lambda x: str(x).strip() if pd.notna(x) and str(x).strip() and str(x).strip().lower() != "nan" else "Piazza del Comune 1"
+        )
+        sub["Cap"] = sub["Cap"].apply(
+            lambda x: str(x).split(".")[0].strip().zfill(5) if pd.notna(x) and str(x).strip() and str(x).strip().lower() != "nan" else "00100"
+        )
+        sub["Comune"] = sub["Comune"].apply(
+            lambda x: str(x).strip() if pd.notna(x) and str(x).strip() and str(x).strip().lower() != "nan" else "Milano"
+        )
+        sub["Provincia"] = sub["Provincia"].apply(
+            lambda x: str(x).strip() if pd.notna(x) and str(x).strip() and str(x).strip().lower() != "nan" else ""
+        )
+        sub["Regione"] = sub["Regione"].apply(
+            lambda x: str(x).strip() if pd.notna(x) and str(x).strip() and str(x).strip().lower() != "nan" else ""
+        )
+
+        def resolve_name(r):
+            desc = str(r.get("Descrizione", "")).strip()
+            if desc and desc.lower() != "nan":
+                return desc
+            nf = str(r.get("NomeFiliera", "")).strip()
+            if nf and nf.lower() != "nan":
+                return nf
+            fil = str(r.get("Filiera", "")).strip()
+            if fil and fil.lower() != "nan":
+                return fil
+            com = str(r.get("Comune", "")).strip()
+            return f"Store {com}" if com else f"Punto {r.get('PuntoFisico', '')}"
+
+        sub["ResolvedStoreName"] = sub.apply(resolve_name, axis=1)
+
+        def resolve_filiera(r):
+            nf = str(r.get("NomeFiliera", "")).strip()
+            if nf and nf.lower() != "nan":
+                return nf
+            fil = str(r.get("Filiera", "")).strip()
+            if fil and fil.lower() != "nan":
+                return fil
+            rag = str(r.get("Raggruppamento", "")).strip()
+            if rag and rag.lower() != "nan":
+                return rag
+            return "Retail Store"
+
+        sub["ResolvedFiliera"] = sub.apply(resolve_filiera, axis=1)
+
+        def resolve_mach(m):
+            m_str = str(m).strip()
+            if m_str in valid_machine_options:
+                return m_str
+            for vm in valid_machine_options:
+                if vm.lower() == m_str.lower():
+                    return vm
+            return "Ripet_C-front"
+
+        sub["ResolvedMachine"] = sub["TipoMacchina"].apply(resolve_mach)
+        return sub
+
+    df_spl = process_status("SPL")
+    df_pot = process_status("POT")
+    return df_spl, df_pot
+
+
+def render_machine_directory(df_machines: pd.DataFrame, status_label: str, predictor: Any):
+    """Renders a responsive directory table/cards of machines for SPL or POT status."""
+    if df_machines.empty:
+        st.info(f"No machines found with status {status_label}.")
+        return
+
+    total_count = len(df_machines)
+    unique_comuni = df_machines["Comune"].nunique()
+    unique_regioni = df_machines["Regione"].nunique()
+    unique_filiere = df_machines["ResolvedFiliera"].nunique()
+
+    # Metrics header
+    st.markdown(
+        f"""
+        <div style="background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%); border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <h3 style="margin: 0; color: #1e293b; font-size: 1.25rem;">
+                        📋 {status_label} Machines Registry ({total_count:,} Installed / Prospective Sites)
+                    </h3>
+                    <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.85rem;">
+                        Verified historical physical network locations from CaricaViewStoricoPuntoFisico with status <strong>{status_label}</strong>.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <span style="background: #e0f2fe; color: #0369a1; padding: 5px 12px; border-radius: 8px; font-weight: 700; font-size: 0.82rem;">
+                        🏙️ {unique_comuni} Municipalities
+                    </span>
+                    <span style="background: #f0fdf4; color: #15803d; padding: 5px 12px; border-radius: 8px; font-weight: 700; font-size: 0.82rem;">
+                        🗺️ {unique_regioni} Regions
+                    </span>
+                    <span style="background: #faf5ff; color: #7e22ce; padding: 5px 12px; border-radius: 8px; font-weight: 700; font-size: 0.82rem;">
+                        🏪 {unique_filiere} Commercial Partners
+                    </span>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Search & filters bar
+    c_search, c_reg, c_mach = st.columns([2.5, 1.2, 1.2])
+    with c_search:
+        search_query = st.text_input(
+            f"🔍 Search {status_label} Machines",
+            placeholder="Search by store name, ID (e.g. PF...), address, or city...",
+            key=f"search_{status_label}",
+        ).strip().lower()
+
+    all_regions = ["All Regions"] + sorted([r for r in df_machines["Regione"].unique() if r and r != "nan"])
+    with c_reg:
+        selected_region = st.selectbox(
+            "Region Filter",
+            options=all_regions,
+            index=0,
+            key=f"region_filter_{status_label}",
+        )
+
+    all_models = ["All Machine Models"] + sorted([m for m in df_machines["ResolvedMachine"].unique() if m])
+    with c_mach:
+        selected_model = st.selectbox(
+            "Hardware Model",
+            options=all_models,
+            index=0,
+            key=f"model_filter_{status_label}",
+        )
+
+    # Apply filtering
+    filtered_df = df_machines.copy()
+    if search_query:
+        mask = (
+            filtered_df["PuntoFisico"].str.lower().str.contains(search_query, na=False)
+            | filtered_df["ResolvedStoreName"].str.lower().str.contains(search_query, na=False)
+            | filtered_df["Indirizzo"].str.lower().str.contains(search_query, na=False)
+            | filtered_df["Comune"].str.lower().str.contains(search_query, na=False)
+            | filtered_df["Cap"].str.lower().str.contains(search_query, na=False)
+            | filtered_df["ResolvedFiliera"].str.lower().str.contains(search_query, na=False)
+        )
+        filtered_df = filtered_df[mask]
+
+    if selected_region != "All Regions":
+        filtered_df = filtered_df[filtered_df["Regione"] == selected_region]
+
+    if selected_model != "All Machine Models":
+        filtered_df = filtered_df[filtered_df["ResolvedMachine"] == selected_model]
+
+    n_filtered = len(filtered_df)
+    if n_filtered == 0:
+        st.warning("⚠️ No machines matched the search / filter criteria.")
+        return
+
+    # Pagination setup
+    PER_PAGE = 20
+    total_pages = max(1, (n_filtered + PER_PAGE - 1) // PER_PAGE)
+
+    col_stat, col_page = st.columns([2, 1])
+    with col_stat:
+        st.caption(f"Showing **{n_filtered:,}** of {total_count:,} machines | Click **Results 📊** to analyze prospective AI yield")
+    with col_page:
+        page_num = st.selectbox(
+            "Select Page",
+            options=list(range(1, total_pages + 1)),
+            index=0,
+            key=f"page_sel_{status_label}",
+            label_visibility="collapsed",
+        )
+
+    start_idx = (page_num - 1) * PER_PAGE
+    end_idx = min(start_idx + PER_PAGE, n_filtered)
+    page_df = filtered_df.iloc[start_idx:end_idx]
+
+    # Table Header
+    th_col1, th_col2, th_col3, th_col4 = st.columns([3.5, 3.0, 1.8, 1.3])
+    with th_col1:
+        st.markdown("<strong style='font-size: 0.82rem; color: #475569;'>STORE & NETWORK ID</strong>", unsafe_allow_html=True)
+    with th_col2:
+        st.markdown("<strong style='font-size: 0.82rem; color: #475569;'>LOCATION & ADDRESS</strong>", unsafe_allow_html=True)
+    with th_col3:
+        st.markdown("<strong style='font-size: 0.82rem; color: #475569;'>HARDWARE MODEL</strong>", unsafe_allow_html=True)
+    with th_col4:
+        st.markdown("<strong style='font-size: 0.82rem; color: #475569;'>AI PREDICTION</strong>", unsafe_allow_html=True)
+
+    st.markdown("<div style='border-bottom: 2px solid #e2e8f0; margin-bottom: 10px;'></div>", unsafe_allow_html=True)
+
+    # Machine Items List
+    for row_idx, row in page_df.iterrows():
+        pf_code = row["PuntoFisico"]
+        store = row["ResolvedStoreName"]
+        addr = row["Indirizzo"]
+        cap_val = row["Cap"]
+        comune_val = row["Comune"]
+        prov_val = row["Provincia"]
+        reg_val = row["Regione"]
+        mach_model = row["ResolvedMachine"]
+        filiera_val = row["ResolvedFiliera"]
+
+        with st.container():
+            c1, c2, c3, c4 = st.columns([3.5, 3.0, 1.8, 1.3])
+            with c1:
+                st.markdown(
+                    f"""
+                    <div style="line-height: 1.35; margin-bottom: 4px;">
+                        <span style="font-weight: 700; color: #0f172a; font-size: 0.95rem;">{store}</span>
+                    </div>
+                    <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                        <span style="background: #f1f5f9; color: #334155; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-family: monospace; font-weight: 600;">🆔 {pf_code}</span>
+                        <span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;">🏢 {filiera_val}</span>
+                        <span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 700;">{status_label}</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with c2:
+                prov_str = f"({prov_val})" if prov_val else ""
+                st.markdown(
+                    f"""
+                    <div style="font-size: 0.85rem; color: #334155; line-height: 1.35;">
+                        <div>📍 {addr}</div>
+                        <div style="color: #64748b; font-size: 0.78rem;">📮 {cap_val} <strong>{comune_val}</strong> {prov_str}, {reg_val}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with c3:
+                st.markdown(
+                    f"""
+                    <div style="display: flex; align-items: center; height: 100%;">
+                        <span style="background: #f8fafc; border: 1px solid #cbd5e1; color: #1e293b; padding: 4px 8px; border-radius: 6px; font-size: 0.78rem; font-weight: 600;">
+                            ⚙️ {mach_model}
+                        </span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with c4:
+                btn_key = f"btn_res_{status_label}_{pf_code}_{row_idx}"
+                if st.button("Results 📊", key=btn_key, type="primary", use_container_width=True):
+                    with st.spinner(f"Predicting yield for {store}..."):
+                        try:
+                            clean_addr_val = addr if addr and addr.lower() != "nan" else "Piazza del Comune 1"
+                            st.session_state["input_store_name"] = store
+                            st.session_state["input_address"] = clean_addr_val
+                            st.session_state["input_cap"] = cap_val
+                            st.session_state["input_comune"] = comune_val
+                            st.session_state["input_machine_type"] = mach_model
+                            st.session_state["pending_input_machine_type"] = mach_model
+                            st.session_state["wizard_step"] = 4
+                            st.session_state["selected_store_pf"] = pf_code
+                            st.session_state["selected_store_status"] = status_label
+                            st.session_state.pop("top_sim_machine", None)
+                            st.session_state.pop("top_sim_reward", None)
+
+                            import inspect
+                            predict_kwargs = {
+                                "store_name": store,
+                                "address": clean_addr_val,
+                                "cap": cap_val,
+                                "machine_type": mach_model,
+                                "comune": comune_val if comune_val else None,
+                                "enable_rampup": True,
+                            }
+                            sig_params = inspect.signature(predictor.predict_new_location).parameters
+                            kwargs_to_pass = {k: v for k, v in predict_kwargs.items() if k in sig_params}
+                            res = predictor.predict_new_location(**kwargs_to_pass)
+                            st.session_state["prediction_result"] = res
+                            st.rerun()
+                        except Exception as err:
+                            st.error(f"❌ Error predicting location: {err}")
+
+            st.markdown("<div style='border-bottom: 1px solid #f1f5f9; margin: 8px 0 10px 0;'></div>", unsafe_allow_html=True)
+
+
 def main():
     st.markdown('<div class="main-header">♻️ Coripet RVM Prospective Location Predictor</div>', unsafe_allow_html=True)
     st.markdown(
@@ -771,6 +1080,8 @@ def main():
                 st.session_state.pop("top_sim_machine", None)
                 st.session_state.pop("top_sim_reward", None)
                 st.session_state.pop("pending_input_machine_type", None)
+                st.session_state.pop("selected_store_pf", None)
+                st.session_state.pop("selected_store_status", None)
                 st.rerun()
 
         st.caption("Guided 3-step decision support wizard with Nielsen & Coripet intelligence.")
@@ -1090,42 +1401,83 @@ def main():
                     st.error(f"❌ **Pipeline Execution Error:** {err}")
 
     # -------------------------------------------------------------
-    # Main Dashboard Panel Execution
+    # Main Dashboard Tabs Execution: Predictor, SPL, POT
     # -------------------------------------------------------------
-    res = st.session_state.get("prediction_result")
-    if not res:
-        # Guided Onboarding Walkthrough Card
-        curr_step = st.session_state.get("wizard_step", 1)
-        st.markdown(
-            f"""
-            <div class="intel-section" style="border-left: 5px solid #2e7d32; padding: 24px;">
-                <h3 style="color: #1b5e20; margin-top: 0;">🧭 Guided Prospective Location Analysis</h3>
-                <p style="color: #444; font-size: 1.05rem;">
-                    Welcome to the <strong>Coripet RVM Prospective Predictor</strong>. Follow the 3-step decision support wizard on the left sidebar:
-                </p>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 18px;">
-                    <div style="background: {'#e8f5e9' if curr_step == 1 else '#f7fafc'}; border: 1px solid {'#81c784' if curr_step == 1 else '#e2e8f0'}; border-radius: 8px; padding: 14px;">
-                        <strong style="color: #1b5e20;">1️⃣ Step 1: Site & Model</strong><br>
-                        <span style="font-size: 0.85rem; color: #555;">Enter store name, street, CAP, and machine. Click <em>Detect Location & Nielsen Scale</em>.</span>
-                    </div>
-                    <div style="background: {'#e8f5e9' if curr_step == 2 else '#f7fafc'}; border: 1px solid {'#81c784' if curr_step == 2 else '#e2e8f0'}; border-radius: 8px; padding: 14px;">
-                        <strong style="color: #1b5e20;">2️⃣ Step 2: Nielsen Census</strong><br>
-                        <span style="font-size: 0.85rem; color: #555;">Review auto-detected store scale and footprint. Accept or adjust, then click <em>Continue</em>.</span>
-                    </div>
-                    <div style="background: {'#e8f5e9' if curr_step == 3 else '#f7fafc'}; border: 1px solid {'#81c784' if curr_step == 3 else '#e2e8f0'}; border-radius: 8px; padding: 14px;">
-                        <strong style="color: #1b5e20;">3️⃣ Step 3: Coripet Rewards</strong><br>
-                        <span style="font-size: 0.85rem; color: #555;">Review contract promotions from the database. Keep or change, then click <em>Run Prediction</em>.</span>
-                    </div>
-                    <div style="background: {'#e8f5e9' if curr_step == 4 else '#f7fafc'}; border: 1px solid {'#81c784' if curr_step == 4 else '#e2e8f0'}; border-radius: 8px; padding: 14px;">
-                        <strong style="color: #1b5e20;">4️⃣ Step 4: Executive Verdict</strong><br>
-                        <span style="font-size: 0.85rem; color: #555;">View 365-day yield, 12-month calendar, clearance gates, and investment score.</span>
+    tab_main, tab_spl, tab_pot = st.tabs([
+        "🎯 Prospective Predictor",
+        "📋 SPL Machines",
+        "💡 POT Machines",
+    ])
+
+    with tab_main:
+        if "selected_store_pf" in st.session_state and st.session_state.get("prediction_result"):
+            sel_pf = st.session_state.get("selected_store_pf")
+            sel_st = st.session_state.get("selected_store_status", "")
+            sel_nm = st.session_state.get("input_store_name", "")
+            st.success(f"📍 **Active Prediction Loaded from {sel_st} Registry:** **{sel_nm}** (Machine ID: `{sel_pf}` | Status: **{sel_st}**)")
+
+        res = st.session_state.get("prediction_result")
+        if not res:
+            # Guided Onboarding Walkthrough Card
+            curr_step = st.session_state.get("wizard_step", 1)
+            st.markdown(
+                f"""
+                <div class="intel-section" style="border-left: 5px solid #2e7d32; padding: 24px;">
+                    <h3 style="color: #1b5e20; margin-top: 0;">🧭 Guided Prospective Location Analysis</h3>
+                    <p style="color: #444; font-size: 1.05rem;">
+                        Welcome to the <strong>Coripet RVM Prospective Predictor</strong>. Follow the 3-step decision support wizard on the left sidebar, or select any installed machine from the <strong>SPL Machines</strong> or <strong>POT Machines</strong> tabs to run instant predictions:
+                    </p>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 18px;">
+                        <div style="background: {'#e8f5e9' if curr_step == 1 else '#f7fafc'}; border: 1px solid {'#81c784' if curr_step == 1 else '#e2e8f0'}; border-radius: 8px; padding: 14px;">
+                            <strong style="color: #1b5e20;">1️⃣ Step 1: Site & Model</strong><br>
+                            <span style="font-size: 0.85rem; color: #555;">Enter store name, street, CAP, and machine. Click <em>Detect Location & Nielsen Scale</em>.</span>
+                        </div>
+                        <div style="background: {'#e8f5e9' if curr_step == 2 else '#f7fafc'}; border: 1px solid {'#81c784' if curr_step == 2 else '#e2e8f0'}; border-radius: 8px; padding: 14px;">
+                            <strong style="color: #1b5e20;">2️⃣ Step 2: Nielsen Census</strong><br>
+                            <span style="font-size: 0.85rem; color: #555;">Review auto-detected store scale and footprint. Accept or adjust, then click <em>Continue</em>.</span>
+                        </div>
+                        <div style="background: {'#e8f5e9' if curr_step == 3 else '#f7fafc'}; border: 1px solid {'#81c784' if curr_step == 3 else '#e2e8f0'}; border-radius: 8px; padding: 14px;">
+                            <strong style="color: #1b5e20;">3️⃣ Step 3: Coripet Rewards</strong><br>
+                            <span style="font-size: 0.85rem; color: #555;">Review contract promotions from the database. Keep or change, then click <em>Run Prediction</em>.</span>
+                        </div>
+                        <div style="background: {'#e8f5e9' if curr_step == 4 else '#f7fafc'}; border: 1px solid {'#81c784' if curr_step == 4 else '#e2e8f0'}; border-radius: 8px; padding: 14px;">
+                            <strong style="color: #1b5e20;">4️⃣ Step 4: Executive Verdict</strong><br>
+                            <span style="font-size: 0.85rem; color: #555;">View 365-day yield, 12-month calendar, clearance gates, and investment score.</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        return
+                """,
+                unsafe_allow_html=True,
+            )
+        else:
+            render_prediction_dashboard(
+                res=res,
+                predictor=predictor,
+                store_name=store_name,
+                address=address,
+                cap=cap,
+                comune=comune,
+                machine_type=machine_type,
+            )
+
+    df_spl, df_pot = load_historical_machines()
+
+    with tab_spl:
+        render_machine_directory(df_spl, "SPL", predictor)
+
+    with tab_pot:
+        render_machine_directory(df_pot, "POT", predictor)
+
+
+def render_prediction_dashboard(
+    res: Dict[str, Any],
+    predictor: Any,
+    store_name: str,
+    address: str,
+    cap: str,
+    comune: Optional[str],
+    machine_type: str,
+):
 
     # -------------------------------------------------------------
     # Interactive Machine Model & Commercial Reward Dropdown Filters
