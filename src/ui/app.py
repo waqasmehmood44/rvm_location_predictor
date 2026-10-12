@@ -992,39 +992,20 @@ def render_machine_directory(df_machines: pd.DataFrame, status_label: str, predi
                 )
             with c4:
                 btn_key = f"btn_res_{status_label}_{pf_code}_{row_idx}"
-                if st.button("Results 📊", key=btn_key, type="primary", use_container_width=True):
-                    with st.spinner(f"Predicting yield for {store}..."):
-                        try:
-                            clean_addr_val = addr if addr and addr.lower() != "nan" else "Piazza del Comune 1"
-                            st.session_state["pending_load_machine"] = {
-                                "store_name": store,
-                                "address": clean_addr_val,
-                                "cap": cap_val,
-                                "comune": comune_val,
-                                "machine_type": mach_model,
-                                "pf_code": pf_code,
-                                "status_label": status_label,
-                            }
-                            st.session_state.pop("top_sim_machine", None)
-                            st.session_state.pop("top_sim_reward", None)
-                            st.session_state["pending_nav_tab"] = "🎯 Prospective Predictor"
-
-                            import inspect
-                            predict_kwargs = {
-                                "store_name": store,
-                                "address": clean_addr_val,
-                                "cap": cap_val,
-                                "machine_type": mach_model,
-                                "comune": comune_val if comune_val else None,
-                                "enable_rampup": True,
-                            }
-                            sig_params = inspect.signature(predictor.predict_new_location).parameters
-                            kwargs_to_pass = {k: v for k, v in predict_kwargs.items() if k in sig_params}
-                            res = predictor.predict_new_location(**kwargs_to_pass)
-                            st.session_state["prediction_result"] = res
-                            st.rerun()
-                        except Exception as err:
-                            st.error(f"❌ Error predicting location: {err}")
+                if st.button("Results 📊", key=btn_key, type="primary", use_container_width=True, help=f"Populate {store} ({pf_code}) into Site Setup fields"):
+                    clean_addr_val = addr if addr and addr.lower() != "nan" else "Piazza del Comune 1"
+                    st.session_state["pending_load_machine"] = {
+                        "store_name": store,
+                        "address": clean_addr_val,
+                        "cap": cap_val,
+                        "comune": comune_val,
+                        "machine_type": mach_model,
+                        "pf_code": pf_code,
+                        "status_label": status_label,
+                    }
+                    st.session_state.pop("top_sim_machine", None)
+                    st.session_state.pop("top_sim_reward", None)
+                    st.rerun()
 
             st.markdown("<div style='border-bottom: 1px solid #f1f5f9; margin: 8px 0 10px 0;'></div>", unsafe_allow_html=True)
 
@@ -1057,15 +1038,14 @@ def main():
         st.session_state["pending_input_machine_type"] = load_data["machine_type"]
         st.session_state["selected_store_pf"] = load_data["pf_code"]
         st.session_state["selected_store_status"] = load_data["status_label"]
-        st.session_state["wizard_step"] = 4
-        try:
-            st.session_state["loc_info"] = predictor.resolve_location(
-                load_data["address"],
-                load_data["cap"],
-                comune=load_data["comune"] if load_data["comune"] else None,
-            )
-        except Exception:
-            st.session_state["loc_info"] = None
+        st.session_state["wizard_step"] = 1
+        st.session_state["loc_info"] = None
+        st.session_state["auto_scale"] = None
+        st.session_state["auto_reward"] = None
+        st.session_state["prediction_result"] = None
+        st.session_state["step1_validation_error"] = False
+        st.session_state["step1_missing_fields"] = []
+        st.toast(f"📥 Populated {load_data['store_name']} ({load_data['pf_code']}) into Site Setup! Click Step 1 in the sidebar to proceed.", icon="📍")
 
     if "wizard_step" not in st.session_state:
         st.session_state["wizard_step"] = 1
