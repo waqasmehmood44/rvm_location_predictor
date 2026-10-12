@@ -969,15 +969,15 @@ def render_machine_directory(df_machines: pd.DataFrame, status_label: str, predi
                     with st.spinner(f"Predicting yield for {store}..."):
                         try:
                             clean_addr_val = addr if addr and addr.lower() != "nan" else "Piazza del Comune 1"
-                            st.session_state["input_store_name"] = store
-                            st.session_state["input_address"] = clean_addr_val
-                            st.session_state["input_cap"] = cap_val
-                            st.session_state["input_comune"] = comune_val
-                            st.session_state["input_machine_type"] = mach_model
-                            st.session_state["pending_input_machine_type"] = mach_model
-                            st.session_state["wizard_step"] = 4
-                            st.session_state["selected_store_pf"] = pf_code
-                            st.session_state["selected_store_status"] = status_label
+                            st.session_state["pending_load_machine"] = {
+                                "store_name": store,
+                                "address": clean_addr_val,
+                                "cap": cap_val,
+                                "comune": comune_val,
+                                "machine_type": mach_model,
+                                "pf_code": pf_code,
+                                "status_label": status_label,
+                            }
                             st.session_state.pop("top_sim_machine", None)
                             st.session_state.pop("top_sim_reward", None)
 
@@ -1019,6 +1019,18 @@ def main():
     # -------------------------------------------------------------
     # Wizard Session State Initialization
     # -------------------------------------------------------------
+    if "pending_load_machine" in st.session_state:
+        load_data = st.session_state.pop("pending_load_machine")
+        st.session_state["input_store_name"] = load_data["store_name"]
+        st.session_state["input_address"] = load_data["address"]
+        st.session_state["input_cap"] = load_data["cap"]
+        st.session_state["input_comune"] = load_data["comune"]
+        st.session_state["input_machine_type"] = load_data["machine_type"]
+        st.session_state["pending_input_machine_type"] = load_data["machine_type"]
+        st.session_state["selected_store_pf"] = load_data["pf_code"]
+        st.session_state["selected_store_status"] = load_data["status_label"]
+        st.session_state["wizard_step"] = 4
+
     if "wizard_step" not in st.session_state:
         st.session_state["wizard_step"] = 1
     if "loc_info" not in st.session_state:
