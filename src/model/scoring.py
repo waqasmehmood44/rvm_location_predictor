@@ -642,7 +642,7 @@ def calculate_catchment_realization_factor(
             "serviced_monthly_bottles": floor_mo_b,
             "serviced_annual_bottles": int(round(floor_daily_b * 365.0)),
             "uptime_availability_factor": 0.82,
-            "description": "Real-world serviced operational baseline (Power BI equivalent, accounting for routine servicing, full-bin pauses, and holiday schedules)"
+            "description": "Real-world serviced operational baseline (accounting for routine servicing, full-bin pauses, and holiday schedules)"
         },
         "dilution_reasons": reasons
     }
@@ -1035,7 +1035,7 @@ def generate_predictive_diagnostics(
     1. Primary reasons behind the results (performance drivers).
     2. Detailed bottlenecks and limiting factors (why results are not higher / not good).
     3. Actionable strategic model suggestions to increase future collection volume at this site.
-    4. Factors that may cause real-world Power BI telemetry variance.
+    4. Factors that may cause real-world telemetry variance.
     """
     primary_drivers = []
     limiting_factors = []
@@ -1159,7 +1159,7 @@ def generate_predictive_diagnostics(
         )
 
     # ==================================================================
-    # 4. FACTORS CAUSING ACCURACY DISCREPANCIES WITH POWER BI ACTUALS
+    # 4. FACTORS CAUSING ACCURACY DISCREPANCIES WITH OPERATIONAL ACTUALS
     # ==================================================================
     is_tourist_region = any(reg in regione.lower() for reg in ["valle d'aosta", "trentino", "alto adige", "liguria", "marche", "costa", "mare"])
     if (population < 20000 or population_density < 300) and (sales_area_sqm >= 750 or is_tourist_region or total_grocery_stores <= 3):

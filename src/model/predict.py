@@ -1653,7 +1653,7 @@ def print_prediction_summary(result: dict):
                 for r in real["dilution_reasons"]:
                     print(f"  * {r}")
             print("-" * 65)
-            print(f"OPERATIONAL YIELD (Power BI Baseline): {floor_b} b/day (Mean)  |  {floor_mo:,} b/mo  [~82% Serviced Uptime]")
+            print(f"OPERATIONAL YIELD (Underwritten Baseline): {floor_b} b/day (Mean)  |  {floor_mo:,} b/mo  [~82% Serviced Uptime]")
             print(f"STEADY-STATE CEILING (100% Uptime):    {real_b} b/day (Mean)  |  {real_mo:,} b/mo  |  {real_b_med} b/day (Median)")
             print(f"ANNUALIZED PROJECTION:                 {real_yr:,} b/yr (Ceiling)  |  {floor_yr:,} b/yr (Serviced Baseline)")
             print(f"REALIZED PRESENZE/day:                 {real_p} u/day (Mean)    |  {real_p_med} u/day (Median)")
@@ -1851,7 +1851,7 @@ def print_prediction_summary(result: dict):
         for s in suggestions:
             print(f"  * {s}")
 
-    print("\nKey Factors That May Cause Real-World Power BI Variance (Accuracy Limitations):")
+    print("\nKey Factors That May Cause Real-World Operational Telemetry Variance (Accuracy Limitations):")
     if accuracy_factors:
         for f in accuracy_factors:
             print(f"  * {f}")
