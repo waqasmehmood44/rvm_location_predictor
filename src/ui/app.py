@@ -660,14 +660,21 @@ def render_seasonality_chart(monthly_data: Any, steady_state_benchmark: Optional
         )
     )
     
-    if steady_state_benchmark and steady_state_benchmark > 0:
+    # Calculate steady-state benchmark from mature months 4 to 12 (excluding initial 3-month ramp-up)
+    mature_benchmark = None
+    if len(vals) >= 12:
+        mature_benchmark = float(np.mean(vals[3:]))
+    elif steady_state_benchmark and steady_state_benchmark > 0:
+        mature_benchmark = float(steady_state_benchmark)
+
+    if mature_benchmark and mature_benchmark > 0:
         fig.add_trace(
             go.Scatter(
                 x=x_labels,
-                y=[steady_state_benchmark] * len(x_labels),
+                y=[mature_benchmark] * len(x_labels),
                 mode="lines",
                 line=dict(color="#1976d2", width=2, dash="dash"),
-                name=f"Steady-State Capacity ({steady_state_benchmark:.0f} b/d)",
+                name=f"Steady-State Capacity ({mature_benchmark:.0f} b/d)",
                 hoverinfo="name+y",
             )
         )
