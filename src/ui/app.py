@@ -1030,6 +1030,14 @@ def main():
         st.session_state["selected_store_pf"] = load_data["pf_code"]
         st.session_state["selected_store_status"] = load_data["status_label"]
         st.session_state["wizard_step"] = 4
+        try:
+            st.session_state["loc_info"] = predictor.resolve_location(
+                load_data["address"],
+                load_data["cap"],
+                comune=load_data["comune"] if load_data["comune"] else None,
+            )
+        except Exception:
+            st.session_state["loc_info"] = None
 
     if "wizard_step" not in st.session_state:
         st.session_state["wizard_step"] = 1
@@ -2363,7 +2371,8 @@ def render_prediction_dashboard(
     pop_val = int(round(float(geo.get("population", 0))))
     dens_val = float(geo.get("density", 0.0))
     nielsen_area_val = str(ret.get("nielsen_geographic_area", "N/A"))
-    pil_val = float(st.session_state.get("loc_info", {}).get("PIL_per_capita", 0.0))
+    loc_info_state = st.session_state.get("loc_info") or {}
+    pil_val = float(loc_info_state.get("PIL_per_capita", 0.0) or 0.0)
     pil_str = f"€{pil_val:,.0f}" if pil_val > 0 else "National Avg"
 
     # Stage 2: Dual AI Ensemble & Brand Embeddings
