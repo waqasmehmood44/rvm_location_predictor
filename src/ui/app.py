@@ -1596,7 +1596,7 @@ def main():
 
     elif active_tab == TAB_POT:
         with st.spinner("📡 Fetching live POT machines from Coripet API..."):
-            df_pot, src_pot = get_machines_by_status("POT", current_only=True)
+            df_pot, src_pot, dt_pot = get_machines_by_status("POT", current_only=True)
         render_machine_directory(df_pot, "POT", predictor, data_source=src_pot, current_date_str=dt_pot)
 
 
