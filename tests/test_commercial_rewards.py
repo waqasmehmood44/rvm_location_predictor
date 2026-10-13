@@ -92,6 +92,10 @@ class TestCommercialRewards(unittest.TestCase):
         self.assertEqual(res["commercial_rewards"]["incentive_tier"], "GROCERY_VOUCHER")
         self.assertIn("points_required", res["commercial_rewards"])
         self.assertIn("valore_cent_per_bottiglia", res["commercial_rewards"])
+        self.assertIn("reward_sensitivity_analysis", res)
+        selected_items = [item for item in res["reward_sensitivity_analysis"] if item.get("is_selected")]
+        self.assertEqual(len(selected_items), 1)
+        self.assertEqual(selected_items[0]["reward_type"], "Emissione Buono sconto")
 
 
 if __name__ == "__main__":

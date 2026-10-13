@@ -1337,7 +1337,7 @@ class RVMNewLocationPredictor:
                 reward_info=test_rew
             )
             t_real_b = test_real["realized_daily_bottles"]
-            is_sel = (r_name == reward_info.get("reward_type")) and (reward_info.get("match_source") == "EXPLICIT_OVERRIDE") and not is_custom_policy
+            is_sel = (r_name == reward_info.get("reward_type")) and not is_custom_policy
             if is_sel:
                 t_underwritten_b = underwritten_daily_b
                 t_underwritten_p = underwritten_daily_p

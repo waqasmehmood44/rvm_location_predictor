@@ -2302,23 +2302,56 @@ def render_prediction_dashboard(
     if sens_data:
         st.subheader("📊 Promotional Reward Sensitivity & Impact Matrix")
         st.caption("Comparative operational yield, footfall, and percentage variance across all commercial reward options.")
-        
+
+        active_rew_type = rew.get("reward_type", "")
+        is_custom_active = bool(rew.get("is_custom", False))
+        active_label = active_rew_type or "Standard Promotion"
+        if is_custom_active:
+            active_label = f"Custom ({rew.get('discount_euro', 3):.2f}€ su {rew.get('min_spend_euro', 25):.0f}€)"
+        fil_name = rew.get("filiera", "")
+        fil_info = f" • Contract Circuit: <strong>{fil_name}</strong>" if fil_name else ""
+        underwritten_active_b = res.get("realized_forecast", {}).get("realized_daily_bottles", bottiglie_day)
+
+        st.html(
+            f"""<div style="background: rgba(22, 163, 74, 0.08); border-left: 4px solid #16a34a; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 0.90rem; color: #166534; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+    <div>
+        <strong>Currently Selected Promotion:</strong> <span style="font-weight: 800; color: #15803d; background: #dcfce7; padding: 3px 9px; border-radius: 5px; border: 1px solid #86efac; margin-left: 4px;">🟢 {active_label}</span>{fil_info}
+    </div>
+    <div style="font-size: 0.82rem; font-weight: 700; color: #15803d;">
+        Baseline Active Yield: {underwritten_active_b:.1f} b/d
+    </div>
+</div>"""
+        )
+
         table_rows = []
         for item in sens_data:
-            tag = "⭐ SELECTED" if item.get("is_selected") else ""
+            is_active = bool(item.get("is_selected")) or (not is_custom_active and item.get("reward_type") == active_rew_type)
+            tag = "🟢 ACTIVE SELECTED" if is_active else "⚪ Alternative"
             diff_b = item.get("diff_bottles", 0.0)
             pct_v = item.get("pct_variance", 0.0)
-            var_label = "SELECTED POLICY" if item.get("is_selected") else f"{'+' if diff_b > 0 else ''}{pct_v:.1f}% ({'+' if diff_b > 0 else ''}{diff_b:.1f} b/d)"
+            var_label = "🟢 ACTIVE BASELINE" if is_active else f"{'+' if diff_b > 0 else ''}{pct_v:.1f}% ({'+' if diff_b > 0 else ''}{diff_b:.1f} b/d)"
+            scheme_display = f"{item['reward_type']} 🟢 [ACTIVE SELECTED]" if is_active else item["reward_type"]
             table_rows.append({
                 "Status": tag,
-                "Reward Policy Scheme": item["reward_type"],
+                "Reward Policy Scheme": scheme_display,
                 "Daily Bottles (b/d)": f"{item['daily_bottles']:.1f}",
                 "Monthly Volume": f"{item['monthly_bottles']:,} b/mo",
                 "Active Footfall": f"{item['daily_presenze']:.1f} u/d",
                 "Variance vs Selected": var_label,
                 "Incentive Tier": item.get("incentive_strength", "N/A"),
             })
-        st.dataframe(pd.DataFrame(table_rows), use_container_width=True, hide_index=True)
+
+        df_display = pd.DataFrame(table_rows)
+        try:
+            def highlight_active(row):
+                if "ACTIVE" in str(row["Status"]):
+                    return ['background-color: rgba(34, 197, 94, 0.12); font-weight: bold;'] * len(row)
+                return [''] * len(row)
+
+            styled_df = df_display.style.apply(highlight_active, axis=1)
+            st.dataframe(styled_df, use_container_width=True, hide_index=True)
+        except Exception:
+            st.dataframe(df_display, use_container_width=True, hide_index=True)
 
     # -------------------------------------------------------------
     # 5. Clearance Gates & Seasonality Projection
