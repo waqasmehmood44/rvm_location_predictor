@@ -773,7 +773,7 @@ def get_machines_by_status(status_str: str, current_only: bool = True) -> Tuple[
         return pd.DataFrame(), source_label, ""
 
     # Fast enrichment of missing attributes across historical records for the same PuntoFisico
-    enrich_cols = ["Descrizione", "TipoMacchina", "NomeFiliera", "Filiera", "Indirizzo", "Cap", "Comune", "Provincia", "Regione"]
+    enrich_cols = ["Descrizione", "TipoMacchina", "NomeFiliera", "Filiera", "Indirizzo", "Cap", "Comune", "Provincia", "Regione", "TipologiaPuntoFisico"]
     for c in enrich_cols:
         if c in df.columns:
             valid = df[df[c].notna() & (df[c].astype(str).str.strip() != "") & (df[c].astype(str).str.strip().str.lower() != "nan")]
@@ -787,6 +787,11 @@ def get_machines_by_status(status_str: str, current_only: bool = True) -> Tuple[
 
     max_dt = df["dt_fine"].max()
     max_dt_str = max_dt.strftime("%d/%m/%Y") if pd.notna(max_dt) else "Current Date"
+
+    # Filter strictly for TipologiaPuntoFisico == 'PUNTOVENDITA' (retail store locations only)
+    if "TipologiaPuntoFisico" in df.columns:
+        df["Tipo_Clean"] = df["TipologiaPuntoFisico"].astype(str).str.upper().str.strip()
+        df = df[df["Tipo_Clean"] == "PUNTOVENDITA"].copy()
 
     if current_only:
         # Filter strictly for current date records (latest DataFineRange)
@@ -900,14 +905,15 @@ def render_machine_directory(
         <div style="background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%); border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px;">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
                 <div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                         <h3 style="margin: 0; color: #1e293b; font-size: 1.25rem;">
                             📋 {status_label} Machines Registry ({total_count:,} Active Sites)
                         </h3>
                         {source_badge}
+                        <span style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">🏬 PUNTOVENDITA Only</span>
                     </div>
                     <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.85rem;">
-                        Live network records where <code>DataFineRange</code> is current date{date_label}. Expired historical transitions (e.g. converted to ATTVO) are excluded.
+                        Live retail store records (<code>TipologiaPuntoFisico == PUNTOVENDITA</code>) where <code>DataFineRange</code> is current date{date_label}. Non-retail sites (COMUNE, PRIVATO) and historical expired transitions are excluded.
                     </p>
                 </div>
                 <div style="display: flex; gap: 10px;">
@@ -1042,6 +1048,7 @@ def render_machine_directory(
                     <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
                         <span style="background: #f1f5f9; color: #334155; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-family: monospace; font-weight: 600;">🆔 {pf_code}</span>
                         <span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;">🏢 {filiera_val}</span>
+                        <span style="background: #dcfce7; color: #15803d; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 700;">🏬 PUNTOVENDITA</span>
                         <span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 700;">{status_label}</span>
                     </div>
                     """,
