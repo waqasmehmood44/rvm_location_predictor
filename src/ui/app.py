@@ -761,13 +761,16 @@ def fetch_raw_coripet_machines() -> Tuple[pd.DataFrame, str]:
 
 
 @st.cache_data(ttl=900, show_spinner=False)
-def get_machines_by_status(status_str: str) -> Tuple[pd.DataFrame, str]:
+def get_machines_by_status(status_str: str, current_only: bool = True) -> Tuple[pd.DataFrame, str, str]:
     """
     Retrieves and enriches machine records from the API for the requested status (e.g. 'SPL' or 'POT').
+    When current_only=True (default), only machines whose DataFineRange matches the latest active date
+    (e.g. today's snapshot date) are returned, discarding historical records for machines that have since become ATTVO.
+    Returns (DataFrame, source_label, current_date_str).
     """
     df, source_label = fetch_raw_coripet_machines()
     if df.empty:
-        return pd.DataFrame(), source_label
+        return pd.DataFrame(), source_label, ""
 
     # Fast enrichment of missing attributes across historical records for the same PuntoFisico
     enrich_cols = ["Descrizione", "TipoMacchina", "NomeFiliera", "Filiera", "Indirizzo", "Cap", "Comune", "Provincia", "Regione"]
@@ -778,12 +781,26 @@ def get_machines_by_status(status_str: str) -> Tuple[pd.DataFrame, str]:
                 c_map = valid.drop_duplicates("PuntoFisico", keep="last").set_index("PuntoFisico")[c].to_dict()
                 df[c] = df[c].fillna(df["PuntoFisico"].map(c_map))
 
+    df["dt_fine"] = pd.to_datetime(df["DataFineRange"], format="%d/%m/%Y", errors="coerce")
+    df["dt_inizio"] = pd.to_datetime(df["DataInizioRange"], format="%d/%m/%Y", errors="coerce")
     df["Stato_Clean"] = df["Stato"].astype(str).str.upper().str.strip()
-    sub = df[df["Stato_Clean"] == status_str.upper().strip()].copy()
-    if sub.empty:
-        return pd.DataFrame(), source_label
 
-    # Deduplicate to keep the latest physical record per PuntoFisico
+    max_dt = df["dt_fine"].max()
+    max_dt_str = max_dt.strftime("%d/%m/%Y") if pd.notna(max_dt) else "Current Date"
+
+    if current_only:
+        # Filter strictly for current date records (latest DataFineRange)
+        current_df = df[df["dt_fine"] == max_dt].copy()
+        sub = current_df[current_df["Stato_Clean"] == status_str.upper().strip()].copy()
+    else:
+        # Chronological sort across full history
+        df_sorted = df.sort_values(by=["dt_fine", "dt_inizio"], ascending=[True, True])
+        sub = df_sorted[df_sorted["Stato_Clean"] == status_str.upper().strip()].copy()
+
+    if sub.empty:
+        return pd.DataFrame(), source_label, max_dt_str
+
+    # Deduplicate to keep 1 physical record per PuntoFisico
     sub = sub.drop_duplicates(subset=["PuntoFisico"], keep="last").copy()
 
     # Sanitize location fields
@@ -842,17 +859,23 @@ def get_machines_by_status(status_str: str) -> Tuple[pd.DataFrame, str]:
         return "Ripet_C-front"
 
     sub["ResolvedMachine"] = sub["TipoMacchina"].apply(resolve_mach)
-    return sub, source_label
+    return sub, source_label, max_dt_str
 
 
 def load_historical_machines():
     """Legacy helper for backward compatibility."""
-    df_spl, _ = get_machines_by_status("SPL")
-    df_pot, _ = get_machines_by_status("POT")
+    df_spl, _, _ = get_machines_by_status("SPL")
+    df_pot, _, _ = get_machines_by_status("POT")
     return df_spl, df_pot
 
 
-def render_machine_directory(df_machines: pd.DataFrame, status_label: str, predictor: Any, data_source: str = "Live Coripet API"):
+def render_machine_directory(
+    df_machines: pd.DataFrame,
+    status_label: str,
+    predictor: Any,
+    data_source: str = "Live Coripet API",
+    current_date_str: str = ""
+):
     """Renders a responsive directory table/cards of machines for SPL or POT status."""
     if df_machines.empty:
         st.info(f"No machines found with status {status_label}.")
@@ -869,6 +892,8 @@ def render_machine_directory(df_machines: pd.DataFrame, status_label: str, predi
     else:
         source_badge = '<span style="background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">📁 Local Backup File</span>'
 
+    date_label = f" (Current Date: <strong>{current_date_str}</strong>)" if current_date_str else ""
+
     # Metrics header
     st.markdown(
         f"""
@@ -877,12 +902,12 @@ def render_machine_directory(df_machines: pd.DataFrame, status_label: str, predi
                 <div>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <h3 style="margin: 0; color: #1e293b; font-size: 1.25rem;">
-                            📋 {status_label} Machines Registry ({total_count:,} Sites)
+                            📋 {status_label} Machines Registry ({total_count:,} Active Sites)
                         </h3>
                         {source_badge}
                     </div>
                     <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.85rem;">
-                        Fetched from Coripet API endpoint <code>mt_CaricaViewStoricoPuntoFisico</code> with status <strong>{status_label}</strong>.
+                        Live network records where <code>DataFineRange</code> is current date{date_label}. Expired historical transitions (e.g. converted to ATTVO) are excluded.
                     </p>
                 </div>
                 <div style="display: flex; gap: 10px;">
@@ -1566,13 +1591,13 @@ def main():
 
     elif active_tab == TAB_SPL:
         with st.spinner("📡 Fetching live SPL machines from Coripet API..."):
-            df_spl, src_spl = get_machines_by_status("SPL")
-        render_machine_directory(df_spl, "SPL", predictor, data_source=src_spl)
+            df_spl, src_spl, dt_spl = get_machines_by_status("SPL", current_only=True)
+        render_machine_directory(df_spl, "SPL", predictor, data_source=src_spl, current_date_str=dt_spl)
 
     elif active_tab == TAB_POT:
         with st.spinner("📡 Fetching live POT machines from Coripet API..."):
-            df_pot, src_pot = get_machines_by_status("POT")
-        render_machine_directory(df_pot, "POT", predictor, data_source=src_pot)
+            df_pot, src_pot = get_machines_by_status("POT", current_only=True)
+        render_machine_directory(df_pot, "POT", predictor, data_source=src_pot, current_date_str=dt_pot)
 
 
 def render_prediction_dashboard(
