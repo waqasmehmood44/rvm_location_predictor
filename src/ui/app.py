@@ -12,7 +12,8 @@ Production decision support dashboard powered by:
 import os
 import sys
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
+import requests
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -719,103 +720,139 @@ def render_seasonality_chart(monthly_data: Any, steady_state_benchmark: Optional
     return fig
 
 
-@st.cache_data
-def load_historical_machines():
-    """Loads and enriches historical machine records for SPL and POT statuses from CaricaViewStoricoPuntoFisico.csv."""
-    path = Path("data/raw/CaricaViewStoricoPuntoFisico.csv")
-    if not path.exists():
-        return pd.DataFrame(), pd.DataFrame()
+CORIPET_API_URL = "https://macchine.coripet.it/CORIPETRVMAPI/api/PuntiFisici/mt_CaricaViewStoricoPuntoFisico"
+CORIPET_API_TOKEN = "ck%N@b$x1$wNwCsigohC"
 
-    df = pd.read_csv(path, sep=";", dtype=str)
+VALID_MACHINE_OPTIONS = [
+    "Ripet_C-front", "DAINT_G", "DAINT_A-bis", "Ripet_C-Bis", "Ripet_V2",
+    "Ripet_C-Ter", "DAINT_B-bis", "RVM_Mod.E_Nuova", "Ripet_Smarpet",
+    "RVM_Mod.E", "Ripet_V1", "SUPERMARPET01S"
+]
+
+
+@st.cache_data(ttl=900, show_spinner=False)
+def fetch_raw_coripet_machines() -> Tuple[pd.DataFrame, str]:
+    """
+    Fetches raw physical machine records directly from the official Coripet RVM API endpoint:
+    POST https://macchine.coripet.it/CORIPETRVMAPI/api/PuntiFisici/mt_CaricaViewStoricoPuntoFisico
+    Header: token: ck%N@b$x1$wNwCsigohC
+    Returns (DataFrame, source_label) where source_label is 'Live Coripet API' or 'Local Backup File'.
+    """
+    try:
+        headers = {
+            "token": CORIPET_API_TOKEN,
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        resp = requests.post(CORIPET_API_URL, headers=headers, data="", timeout=35)
+        if resp.status_code == 200:
+            payload = resp.json()
+            records = payload.get("data", [])
+            if records:
+                return pd.DataFrame(records), "Live Coripet API"
+    except Exception as ex:
+        pass
+
+    # Fallback to local CSV if network is unavailable
+    path = Path("data/raw/CaricaViewStoricoPuntoFisico.csv")
+    if path.exists():
+        df_csv = pd.read_csv(path, sep=";", dtype=str)
+        return df_csv, "Local Backup File"
+    return pd.DataFrame(), "None"
+
+
+@st.cache_data(ttl=900, show_spinner=False)
+def get_machines_by_status(status_str: str) -> Tuple[pd.DataFrame, str]:
+    """
+    Retrieves and enriches machine records from the API for the requested status (e.g. 'SPL' or 'POT').
+    """
+    df, source_label = fetch_raw_coripet_machines()
+    if df.empty:
+        return pd.DataFrame(), source_label
 
     # Fast enrichment of missing attributes across historical records for the same PuntoFisico
     enrich_cols = ["Descrizione", "TipoMacchina", "NomeFiliera", "Filiera", "Indirizzo", "Cap", "Comune", "Provincia", "Regione"]
     for c in enrich_cols:
-        valid = df[df[c].notna() & (df[c].str.strip() != "") & (df[c].str.strip().str.lower() != "nan")]
-        if not valid.empty:
-            c_map = valid.drop_duplicates("PuntoFisico", keep="last").set_index("PuntoFisico")[c].to_dict()
-            df[c] = df[c].fillna(df["PuntoFisico"].map(c_map))
+        if c in df.columns:
+            valid = df[df[c].notna() & (df[c].astype(str).str.strip() != "") & (df[c].astype(str).str.strip().str.lower() != "nan")]
+            if not valid.empty:
+                c_map = valid.drop_duplicates("PuntoFisico", keep="last").set_index("PuntoFisico")[c].to_dict()
+                df[c] = df[c].fillna(df["PuntoFisico"].map(c_map))
 
     df["Stato_Clean"] = df["Stato"].astype(str).str.upper().str.strip()
+    sub = df[df["Stato_Clean"] == status_str.upper().strip()].copy()
+    if sub.empty:
+        return pd.DataFrame(), source_label
 
-    valid_machine_options = [
-        "Ripet_C-front", "DAINT_G", "DAINT_A-bis", "Ripet_C-Bis", "Ripet_V2",
-        "Ripet_C-Ter", "DAINT_B-bis", "RVM_Mod.E_Nuova", "Ripet_Smarpet",
-        "RVM_Mod.E", "Ripet_V1", "SUPERMARPET01S"
-    ]
+    # Deduplicate to keep the latest physical record per PuntoFisico
+    sub = sub.drop_duplicates(subset=["PuntoFisico"], keep="last").copy()
 
-    def process_status(status_str: str) -> pd.DataFrame:
-        sub = df[df["Stato_Clean"] == status_str].copy()
-        if sub.empty:
-            return pd.DataFrame()
+    # Sanitize location fields
+    sub["Indirizzo"] = sub["Indirizzo"].apply(
+        lambda x: str(x).strip() if pd.notna(x) and str(x).strip() and str(x).strip().lower() != "nan" else "Piazza del Comune 1"
+    )
+    sub["Cap"] = sub["Cap"].apply(
+        lambda x: str(x).split(".")[0].strip().zfill(5) if pd.notna(x) and str(x).strip() and str(x).strip().lower() != "nan" else "00100"
+    )
+    sub["Comune"] = sub["Comune"].apply(
+        lambda x: str(x).strip() if pd.notna(x) and str(x).strip() and str(x).strip().lower() != "nan" else "Milano"
+    )
+    sub["Provincia"] = sub["Provincia"].apply(
+        lambda x: str(x).strip() if pd.notna(x) and str(x).strip() and str(x).strip().lower() != "nan" else ""
+    )
+    sub["Regione"] = sub["Regione"].apply(
+        lambda x: str(x).strip() if pd.notna(x) and str(x).strip() and str(x).strip().lower() != "nan" else ""
+    )
 
-        # Deduplicate to keep the latest physical record per PuntoFisico
-        sub = sub.drop_duplicates(subset=["PuntoFisico"], keep="last").copy()
+    def resolve_name(r):
+        desc = str(r.get("Descrizione", "")).strip()
+        if desc and desc.lower() != "nan":
+            return desc
+        nf = str(r.get("NomeFiliera", "")).strip()
+        if nf and nf.lower() != "nan":
+            return nf
+        fil = str(r.get("Filiera", "")).strip()
+        if fil and fil.lower() != "nan":
+            return fil
+        com = str(r.get("Comune", "")).strip()
+        return f"Store {com}" if com else f"Punto {r.get('PuntoFisico', '')}"
 
-        # Sanitize location fields
-        sub["Indirizzo"] = sub["Indirizzo"].apply(
-            lambda x: str(x).strip() if pd.notna(x) and str(x).strip() and str(x).strip().lower() != "nan" else "Piazza del Comune 1"
-        )
-        sub["Cap"] = sub["Cap"].apply(
-            lambda x: str(x).split(".")[0].strip().zfill(5) if pd.notna(x) and str(x).strip() and str(x).strip().lower() != "nan" else "00100"
-        )
-        sub["Comune"] = sub["Comune"].apply(
-            lambda x: str(x).strip() if pd.notna(x) and str(x).strip() and str(x).strip().lower() != "nan" else "Milano"
-        )
-        sub["Provincia"] = sub["Provincia"].apply(
-            lambda x: str(x).strip() if pd.notna(x) and str(x).strip() and str(x).strip().lower() != "nan" else ""
-        )
-        sub["Regione"] = sub["Regione"].apply(
-            lambda x: str(x).strip() if pd.notna(x) and str(x).strip() and str(x).strip().lower() != "nan" else ""
-        )
+    sub["ResolvedStoreName"] = sub.apply(resolve_name, axis=1)
 
-        def resolve_name(r):
-            desc = str(r.get("Descrizione", "")).strip()
-            if desc and desc.lower() != "nan":
-                return desc
-            nf = str(r.get("NomeFiliera", "")).strip()
-            if nf and nf.lower() != "nan":
-                return nf
-            fil = str(r.get("Filiera", "")).strip()
-            if fil and fil.lower() != "nan":
-                return fil
-            com = str(r.get("Comune", "")).strip()
-            return f"Store {com}" if com else f"Punto {r.get('PuntoFisico', '')}"
+    def resolve_filiera(r):
+        nf = str(r.get("NomeFiliera", "")).strip()
+        if nf and nf.lower() != "nan":
+            return nf
+        fil = str(r.get("Filiera", "")).strip()
+        if fil and fil.lower() != "nan":
+            return fil
+        rag = str(r.get("Raggruppamento", "")).strip()
+        if rag and rag.lower() != "nan":
+            return rag
+        return "Retail Store"
 
-        sub["ResolvedStoreName"] = sub.apply(resolve_name, axis=1)
+    sub["ResolvedFiliera"] = sub.apply(resolve_filiera, axis=1)
 
-        def resolve_filiera(r):
-            nf = str(r.get("NomeFiliera", "")).strip()
-            if nf and nf.lower() != "nan":
-                return nf
-            fil = str(r.get("Filiera", "")).strip()
-            if fil and fil.lower() != "nan":
-                return fil
-            rag = str(r.get("Raggruppamento", "")).strip()
-            if rag and rag.lower() != "nan":
-                return rag
-            return "Retail Store"
+    def resolve_mach(m):
+        m_str = str(m).strip()
+        if m_str in VALID_MACHINE_OPTIONS:
+            return m_str
+        for vm in VALID_MACHINE_OPTIONS:
+            if vm.lower() == m_str.lower():
+                return vm
+        return "Ripet_C-front"
 
-        sub["ResolvedFiliera"] = sub.apply(resolve_filiera, axis=1)
+    sub["ResolvedMachine"] = sub["TipoMacchina"].apply(resolve_mach)
+    return sub, source_label
 
-        def resolve_mach(m):
-            m_str = str(m).strip()
-            if m_str in valid_machine_options:
-                return m_str
-            for vm in valid_machine_options:
-                if vm.lower() == m_str.lower():
-                    return vm
-            return "Ripet_C-front"
 
-        sub["ResolvedMachine"] = sub["TipoMacchina"].apply(resolve_mach)
-        return sub
-
-    df_spl = process_status("SPL")
-    df_pot = process_status("POT")
+def load_historical_machines():
+    """Legacy helper for backward compatibility."""
+    df_spl, _ = get_machines_by_status("SPL")
+    df_pot, _ = get_machines_by_status("POT")
     return df_spl, df_pot
 
 
-def render_machine_directory(df_machines: pd.DataFrame, status_label: str, predictor: Any):
+def render_machine_directory(df_machines: pd.DataFrame, status_label: str, predictor: Any, data_source: str = "Live Coripet API"):
     """Renders a responsive directory table/cards of machines for SPL or POT status."""
     if df_machines.empty:
         st.info(f"No machines found with status {status_label}.")
@@ -826,17 +863,26 @@ def render_machine_directory(df_machines: pd.DataFrame, status_label: str, predi
     unique_regioni = df_machines["Regione"].nunique()
     unique_filiere = df_machines["ResolvedFiliera"].nunique()
 
+    # Source badge styling
+    if data_source == "Live Coripet API":
+        source_badge = '<span style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">🟢 Live API: macchine.coripet.it</span>'
+    else:
+        source_badge = '<span style="background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">📁 Local Backup File</span>'
+
     # Metrics header
     st.markdown(
         f"""
         <div style="background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%); border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px;">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
                 <div>
-                    <h3 style="margin: 0; color: #1e293b; font-size: 1.25rem;">
-                        📋 {status_label} Machines Registry ({total_count:,} Installed / Prospective Sites)
-                    </h3>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <h3 style="margin: 0; color: #1e293b; font-size: 1.25rem;">
+                            📋 {status_label} Machines Registry ({total_count:,} Sites)
+                        </h3>
+                        {source_badge}
+                    </div>
                     <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.85rem;">
-                        Verified historical physical network locations from CaricaViewStoricoPuntoFisico with status <strong>{status_label}</strong>.
+                        Fetched from Coripet API endpoint <code>mt_CaricaViewStoricoPuntoFisico</code> with status <strong>{status_label}</strong>.
                     </p>
                 </div>
                 <div style="display: flex; gap: 10px;">
@@ -857,7 +903,7 @@ def render_machine_directory(df_machines: pd.DataFrame, status_label: str, predi
     )
 
     # Search & filters bar
-    c_search, c_reg, c_mach = st.columns([2.5, 1.2, 1.2])
+    c_search, c_reg, c_mach, c_ref = st.columns([2.2, 1.1, 1.1, 0.8])
     with c_search:
         search_query = st.text_input(
             f"🔍 Search {status_label} Machines",
@@ -882,6 +928,14 @@ def render_machine_directory(df_machines: pd.DataFrame, status_label: str, predi
             index=0,
             key=f"model_filter_{status_label}",
         )
+
+    with c_ref:
+        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+        if st.button("🔄 Refresh", key=f"btn_refresh_{status_label}", help="Clear cache and re-fetch live data from Coripet API"):
+            fetch_raw_coripet_machines.clear()
+            get_machines_by_status.clear()
+            st.toast(f"🔄 Re-fetching live {status_label} machines from Coripet API...")
+            st.rerun()
 
     # Apply filtering
     filtered_df = df_machines.copy()
@@ -1511,12 +1565,14 @@ def main():
             )
 
     elif active_tab == TAB_SPL:
-        df_spl, _ = load_historical_machines()
-        render_machine_directory(df_spl, "SPL", predictor)
+        with st.spinner("📡 Fetching live SPL machines from Coripet API..."):
+            df_spl, src_spl = get_machines_by_status("SPL")
+        render_machine_directory(df_spl, "SPL", predictor, data_source=src_spl)
 
     elif active_tab == TAB_POT:
-        _, df_pot = load_historical_machines()
-        render_machine_directory(df_pot, "POT", predictor)
+        with st.spinner("📡 Fetching live POT machines from Coripet API..."):
+            df_pot, src_pot = get_machines_by_status("POT")
+        render_machine_directory(df_pot, "POT", predictor, data_source=src_pot)
 
 
 def render_prediction_dashboard(
