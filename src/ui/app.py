@@ -68,6 +68,35 @@ st.markdown(
         flex-grow: 1 !important;
     }
 
+    /* Modern Dark Theme Segmented Control Navigation Tabs */
+    div[data-testid="stSegmentedControl"] {
+        background: rgba(15, 23, 42, 0.75) !important;
+        border-radius: 12px !important;
+        padding: 5px !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+        backdrop-filter: blur(8px) !important;
+        margin-bottom: 12px !important;
+    }
+    div[data-testid="stSegmentedControl"] button {
+        border-radius: 8px !important;
+        color: #94a3b8 !important;
+        font-weight: 600 !important;
+        font-size: 0.92rem !important;
+        transition: all 0.2s ease !important;
+        border: none !important;
+    }
+    div[data-testid="stSegmentedControl"] button:hover {
+        color: #f8fafc !important;
+        background: rgba(255, 255, 255, 0.07) !important;
+    }
+    div[data-testid="stSegmentedControl"] button[aria-checked="true"] {
+        background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 10px rgba(22, 163, 74, 0.45) !important;
+        font-weight: 700 !important;
+    }
+
     /* Executive Status Cards (Section 1) */
     .exec-card {
         background: #ffffff;
@@ -891,39 +920,39 @@ def render_machine_directory(
     unique_regioni = df_machines["Regione"].nunique()
     unique_filiere = df_machines["ResolvedFiliera"].nunique()
 
-    # Source badge styling
+    # Source badge styling (Dark Theme Glassmorphic)
     if data_source == "Live Coripet API":
-        source_badge = '<span style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">🟢 Live API: macchine.coripet.it</span>'
+        source_badge = '<span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">🟢 Live API: macchine.coripet.it</span>'
     else:
-        source_badge = '<span style="background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">📁 Local Backup File</span>'
+        source_badge = '<span style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">📁 Local Backup File</span>'
 
-    date_label = f" (Current Date: <strong>{current_date_str}</strong>)" if current_date_str else ""
+    date_label = f" • Current Date: <strong style='color: #f1f5f9;'>{current_date_str}</strong>" if current_date_str else ""
 
-    # Metrics header
+    # Metrics header (Dark Theme Glassmorphic)
     st.markdown(
         f"""
-        <div style="background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%); border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+        <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.85) 100%); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 18px 22px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
                 <div>
                     <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                        <h3 style="margin: 0; color: #1e293b; font-size: 1.25rem;">
-                            📋 {status_label} Machines Registry ({total_count:,} Active Sites)
+                        <h3 style="margin: 0; color: #f8fafc; font-size: 1.3rem; font-weight: 700; letter-spacing: -0.3px;">
+                            📋 {status_label} Machines Registry <span style="color: #94a3b8; font-size: 1.05rem; font-weight: 500;">({total_count:,} Active Sites)</span>
                         </h3>
                         {source_badge}
-                        <span style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">🏬 PUNTOVENDITA Only</span>
+                        <span style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">🏬 PUNTOVENDITA Only</span>
                     </div>
-                    <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.85rem;">
-                        Live retail store records (<code>TipologiaPuntoFisico == PUNTOVENDITA</code>) where <code>DataFineRange</code> is current date{date_label}. Non-retail sites (COMUNE, PRIVATO) and historical expired transitions are excluded.
+                    <p style="margin: 6px 0 0 0; color: #94a3b8; font-size: 0.85rem;">
+                        Live retail store records (<code style="color: #60a5fa; background: rgba(59, 130, 246, 0.12); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.25);">TipologiaPuntoFisico == PUNTOVENDITA</code>) where <code style="color: #cbd5e1; background: rgba(255, 255, 255, 0.06); padding: 2px 6px; border-radius: 4px;">DataFineRange</code> is current date{date_label}. Non-retail sites and expired transitions are excluded.
                     </p>
                 </div>
-                <div style="display: flex; gap: 10px;">
-                    <span style="background: #e0f2fe; color: #0369a1; padding: 5px 12px; border-radius: 8px; font-weight: 700; font-size: 0.82rem;">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <span style="background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 0.82rem;">
                         🏙️ {unique_comuni} Municipalities
                     </span>
-                    <span style="background: #f0fdf4; color: #15803d; padding: 5px 12px; border-radius: 8px; font-weight: 700; font-size: 0.82rem;">
+                    <span style="background: rgba(52, 211, 153, 0.12); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 0.82rem;">
                         🗺️ {unique_regioni} Regions
                     </span>
-                    <span style="background: #faf5ff; color: #7e22ce; padding: 5px 12px; border-radius: 8px; font-weight: 700; font-size: 0.82rem;">
+                    <span style="background: rgba(168, 85, 247, 0.12); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 0.82rem;">
                         🏪 {unique_filiere} Commercial Partners
                     </span>
                 </div>
@@ -998,7 +1027,12 @@ def render_machine_directory(
 
     col_stat, col_page = st.columns([2, 1])
     with col_stat:
-        st.caption(f"Showing **{n_filtered:,}** of {total_count:,} machines | Click **Results 📊** to analyze prospective AI yield")
+        st.markdown(
+            f"""<div style="color: #94a3b8; font-size: 0.88rem; padding: 6px 0;">
+                Showing <strong style="color: #f1f5f9;">{n_filtered:,}</strong> of <strong style="color: #f1f5f9;">{total_count:,}</strong> machines &bull; Click <strong style="color: #f87171;">Results 📊</strong> to analyze prospective AI yield
+            </div>""",
+            unsafe_allow_html=True
+        )
     with col_page:
         page_num = st.selectbox(
             "Select Page",
@@ -1012,18 +1046,18 @@ def render_machine_directory(
     end_idx = min(start_idx + PER_PAGE, n_filtered)
     page_df = filtered_df.iloc[start_idx:end_idx]
 
-    # Table Header
+    # Table Header (Dark Theme)
     th_col1, th_col2, th_col3, th_col4 = st.columns([3.5, 3.0, 1.8, 1.3])
     with th_col1:
-        st.markdown("<strong style='font-size: 0.82rem; color: #475569;'>STORE & NETWORK ID</strong>", unsafe_allow_html=True)
+        st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>STORE & NETWORK ID</strong>", unsafe_allow_html=True)
     with th_col2:
-        st.markdown("<strong style='font-size: 0.82rem; color: #475569;'>LOCATION & ADDRESS</strong>", unsafe_allow_html=True)
+        st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>LOCATION & ADDRESS</strong>", unsafe_allow_html=True)
     with th_col3:
-        st.markdown("<strong style='font-size: 0.82rem; color: #475569;'>HARDWARE MODEL</strong>", unsafe_allow_html=True)
+        st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>HARDWARE MODEL</strong>", unsafe_allow_html=True)
     with th_col4:
-        st.markdown("<strong style='font-size: 0.82rem; color: #475569;'>AI PREDICTION</strong>", unsafe_allow_html=True)
+        st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>AI PREDICTION</strong>", unsafe_allow_html=True)
 
-    st.markdown("<div style='border-bottom: 2px solid #e2e8f0; margin-bottom: 10px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='border-bottom: 1px solid rgba(255, 255, 255, 0.12); margin-bottom: 14px;'></div>", unsafe_allow_html=True)
 
     # Machine Items List
     for row_idx, row in page_df.iterrows():
@@ -1037,19 +1071,24 @@ def render_machine_directory(
         mach_model = row["ResolvedMachine"]
         filiera_val = row["ResolvedFiliera"]
 
+        if status_label == "SPL":
+            status_chip = f'<span style="background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.45); color: #fbbf24; padding: 2px 7px; border-radius: 5px; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.3px;">{status_label}</span>'
+        else:
+            status_chip = f'<span style="background: rgba(168, 85, 247, 0.18); border: 1px solid rgba(168, 85, 247, 0.45); color: #c084fc; padding: 2px 7px; border-radius: 5px; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.3px;">{status_label}</span>'
+
         with st.container():
             c1, c2, c3, c4 = st.columns([3.5, 3.0, 1.8, 1.3])
             with c1:
                 st.markdown(
                     f"""
-                    <div style="line-height: 1.35; margin-bottom: 4px;">
-                        <span style="font-weight: 700; color: #0f172a; font-size: 0.95rem;">{store}</span>
+                    <div style="line-height: 1.35; margin-bottom: 6px;">
+                        <span style="font-weight: 700; color: #f8fafc; font-size: 0.98rem; letter-spacing: -0.2px;">{store}</span>
                     </div>
                     <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-                        <span style="background: #f1f5f9; color: #334155; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-family: monospace; font-weight: 600;">🆔 {pf_code}</span>
-                        <span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;">🏢 {filiera_val}</span>
-                        <span style="background: #dcfce7; color: #15803d; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 700;">🏬 PUNTOVENDITA</span>
-                        <span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 700;">{status_label}</span>
+                        <span style="background: rgba(148, 163, 184, 0.12); border: 1px solid rgba(148, 163, 184, 0.28); color: #cbd5e1; padding: 2px 7px; border-radius: 5px; font-size: 0.72rem; font-family: monospace; font-weight: 600;">🆔 {pf_code}</span>
+                        <span style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #93c5fd; padding: 2px 7px; border-radius: 5px; font-size: 0.72rem; font-weight: 600;">🏢 {filiera_val}</span>
+                        <span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: #6ee7b7; padding: 2px 7px; border-radius: 5px; font-size: 0.72rem; font-weight: 700;">🏬 PUNTOVENDITA</span>
+                        {status_chip}
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -1058,9 +1097,9 @@ def render_machine_directory(
                 prov_str = f"({prov_val})" if prov_val else ""
                 st.markdown(
                     f"""
-                    <div style="font-size: 0.85rem; color: #334155; line-height: 1.35;">
-                        <div>📍 {addr}</div>
-                        <div style="color: #64748b; font-size: 0.78rem;">📮 {cap_val} <strong>{comune_val}</strong> {prov_str}, {reg_val}</div>
+                    <div style="font-size: 0.88rem; line-height: 1.4;">
+                        <div style="color: #e2e8f0; font-weight: 500;">📍 {addr}</div>
+                        <div style="color: #94a3b8; font-size: 0.80rem; margin-top: 2px;">📮 {cap_val} <strong style="color: #f8fafc;">{comune_val}</strong> {prov_str}, <span style="color: #cbd5e1;">{reg_val}</span></div>
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -1069,7 +1108,7 @@ def render_machine_directory(
                 st.markdown(
                     f"""
                     <div style="display: flex; align-items: center; height: 100%;">
-                        <span style="background: #f8fafc; border: 1px solid #cbd5e1; color: #1e293b; padding: 4px 8px; border-radius: 6px; font-size: 0.78rem; font-weight: 600;">
+                        <span style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.12); color: #e2e8f0; padding: 5px 10px; border-radius: 7px; font-size: 0.80rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.25);">
                             ⚙️ {mach_model}
                         </span>
                     </div>
@@ -1093,7 +1132,7 @@ def render_machine_directory(
                     st.session_state.pop("top_sim_reward", None)
                     st.rerun()
 
-            st.markdown("<div style='border-bottom: 1px solid #f1f5f9; margin: 8px 0 10px 0;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='border-bottom: 1px solid rgba(255, 255, 255, 0.08); margin: 8px 0 10px 0;'></div>", unsafe_allow_html=True)
 
 
 def main():
@@ -1558,27 +1597,27 @@ def main():
             curr_step = st.session_state.get("wizard_step", 1)
             st.markdown(
                 f"""
-                <div class="intel-section" style="border-left: 5px solid #2e7d32; padding: 24px;">
-                    <h3 style="color: #1b5e20; margin-top: 0;">🧭 Guided Prospective Location Analysis</h3>
-                    <p style="color: #444; font-size: 1.05rem;">
-                        Welcome to the <strong>Coripet RVM Prospective Predictor</strong>. Follow the 3-step decision support wizard on the left sidebar, or select any installed machine from the <strong>SPL Machines</strong> or <strong>POT Machines</strong> tabs to run instant predictions:
+                <div class="intel-section" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.85) 100%); border: 1px solid rgba(255, 255, 255, 0.1); border-left: 5px solid #22c55e; padding: 24px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);">
+                    <h3 style="color: #4ade80; margin-top: 0; font-size: 1.3rem; font-weight: 700;">🧭 Guided Prospective Location Analysis</h3>
+                    <p style="color: #cbd5e1; font-size: 1.0rem; line-height: 1.55;">
+                        Welcome to the <strong>Coripet RVM Prospective Predictor</strong>. Follow the 3-step decision support wizard on the left sidebar, or select any installed machine from the <strong style="color: #60a5fa;">SPL Machines</strong> or <strong style="color: #c084fc;">POT Machines</strong> tabs to run instant predictions:
                     </p>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 18px;">
-                        <div style="background: {'#e8f5e9' if curr_step == 1 else '#f7fafc'}; border: 1px solid {'#81c784' if curr_step == 1 else '#e2e8f0'}; border-radius: 8px; padding: 14px;">
-                            <strong style="color: #1b5e20;">1️⃣ Step 1: Site & Model</strong><br>
-                            <span style="font-size: 0.85rem; color: #555;">Enter store name, street, CAP, and machine. Click <em>Detect Location & Nielsen Scale</em>.</span>
+                        <div style="background: {'rgba(34, 197, 94, 0.15)' if curr_step == 1 else 'rgba(15, 23, 42, 0.6)'}; border: 1px solid {'rgba(34, 197, 94, 0.45)' if curr_step == 1 else 'rgba(255, 255, 255, 0.08)'}; border-radius: 8px; padding: 14px;">
+                            <strong style="color: {'#4ade80' if curr_step == 1 else '#f1f5f9'};">1️⃣ Step 1: Site & Model</strong><br>
+                            <span style="font-size: 0.85rem; color: #94a3b8;">Enter store name, street, CAP, and machine. Click <em>Detect Location & Nielsen Scale</em>.</span>
                         </div>
-                        <div style="background: {'#e8f5e9' if curr_step == 2 else '#f7fafc'}; border: 1px solid {'#81c784' if curr_step == 2 else '#e2e8f0'}; border-radius: 8px; padding: 14px;">
-                            <strong style="color: #1b5e20;">2️⃣ Step 2: Nielsen Census</strong><br>
-                            <span style="font-size: 0.85rem; color: #555;">Review auto-detected store scale and footprint. Accept or adjust, then click <em>Continue</em>.</span>
+                        <div style="background: {'rgba(34, 197, 94, 0.15)' if curr_step == 2 else 'rgba(15, 23, 42, 0.6)'}; border: 1px solid {'rgba(34, 197, 94, 0.45)' if curr_step == 2 else 'rgba(255, 255, 255, 0.08)'}; border-radius: 8px; padding: 14px;">
+                            <strong style="color: {'#4ade80' if curr_step == 2 else '#f1f5f9'};">2️⃣ Step 2: Nielsen Census</strong><br>
+                            <span style="font-size: 0.85rem; color: #94a3b8;">Review auto-detected store scale and footprint. Accept or adjust, then click <em>Continue</em>.</span>
                         </div>
-                        <div style="background: {'#e8f5e9' if curr_step == 3 else '#f7fafc'}; border: 1px solid {'#81c784' if curr_step == 3 else '#e2e8f0'}; border-radius: 8px; padding: 14px;">
-                            <strong style="color: #1b5e20;">3️⃣ Step 3: Coripet Rewards</strong><br>
-                            <span style="font-size: 0.85rem; color: #555;">Review contract promotions from the database. Keep or change, then click <em>Run Prediction</em>.</span>
+                        <div style="background: {'rgba(34, 197, 94, 0.15)' if curr_step == 3 else 'rgba(15, 23, 42, 0.6)'}; border: 1px solid {'rgba(34, 197, 94, 0.45)' if curr_step == 3 else 'rgba(255, 255, 255, 0.08)'}; border-radius: 8px; padding: 14px;">
+                            <strong style="color: {'#4ade80' if curr_step == 3 else '#f1f5f9'};">3️⃣ Step 3: Coripet Rewards</strong><br>
+                            <span style="font-size: 0.85rem; color: #94a3b8;">Review contract promotions from the database. Keep or change, then click <em>Run Prediction</em>.</span>
                         </div>
-                        <div style="background: {'#e8f5e9' if curr_step == 4 else '#f7fafc'}; border: 1px solid {'#81c784' if curr_step == 4 else '#e2e8f0'}; border-radius: 8px; padding: 14px;">
-                            <strong style="color: #1b5e20;">4️⃣ Step 4: Executive Verdict</strong><br>
-                            <span style="font-size: 0.85rem; color: #555;">View 365-day yield, 12-month calendar, clearance gates, and investment score.</span>
+                        <div style="background: {'rgba(34, 197, 94, 0.15)' if curr_step == 4 else 'rgba(15, 23, 42, 0.6)'}; border: 1px solid {'rgba(34, 197, 94, 0.45)' if curr_step == 4 else 'rgba(255, 255, 255, 0.08)'}; border-radius: 8px; padding: 14px;">
+                            <strong style="color: {'#4ade80' if curr_step == 4 else '#f1f5f9'};">4️⃣ Step 4: Executive Verdict</strong><br>
+                            <span style="font-size: 0.85rem; color: #94a3b8;">View 365-day yield, 12-month calendar, clearance gates, and investment score.</span>
                         </div>
                     </div>
                 </div>
