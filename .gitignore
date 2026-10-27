@@ -56,6 +56,9 @@ models/preprocessors/*
 logs/
 *.log
 *.tmp
+*.dump
+*.sql.gz
+*.sql
 scratch_tail.txt
 .pytest_cache/
 

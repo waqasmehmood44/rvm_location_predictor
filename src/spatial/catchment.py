@@ -63,6 +63,11 @@ class SpatialCatchmentAnalyzer:
             self.pfs_cap = self.network_df["Cap"].fillna("").astype(str).to_numpy(dtype=str)
             self.pfs_address = self.network_df["Indirizzo"].fillna("").to_numpy(dtype=str)
             self.pfs_bottles = self.network_df["mean_bottiglie_day"].to_numpy(dtype=float)
+            self.pfs_presenze = (
+                self.network_df["mean_presenze_day"].to_numpy(dtype=float)
+                if "mean_presenze_day" in self.network_df.columns
+                else np.zeros(len(self.network_df), dtype=float)
+            )
             self.pfs_machine_type = (
                 self.network_df["TipoMacchina"].fillna("UNKNOWN").to_numpy(dtype=str)
                 if "TipoMacchina" in self.network_df.columns
@@ -275,6 +280,7 @@ class SpatialCatchmentAnalyzer:
             "nearest_pf_comune": str(self.pfs_comune[nearest_idx]),
             "nearest_pf_address": str(self.pfs_address[nearest_idx]),
             "nearest_pf_hist_bottles": round(float(self.pfs_bottles[nearest_idx]), 1),
+            "nearest_pf_hist_presenze": round(float(self.pfs_presenze[nearest_idx]), 1) if self.pfs_presenze is not None and self.pfs_presenze[nearest_idx] > 0 else None,
             "coripet_count_1km": count_1km,
             "coripet_count_3km": count_3km,
             "coripet_count_5km": count_5km,
@@ -287,7 +293,8 @@ class SpatialCatchmentAnalyzer:
             "benchmark_pf_name": str(self.pfs_client[self_match_idx]) if self_match_idx is not None else None,
             "benchmark_pf_address": str(self.pfs_address[self_match_idx]) if self_match_idx is not None else None,
             "benchmark_pf_machine_type": str(self.pfs_machine_type[self_match_idx]) if self_match_idx is not None else None,
-            "benchmark_pf_hist_bottles": round(float(self.pfs_bottles[self_match_idx]), 1) if self_match_idx is not None else None
+            "benchmark_pf_hist_bottles": round(float(self.pfs_bottles[self_match_idx]), 1) if self_match_idx is not None else None,
+            "benchmark_pf_hist_presenze": round(float(self.pfs_presenze[self_match_idx]), 1) if self_match_idx is not None and self.pfs_presenze[self_match_idx] > 0 else None
         }
 
     def analyze_competitive_density(self, cap: str, comune: str) -> Dict[str, Any]:

@@ -99,21 +99,33 @@ class MultiTaskRVMNet(nn.Module):
         return pred_bottiglie, pred_presenze
 
 class MultiTaskHuberLoss(nn.Module):
-    """Multi-task Huber Loss with task balancing weights."""
+    """Multi-task Huber Loss with task balancing weights and optional sample weights for outlier mitigation."""
     def __init__(self, weight_bottiglie: float = 1.0, weight_presenze: float = 1.0, delta: float = 1.0):
         super().__init__()
         self.weight_bottiglie = weight_bottiglie
         self.weight_presenze = weight_presenze
-        self.huber = nn.HuberLoss(reduction="mean", delta=delta)
+        self.delta = delta
+        self.huber_none = nn.HuberLoss(reduction="none", delta=delta)
+        self.huber_mean = nn.HuberLoss(reduction="mean", delta=delta)
         
     def forward(
         self, 
         pred_bottiglie: torch.Tensor, 
         pred_presenze: torch.Tensor, 
         target_bottiglie: torch.Tensor, 
-        target_presenze: torch.Tensor
+        target_presenze: torch.Tensor,
+        sample_weights: torch.Tensor = None
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        loss_b = self.huber(pred_bottiglie, target_bottiglie)
-        loss_p = self.huber(pred_presenze, target_presenze)
+        if sample_weights is None:
+            loss_b = self.huber_mean(pred_bottiglie, target_bottiglie)
+            loss_p = self.huber_mean(pred_presenze, target_presenze)
+        else:
+            loss_b_raw = self.huber_none(pred_bottiglie, target_bottiglie).squeeze()
+            loss_p_raw = self.huber_none(pred_presenze, target_presenze).squeeze()
+            sw = sample_weights.squeeze()
+            w_sum = sw.sum().clamp(min=1e-5)
+            loss_b = (loss_b_raw * sw).sum() / w_sum
+            loss_p = (loss_p_raw * sw).sum() / w_sum
+
         total_loss = self.weight_bottiglie * loss_b + self.weight_presenze * loss_p
         return total_loss, loss_b, loss_p

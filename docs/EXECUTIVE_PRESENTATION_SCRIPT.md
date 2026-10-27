@@ -124,7 +124,7 @@ The presentation is structured into four distinct strategic phases:
   > 
   > *Case 1: **Conad Sarre in Valle d'Aosta**. The model predicted 536.3 bottles per day; the actual Power BI average is 540.0. That is a **99.3% accuracy rate**, demonstrating exceptional precision on high-volume anchors.*
   > 
-  > *Case 2: **Famila Pitigliano in Tuscany**. This small rural market predicted 82.4 b/d vs 93.3 actual (**88.3% accuracy**). Because volume was below 120 b/d, the model automatically triggered an automated NO-GO clearance block. This proves the gatekeeper successfully catches unviable sites.*
+  > *Case 2: **Famila Pitigliano in Tuscany**. This small rural market predicted 82.4 b/d vs 93.3 actual (**88.3% accuracy**). Because volume was below 250 b/d, the model automatically triggered an automated NO-GO clearance block. This proves the gatekeeper successfully catches unviable sites.*
   > 
   > *Case 3: **Conad Mascali in Sicily**. The model predicted 438 b/d, capturing the Year 1 permanent resident baseline with **97.4% accuracy**. The diagnostic engine also flagged the summer coastal corridor surge, explaining why mature volume surged to 711 b/d in July and August.*
   > 
@@ -170,7 +170,7 @@ The presentation is structured into four distinct strategic phases:
 - **Visuals**: 4 Value Pillars (CapEx Protection, Reverse Logistics, Commercial Clout, Material Off-Take Security).
 - **Speaker Script**:
   > *"To summarize the business impact for Coripet leadership, this system delivers value across four strategic pillars:*
-  > 1. ***CapEx Protection**: Zero capital wasted on unprofitable installations below 120 b/day.*
+  > 1. ***CapEx Protection**: Zero capital wasted on unprofitable installations below 250 b/day.*
   > 2. ***Reverse Logistics Optimization**: Knowing projected daily velocity allows us to right-size collection routes and eliminate full-bin downtime, reducing truck logistics costs by 15% to 20%.*
   > 3. ***Commercial Alliance Clout**: We replace hand-wavy sales pitches with objective, data-backed foot traffic forecasts to win prime lobby placements at major supermarket chains.*
   > 4. ***Recycled PET Supply Security**: Our commercial trading desk can enter firm supply contracts with beverage producers with full confidence in our annualized collection curves."*
@@ -217,9 +217,9 @@ The presentation is structured into four distinct strategic phases:
 **Answer**:
 > *"The engine includes an intelligent Level 2 auto-estimation module (`StoreScaleAutoEstimator`). If surface area is omitted, the system analyzes the store's brand banner and municipal demographic tier, automatically selecting the verified median scale for that format (e.g., standard supermarket ~750 m2, hypermarket ~3,750 m2, discount ~750 m2). The user can also pick from 5 quick presets (Superette, Standard, Superstore, Hypermarket, Discount)."*
 
-### Q2: "Why is the economic breakeven threshold set at 120 bottles/day?"
+### Q2: "Why is the economic breakeven threshold set at 250 bottles/day?"
 **Answer**:
-> *"Based on Coripet's financial modeling, a machine collecting 120 bottles per day yields approximately 3,650 bottles per month (~90–100 kg of rPET). At standard material off-take pricing and consortium eco-contributions, 120 b/day represents the minimum cash flow required to cover monthly reverse logistics servicing, data connectivity, and hardware depreciation. Below 120 b/day, the site loses money every month."*
+> *"Based on Coripet's updated financial modeling, a machine collecting 250 bottles per day yields approximately 7,600 bottles per month (~190–200 kg of rPET). At standard material off-take pricing and consortium eco-contributions, 250 b/day represents the minimum cash flow required to cover monthly reverse logistics servicing, data connectivity, and hardware depreciation. Below 250 b/day, the site loses money every month."*
 
 ### Q3: "How does the model handle summer resort towns or ski corridors where population explodes seasonally?"
 **Answer**:

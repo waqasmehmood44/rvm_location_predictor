@@ -57,9 +57,13 @@ class StoreScaleAutoEstimator:
                     "superficie_vendita": float(r["superficie_vendita"]),
                     "numero_casse": float(r["numero_casse"]),
                     "insegna_raw": str(r["insegna_raw"]),
-                    "clean_brand": str(r["clean_brand"])
+                    "clean_brand": str(r["clean_brand"]),
+                    "comune_clean": str(r.get("comune_clean", "")).strip().upper() if "comune_clean" in r else ""
                 }
-                self.address_lookup[(cap, street)] = entry
+                # Store list of entries per (cap, street) to support multiple stores on same street
+                if (cap, street) not in self.address_lookup:
+                    self.address_lookup[(cap, street)] = []
+                self.address_lookup[(cap, street)].append(entry)
                 
                 if cap not in self.cap_stores_lookup:
                     self.cap_stores_lookup[cap] = []
@@ -83,40 +87,113 @@ class StoreScaleAutoEstimator:
     ) -> Dict[str, Any]:
         """
         Estimates store format, sales area (m2), and cash registers using a 4-layer cascade.
+        Strictly distinguishes between verified exact census records and fallback estimations.
         """
+        res = self._estimate_scale_internal(store_name, address, cap, comune)
+        if "is_exact_match" not in res:
+            res["is_exact_match"] = (res.get("scale_source") == "EXACT_NIELSEN_STORE_MATCH")
+        return res
+
+    def _estimate_scale_internal(
+        self,
+        store_name: str,
+        address: str,
+        cap: str,
+        comune: Optional[str] = None
+    ) -> Dict[str, Any]:
         clean_cap = str(cap).strip().zfill(5)
         street_core = extract_street_core(address).upper()
         clean_brand = clean_brand_name(store_name)
-        
+        clean_input_text = clean_retail_text(f"{store_name} {address}")
+
+        def is_brand_compatible(rec_entry: Dict[str, Any]) -> bool:
+            """Strict brand compatibility check to prevent matching competitor stores on same street."""
+            rec_b = rec_entry.get("clean_brand", "").upper().strip()
+            rec_raw_clean = clean_retail_text(rec_entry.get("insegna_raw", ""))
+            inp_clean = clean_retail_text(store_name)
+            inp_b = clean_brand.upper().strip()
+
+            # 1. Direct match on clean brand (excluding INDIPENDENTE)
+            if inp_b != "INDIPENDENTE" and rec_b != "INDIPENDENTE":
+                return (inp_b == rec_b or inp_b in rec_b or rec_b in inp_b)
+
+            # 2. Distinct major retail banners that must never be mixed up
+            MAJOR_BRANDS = [
+                "CONAD", "COOP", "ESSELUNGA", "CARREFOUR", "LIDL", "EUROSPIN", "PAM", 
+                "BENNET", "GIGANTE", "DESPAR", "SPAR", "EUROSPAR", "INTERSPAR", "CRAI", 
+                "PENNY", "MD", "ALDI", "TIGROS", "DODECA", "DECO", "INCOOP", 
+                "IPERCOOP", "IL GIGANTE", "SUPERSTORE", "SELEX", "FAMILA",
+                "IPER", "UNES", "U2", "TODIS", "BRICO", "LEROY"
+            ]
+            for mb in MAJOR_BRANDS:
+                in_rec = (mb in rec_b or mb in rec_raw_clean)
+                in_inp = (mb in inp_b or mb in inp_clean)
+                if in_rec and in_inp:
+                    return True
+                if in_rec and not in_inp:
+                    return False
+                if not in_rec and in_inp:
+                    return False
+
+            # 3. For other / independent names: check token overlap (tokens of 4+ characters)
+            rec_tokens = set(t for t in rec_raw_clean.split() if len(t) >= 4 and t not in ["SUPERMERCATO", "SUPERMERCATI", "MARKET", "STORE", "CENTRO"])
+            inp_tokens = set(t for t in inp_clean.split() if len(t) >= 4 and t not in ["SUPERMERCATO", "SUPERMERCATI", "MARKET", "STORE", "CENTRO"])
+            if rec_tokens and inp_tokens and (rec_tokens & inp_tokens):
+                return True
+
+            return False
+
+        def is_comune_compatible(rec_entry: Dict[str, Any]) -> bool:
+            """Verifies municipality compatibility if provided."""
+            if not comune:
+                return True
+            rec_c = rec_entry.get("comune_clean", "").strip().upper()
+            if not rec_c:
+                return True
+            inp_c = clean_retail_text(comune).upper()
+            return (inp_c in rec_c or rec_c in inp_c)
+
         # -------------------------------------------------------------
         # LAYER 1: Direct Match in Nielsen 25,104 Store Census
         # -------------------------------------------------------------
-        # 1A. Exact (CAP, street_core)
+        # 1A. Exact (CAP, street_core) with Strict Brand & Location Compatibility
         if (clean_cap, street_core) in self.address_lookup:
-            rec = self.address_lookup[(clean_cap, street_core)]
-            return {
-                "tipo_negozio": rec["tipo_negozio"],
-                "superficie_vendita": rec["superficie_vendita"],
-                "numero_casse": rec["numero_casse"],
-                "scale_source": "EXACT_NIELSEN_STORE_MATCH",
-                "confidence": "VERY_HIGH",
-                "label": f"Exact census match for {rec['insegna_raw']} ({rec['superficie_vendita']:.0f} m2, {rec['numero_casse']:.0f} casse)",
-                "details": f"Found exact store address match in Nielsen census on {address}"
-            }
+            candidates = self.address_lookup[(clean_cap, street_core)]
+            matched_rec = None
+            for rec in candidates:
+                if is_brand_compatible(rec) and is_comune_compatible(rec):
+                    matched_rec = rec
+                    break
             
-        # 1B. Fuzzy street match in same postal district
+            if matched_rec is not None:
+                return {
+                    "tipo_negozio": matched_rec["tipo_negozio"],
+                    "superficie_vendita": matched_rec["superficie_vendita"],
+                    "numero_casse": matched_rec["numero_casse"],
+                    "insegna_raw": matched_rec["insegna_raw"],
+                    "scale_source": "EXACT_NIELSEN_STORE_MATCH",
+                    "is_exact_match": True,
+                    "confidence": "VERY_HIGH",
+                    "label": f"Exact census match for {matched_rec['insegna_raw']} ({matched_rec['superficie_vendita']:.0f} m2, {matched_rec['numero_casse']:.0f} casse)",
+                    "details": f"Found exact store address and banner match in Nielsen census on {address}"
+                }
+            
+        # 1B. Fuzzy street match in same postal district with Brand Compatibility (Marked as NOT exact)
         if clean_cap in self.cap_stores_lookup and len(street_core) >= 4:
             for n_street, rec in self.cap_stores_lookup[clean_cap]:
                 if len(n_street) >= 4 and (n_street in street_core or street_core in n_street):
-                    return {
-                        "tipo_negozio": rec["tipo_negozio"],
-                        "superficie_vendita": rec["superficie_vendita"],
-                        "numero_casse": rec["numero_casse"],
-                        "scale_source": "LOCAL_NIELSEN_STREET_MATCH",
-                        "confidence": "HIGH",
-                        "label": f"Local street match for {rec['insegna_raw']} (~{rec['superficie_vendita']:.0f} m2, {rec['numero_casse']:.0f} casse)",
-                        "details": f"Matched neighborhood grocery site on {n_street}"
-                    }
+                    if is_brand_compatible(rec) and is_comune_compatible(rec):
+                        return {
+                            "tipo_negozio": rec["tipo_negozio"],
+                            "superficie_vendita": rec["superficie_vendita"],
+                            "numero_casse": rec["numero_casse"],
+                            "insegna_raw": rec.get("insegna_raw", ""),
+                            "scale_source": "LOCAL_NIELSEN_STREET_MATCH",
+                            "is_exact_match": False,
+                            "confidence": "HIGH",
+                            "label": f"Local street match for {rec['insegna_raw']} (~{rec['superficie_vendita']:.0f} m2, {rec['numero_casse']:.0f} casse)",
+                            "details": f"Matched neighborhood grocery site on {n_street}"
+                        }
 
         # -------------------------------------------------------------
         # LAYER 2: Sub-Banner / Specific Keyword Inferences

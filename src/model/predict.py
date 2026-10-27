@@ -104,24 +104,14 @@ STORE_FORMAT_PRESETS = {
     }
 }
 
-# Recognized Coripet RVM hardware models & manufacturer families
+# Recognized Coripet RVM hardware models (Strict 4 certified models)
 VALID_MACHINE_TYPES = [
+    "DAINT_A-BIS",
+    "DAINT_B-BIS",
     "DAINT_G",
     "RIPET_C-FRONT",
-    "DAINT_A-BIS",
-    "RIPET_C-TER",
-    "RIPET_V2",
-    "RIPET_C-BIS",
-    "RIPET_SMARPET",
-    "DAINT_B-BIS",
-    "RVM_MOD.E",
-    "RVM_MOD.E_NUOVA",
-    "DAINT_B",
-    "RIPET_V1",
-    "SUPERMARPET01S",
-    "DAINT_Y_DRS",
 ]
-VALID_MACHINE_FAMILIES = ["DAINT", "RIPET", "RVM", "EURVEN", "SUPERMARPET", "SMARPET"]
+VALID_MACHINE_FAMILIES = ["DAINT", "RIPET"]
 
 def normalize_comune_token(text: Any) -> str:
     """Standardizes Italian comune string for accent/case/punctuation-insensitive lookup."""
@@ -263,31 +253,29 @@ def validate_comune(comune: Any, address: Optional[str] = None) -> Optional[str]
 
 def validate_machine_type(machine_type: Any) -> str:
     """
-    Validates machine hardware model against Coripet hardware families.
-    Raises ValueError if invalid.
+    Validates machine hardware model against the 4 certified Coripet hardware models:
+    - DAINT_A-bis (300 b/d)
+    - DAINT_B-bis (500 b/d)
+    - DAINT_G (4,500 b/d)
+    - Ripet_C-front (4,500 b/d)
+    Auto-normalizes input to one of these 4 models.
     """
-    if machine_type is None:
-        raise ValueError("Machine type is required. Please enter a valid Coripet hardware model.")
+    if machine_type is None or not str(machine_type).strip():
+        return "DAINT_G"
     m_str = str(machine_type).strip()
-    if not m_str:
-        raise ValueError("Machine type is required. Please enter a valid Coripet hardware model.")
-    
     m_upper = m_str.upper().replace(" ", "_")
-    
-    # Check exact match in valid types (case-insensitive)
-    for vm in VALID_MACHINE_TYPES:
-        if m_upper == vm.upper():
-            return m_str
-            
-    # Check recognized hardware family prefix
-    for fam in VALID_MACHINE_FAMILIES:
-        if fam in m_upper:
-            return m_str
-            
-    valid_examples = ", ".join(VALID_MACHINE_TYPES[:6])
-    raise ValueError(
-        f"Invalid machine type '{m_str}'. Must be a recognized Coripet machine model (e.g. {valid_examples})."
-    )
+
+    if "A-BIS" in m_upper:
+        return "DAINT_A-bis"
+    if "B-BIS" in m_upper or "DAINT_B" in m_upper:
+        return "DAINT_B-bis"
+    if "DAINT_G" in m_upper or (m_upper == "G") or ("MODELLO_G" in m_upper):
+        return "DAINT_G"
+    if "C-FRONT" in m_upper or "RIPET" in m_upper:
+        return "Ripet_C-front"
+
+    # Default to high-capacity Daint G
+    return "DAINT_G"
 
 def calculate_lifecycle_horizon(
     underwritten_monthly_profile: List[Dict[str, Any]],
@@ -1046,7 +1034,10 @@ class RVMNewLocationPredictor:
             requested_machine=machine_type,
             brand_name=brand_clean,
             retail_group=resolved_gruppo,
-            shopping_centers_count=int(comp_info.get("shopping_centers", 0))
+            shopping_centers_count=int(comp_info.get("shopping_centers", 0)),
+            reward_policy=reward_info.get("reward_type") if reward_info else None,
+            is_benchmark_self_match=bool(net_info.get("is_benchmark_self_match", False)),
+            nearest_pf_comune=net_info.get("nearest_pf_comune", "")
         )
 
         # Level 4: Commercial Investment Scoring & Decision Engine
@@ -1212,13 +1203,49 @@ class RVMNewLocationPredictor:
                 "peak_monthly_b": int(round(u_peak * 30.4))
             }
             if "economic_volume_gate" in suitability.get("gate_results", {}):
-                suitability["gate_results"]["economic_volume_gate"]["metric"] = (
-                    f"Robust collection yield ({underwritten_daily_b:.1f} b/day vs 120 b/d breakeven)"
-                )
+                if underwritten_daily_b < (250.0 * 0.90):
+                    suitability["gate_results"]["economic_volume_gate"]["status"] = "FAIL"
+                    suitability["gate_results"]["economic_volume_gate"]["flag"] = "UNECONOMIC VOLUME DEFICIT"
+                    suitability["gate_results"]["economic_volume_gate"]["metric"] = (
+                        f"Realized {underwritten_daily_b:.1f} b/day below breakeven (250 b/d)"
+                    )
+                elif underwritten_daily_b < 250.0:
+                    suitability["gate_results"]["economic_volume_gate"]["status"] = "WARN"
+                    suitability["gate_results"]["economic_volume_gate"]["flag"] = "TIGHT MARGIN"
+                    suitability["gate_results"]["economic_volume_gate"]["metric"] = (
+                        f"Marginal volume ({underwritten_daily_b:.1f} b/day) tight against breakeven (250 b/d)"
+                    )
+                else:
+                    suitability["gate_results"]["economic_volume_gate"]["status"] = "PASS"
+                    suitability["gate_results"]["economic_volume_gate"]["flag"] = "COMMERCIALLY PROFITABLE"
+                    suitability["gate_results"]["economic_volume_gate"]["metric"] = (
+                        f"Robust collection yield ({underwritten_daily_b:.1f} b/day vs 250 b/d breakeven)"
+                    )
             if "hardware_sizing_gate" in suitability.get("gate_results", {}):
-                suitability["gate_results"]["hardware_sizing_gate"]["metric"] = (
-                    f"Hardware '{machine_type}' aligned with volume tier ({underwritten_daily_b:.1f} b/d)"
-                )
+                hw_g = suitability["gate_results"]["hardware_sizing_gate"]
+                if hw_g.get("status") == "WARN":
+                    if "OVERSIZED" in hw_g.get("flag", ""):
+                        hw_g["metric"] = f"Heavy-duty '{machine_type}' (6,000 b) is oversized for {underwritten_daily_b:.1f} b/d; compact unit advised"
+                    elif "UNDERCAPACITY" in hw_g.get("flag", ""):
+                        hw_g["metric"] = f"Compact '{machine_type}' undersized for high-yield {underwritten_daily_b:.1f} b/d; heavy-duty unit advised"
+                else:
+                    hw_g["metric"] = f"Hardware '{machine_type}' is certified and optimally matched for {underwritten_daily_b:.1f} b/d"
+
+        # Recalibrate statistical probability factors & target milestones to underwritten operational baseline
+        probability_factors = calculate_probability_factors(
+            daily_bottles=underwritten_daily_b,
+            confidence_score=confidence.get("confidence_score", 100),
+            requested_machine=machine_type
+        )
+        if realization["is_risk_adjusted"] or abs(underwritten_daily_b - realization["realized_daily_bottles"]) > 0.5:
+            recommendation = determine_recommendation_tier(
+                potential_score=potential_score,
+                daily_bottles=underwritten_daily_b,
+                cannibalization_alert=cannibalization_alert,
+                density_tier=catchment_info["competitive_density"]["density_tier"],
+                store_scale_applied=scale_source,
+                suitability_status=suitability["suitability_status"]
+            )
 
         # Inland non-coastal seasonal vacation exodus shaping for risk-adjusted stores
         reg_upper = str(loc_info.get("Regione", "")).upper()
@@ -1746,10 +1773,10 @@ def print_prediction_summary(result: dict):
         tiers = prob.get("performance_tiers", {})
         if tiers:
             print("\nFuture Performance Outlook (Probability by Volume Tier):")
-            print(f"  * Low Yield / Review       (< 200 b/d)     : {tiers['p_low_under_200']:>5.1f}%")
-            print(f"  * Moderate / Viable        (200 - 400 b/d) : {tiers['p_moderate_200_400']:>5.1f}%")
-            print(f"  * High Performer Hub       (400 - 700 b/d) : {tiers['p_high_400_700']:>5.1f}%")
-            print(f"  * Star / Strategic Anchor  (> 700 b/d)     : {tiers['p_star_over_700']:>5.1f}%")
+            print(f"  * Basso Prendente          (< 300 b/d)     : {tiers.get('p_basso_under_300', 0.0):>5.1f}%")
+            print(f"  * Medio Prendente          (300 - 1000 b/d): {tiers.get('p_medio_300_1000', 0.0):>5.1f}%")
+            print(f"  * Alto Prendente           (1000-2000 b/d) : {tiers.get('p_alto_1000_2000', 0.0):>5.1f}%")
+            print(f"  * Super Prendente          (> 2000 b/d)    : {tiers.get('p_super_over_2000', 0.0):>5.1f}%")
             print(f"  -> Dominant Future Outlook : {tiers.get('most_likely_tier', '')}")
 
         # Cumulative Annual Milestones
@@ -1771,14 +1798,15 @@ def print_prediction_summary(result: dict):
             print(f"  * Underutilization Risk        : {hw.get('p_underutilization_risk', 0.0):>5.1f}%")
             print(f"  * Recommended Logistics Cadence: {hw.get('recommended_service_rhythm', '')}")
 
+        p_breakeven_val = prob.get('p_breakeven_250', prob.get('p_breakeven_120', 0.0))
         print("\nTarget Attainment Probabilities:")
-        print(f"  * P(Volume >= 120 b/d - Economic Breakeven)  : {prob['p_breakeven_120']:>5.1f}%  [Capital Recovery Threshold]")
+        print(f"  * P(Volume >= 250 b/d - Economic Breakeven)  : {p_breakeven_val:>5.1f}%  [Capital Recovery Threshold]")
         print(f"  * P(Volume >= 300 b/d - Standard Baseline)   : {prob['p_standard_300']:>5.1f}%  [Commercial Viability]")
         print(f"  * P(Volume >= 500 b/d - High-Yield Anchor)   : {prob['p_high_yield_500']:>5.1f}%  [Top-Quartile Performance]")
         print(f"  * P(Volume >= 1,000 b/d - Strategic Anchor)  : {prob['p_anchor_1000']:>5.1f}%  [Hypermarket Capacity Demand]")
-        p10_d = round(prob['downside_floor_p10_daily'] * underwrite_scale, 1) if (is_risk_adjusted and underwrite_scale < 1.0) else prob['downside_floor_p10_daily']
+        p10_d = prob['downside_floor_p10_daily']
         p10_m = int(round(p10_d * 30.4))
-        p90_d = round(prob['upside_peak_p90_daily'] * underwrite_scale, 1) if (is_risk_adjusted and underwrite_scale < 1.0) else prob['upside_peak_p90_daily']
+        p90_d = prob['upside_peak_p90_daily']
         p90_m = int(round(p90_d * 30.4))
         print("Statistically Underwritten Volume (80% Confidence Band):")
         print(f"  * Downside Floor (P10 - 90% Statistical Certainty): {p10_d} b/day ({p10_m:,} b/month)")

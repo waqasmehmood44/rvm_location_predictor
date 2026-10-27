@@ -124,7 +124,7 @@ After the neural network calculates the **Unconstrained Standalone Ceiling**, th
 Each prospective location is evaluated against 6 objective Go/No-Go underwriting gates:
 
 1. **Cannibalization Gate:** Passes if nearest active machine is >= 1.0 km away. Warns if < 1.0 km. Rejects if co-located (0m).
-2. **Economic Breakeven Gate:** Passes if daily volume >= 120 b/day (covers hardware lease, monthly servicing, and reverse logistics).
+2. **Economic Breakeven Gate:** Passes if daily volume >= 250 b/day (covers hardware lease, monthly servicing, and reverse logistics).
 3. **Store Format Gate:** Confirms commercial sales floor (>= 350 m2 and >= 2 checkouts) can support RVM footprint, bag servicing, and user queuing.
 4. **Demographic Catchment Gate:** Validates municipal population and density to ensure adequate resident repeat recycling foot traffic.
 5. **Hardware Sizing Gate:** Right-sizes machine capacity: matches compact units to < 250 b/d and heavy-duty dual-stream units to >= 600 b/d.

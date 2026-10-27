@@ -247,7 +247,7 @@ class RVMPreprocessor:
         ]
         for c in cat_cols:
             if c in data.columns:
-                data[c] = data[c].fillna("UNKNOWN").astype(str).str.strip().str.upper()
+                data[c] = data[c].astype(str).replace(["nan", "None", "<NA>", "NAN", "NONE", ""], "UNKNOWN").str.strip().str.upper()
 
         # Auto-infer missing Nielsen Area from Region
         if "nielsen_area" in data.columns and "Regione" in data.columns:
@@ -363,9 +363,12 @@ class RVMPreprocessor:
             self.cat_vocabs[c] = vocab
             print(f"  Categorical '{c}': {len(vocab)} categories (including <UNK>)")
             
-        # Prepare numeric matrix for StandardScaler fitting
-        X_num = self._extract_num_matrix(df, is_fit=True)
-        self.scaler.fit(X_num)
+        # Prepare numeric matrix for StandardScaler fitting (fit on representative sample to save memory)
+        sample_size = min(len(df), 200000)
+        sample_df = df.iloc[:sample_size]
+        X_num_sample = self._extract_num_matrix(sample_df, is_fit=True)
+        self.scaler.fit(X_num_sample)
+        del X_num_sample
         
         self.num_features = (
             [f"{c}_log" for c in log_skewed] + 
@@ -378,7 +381,7 @@ class RVMPreprocessor:
         return self
 
     def _extract_num_matrix(self, df: pd.DataFrame, is_fit: bool = False) -> np.ndarray:
-        """Extracts and transforms numerical features with strict median imputation."""
+        """Extracts and transforms numerical features with strict median imputation directly into float32."""
         log_skewed = [
             "population", "surface", "population_density", "PIL", "nielsen_superficie_vendita",
             "nearest_coripet_km"
@@ -393,24 +396,31 @@ class RVMPreprocessor:
             "is_local_grocery_monopoly", "is_isolated_rvm"
         ]
         
-        cols_data = []
+        n_rows = len(df)
+        total_num_cols = len(log_skewed) + len(regular_num) + len(binary_num)
+        out = np.empty((n_rows, total_num_cols), dtype=np.float32)
+        idx = 0
+        
         # 1. Log-skewed features
         for c in log_skewed:
             med = self.num_medians.get(c, 2.0)
             s = df[c].fillna(med).clip(lower=0)
-            cols_data.append(np.log1p(s.values))
+            out[:, idx] = np.log1p(s.values.astype(np.float32))
+            idx += 1
             
         # 2. Regular numeric features
         for c in regular_num:
             med = self.num_medians.get(c, 0.0)
             s = df[c].fillna(med)
-            cols_data.append(s.values)
+            out[:, idx] = s.values.astype(np.float32)
+            idx += 1
             
         # 3. Binary & cyclical features
         for c in binary_num:
-            cols_data.append(df[c].fillna(0).values.astype(float))
+            out[:, idx] = df[c].fillna(0).values.astype(np.float32)
+            idx += 1
             
-        return np.column_stack(cols_data)
+        return out
 
     def transform(self, df: pd.DataFrame, nielsen_dropout: float = 0.0) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
@@ -438,15 +448,14 @@ class RVMPreprocessor:
         # Transform numerical features
         X_num_raw = self._extract_num_matrix(data)
         X_num = self.scaler.transform(X_num_raw).astype(np.float32)
+        del X_num_raw
         
         # Transform categorical features
-        cat_data = []
-        for c in self.cat_features:
+        X_cat = np.empty((len(data), len(self.cat_features)), dtype=np.int64)
+        for i, c in enumerate(self.cat_features):
             vocab = self.cat_vocabs[c]
             s = data[c].astype(str).str.strip().str.upper()
-            encoded = s.map(lambda val: vocab.get(val, 0)).values.astype(np.int64)
-            cat_data.append(encoded)
-        X_cat = np.column_stack(cat_data)
+            X_cat[:, i] = s.map(lambda val: vocab.get(val, 0)).values
         
         # Extract targets if present
         y_bottiglie = np.zeros(len(data), dtype=np.float32)

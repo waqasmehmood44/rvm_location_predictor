@@ -173,24 +173,22 @@ def calculate_probability_factors(
     cumulative annual milestones, and hardware capacity utilization / overflow risk).
     """
     req_m = (requested_machine or "").strip().upper()
-    heavy_duty_models = ["DAINT_G", "RIPET_C-FRONT", "DAINT_A-BIS", "RIPET_SMARPET", "SUPERMARPET"]
-    compact_models = ["RIPET_V2", "DAINT_B", "DAINT_B-BIS", "RIPET1000", "CESTONE"]
-
-    is_heavy = any(h in req_m for h in heavy_duty_models)
-    is_compact = any(c in req_m for c in compact_models)
-
-    if is_heavy:
-        hw_class = "HEAVY-DUTY HIGH-CAPACITY (Dual/Multi-Stream Compactor)"
-        saturation_thresh = 1100.0
-        under_thresh = 250.0
-    elif is_compact:
-        hw_class = "COMPACT / STANDARD RVM (Single/Dual Stream)"
-        saturation_thresh = 550.0
-        under_thresh = 140.0
+    if "A-BIS" in req_m:
+        hw_class = "Compact Single-Stream (Daint A-bis)"
+        saturation_thresh = 300.0
+        under_thresh = 80.0
+    elif "B-BIS" in req_m:
+        hw_class = "Compact Dual-Stream (Daint B-Bis)"
+        saturation_thresh = 500.0
+        under_thresh = 150.0
+    elif "DAINT_G" in req_m or ("DAINT" in req_m and "G" in req_m):
+        hw_class = "Heavy-Duty Dual-Stream (Daint G)"
+        saturation_thresh = 4500.0
+        under_thresh = 500.0
     else:
-        hw_class = "STANDARD MODULAR RVM"
-        saturation_thresh = 850.0
-        under_thresh = 180.0
+        hw_class = "Heavy-Duty Industrial Compactor (Ripet C-Front)"
+        saturation_thresh = 4500.0
+        under_thresh = 500.0
 
     if daily_bottles <= 0:
         return {
@@ -206,11 +204,15 @@ def calculate_probability_factors(
             "upside_peak_p90_monthly": 0,
             "sigma_applied": 0.45,
             "performance_tiers": {
+                "p_basso_under_300": 100.0,
+                "p_medio_300_1000": 0.0,
+                "p_alto_1000_2000": 0.0,
+                "p_super_over_2000": 0.0,
                 "p_low_under_200": 100.0,
                 "p_moderate_200_400": 0.0,
                 "p_high_400_700": 0.0,
                 "p_star_over_700": 0.0,
-                "most_likely_tier": "LOW YIELD / UNDERWRITING REVIEW (< 200 B/D)"
+                "most_likely_tier": "BASSO PRENDENTE (< 300 B/D)"
             },
             "annual_milestones": {
                 "p_annual_50k": 0.0,
@@ -262,7 +264,22 @@ def calculate_probability_factors(
     p10_daily = round(max(0.0, math.expm1(mu - 1.28155 * sigma)), 1)
     p90_daily = round(max(0.0, math.expm1(mu + 1.28155 * sigma)), 1)
 
-    # 1. Performance Tiers (Mutually exclusive intervals covering full volume spectrum)
+    # 1. Performance Tiers (Mutually exclusive intervals covering full Coripet volume spectrum)
+    # Official Coripet Network Classification:
+    # - Basso Prendente : < 300 b/d
+    # - Medio Prendente : 300 - 1,000 b/d
+    # - Alto Prendente  : 1,000 - 2,000 b/d
+    # - Super Prendente : > 2,000 b/d
+    cdf_300 = _normal_cdf((math.log1p(300.0) - mu) / sigma)
+    cdf_1000 = _normal_cdf((math.log1p(1000.0) - mu) / sigma)
+    cdf_2000 = _normal_cdf((math.log1p(2000.0) - mu) / sigma)
+
+    p_basso = round(max(0.0, min(100.0, cdf_300 * 100.0)), 1)
+    p_medio = round(max(0.0, min(100.0, (cdf_1000 - cdf_300) * 100.0)), 1)
+    p_alto = round(max(0.0, min(100.0, (cdf_2000 - cdf_1000) * 100.0)), 1)
+    p_super = round(max(0.0, min(100.0, (1.0 - cdf_2000) * 100.0)), 1)
+
+    # Legacy tier fields preserved for backwards compatibility
     cdf_200 = _normal_cdf((math.log1p(200.0) - mu) / sigma)
     cdf_400 = _normal_cdf((math.log1p(400.0) - mu) / sigma)
     cdf_700 = _normal_cdf((math.log1p(700.0) - mu) / sigma)
@@ -272,13 +289,13 @@ def calculate_probability_factors(
     p_high = round(max(0.0, min(100.0, (cdf_700 - cdf_400) * 100.0)), 1)
     p_star = round(max(0.0, min(100.0, (1.0 - cdf_700) * 100.0)), 1)
 
-    tier_map = {
-        "LOW YIELD / REVIEW (< 200 B/D)": p_low,
-        "MODERATE / STANDARD (200 - 400 B/D)": p_moderate,
-        "HIGH PERFORMER (400 - 700 B/D)": p_high,
-        "STAR / STRATEGIC ANCHOR (> 700 B/D)": p_star
+    coripet_tier_map = {
+        "BASSO PRENDENTE (< 300 B/D)": p_basso,
+        "MEDIO PRENDENTE (300 - 1,000 B/D)": p_medio,
+        "ALTO PRENDENTE (1,000 - 2,000 B/D)": p_alto,
+        "SUPER PRENDENTE (> 2,000 B/D)": p_super
     }
-    most_likely_tier = max(tier_map.items(), key=lambda x: x[1])[0]
+    most_likely_tier = max(coripet_tier_map.items(), key=lambda x: x[1])[0]
 
     # 2. Cumulative Annual Collection Milestones (Operating 365 days)
     p_ann_50k = _get_prob(50000.0 / 365.0)
@@ -316,6 +333,10 @@ def calculate_probability_factors(
         
         # Comprehensive Future Performance Dimensions
         "performance_tiers": {
+            "p_basso_under_300": p_basso,
+            "p_medio_300_1000": p_medio,
+            "p_alto_1000_2000": p_alto,
+            "p_super_over_2000": p_super,
             "p_low_under_200": p_low,
             "p_moderate_200_400": p_moderate,
             "p_high_400_700": p_high,
@@ -668,7 +689,9 @@ def evaluate_location_suitability(
     requested_machine: str = "",
     brand_name: str = "",
     retail_group: str = "",
-    shopping_centers_count: int = 0
+    shopping_centers_count: int = 0,
+    reward_policy: Optional[str] = None,
+    **kwargs: Any
 ) -> Dict[str, Any]:
     """
     Evaluates prospective location suitability across 6 objective operational, physical, and financial clearance gates:
@@ -734,13 +757,25 @@ def evaluate_location_suitability(
             warning_flags.append(f"Nearby machine within {dist_str} shares local trade area.")
         score -= 20
     else:
+        is_self_bench = bool(kwargs.get("is_benchmark_self_match", False))
+        neighbor_muni = kwargs.get("nearest_pf_comune", "")
+        if is_self_bench:
+            loc_str = f" in {neighbor_muni}" if neighbor_muni else ""
+            metric_cannibal = f"Existing site verified (nearest neighbor RVM is {nearest_coripet_km:.1f} km away{loc_str})"
+            flag_cannibal = "AUTONOMOUS SITE"
+            strength_cannibal = f"Existing site benchmark: Zero cannibalization from neighboring machines ({nearest_coripet_km:.1f} km to nearest sister RVM)."
+        else:
+            metric_cannibal = f"Clear network buffer (nearest RVM is {nearest_coripet_km:.1f} km away)"
+            flag_cannibal = "AUTONOMOUS CATCHMENT"
+            strength_cannibal = f"Zero local cannibalization: Nearest machine is {nearest_coripet_km:.1f} km away."
+
         gate_results["cannibalization_gate"] = {
             "status": "PASS",
             "label": "Cannibalization Gate",
-            "metric": f"Clear network buffer (nearest RVM is {nearest_coripet_km:.1f} km away)",
-            "flag": "AUTONOMOUS CATCHMENT"
+            "metric": metric_cannibal,
+            "flag": flag_cannibal
         }
-        key_strengths.append(f"Zero local cannibalization: Nearest machine is {nearest_coripet_km:.1f} km away.")
+        key_strengths.append(strength_cannibal)
 
     # -------------------------------------------------------------
     # GATE 2: ECONOMIC BREAKEVEN GATE
@@ -849,36 +884,44 @@ def evaluate_location_suitability(
     # GATE 5: HARDWARE SIZING MATCH GATE
     # -------------------------------------------------------------
     req_m = requested_machine.strip().upper()
-    heavy_duty_models = ["DAINT_G", "RIPET_C-FRONT", "DAINT_A-BIS", "RIPET_SMARPET", "SUPERMARPET"]
-    compact_models = ["RIPET_V2", "DAINT_B", "DAINT_B-BIS", "RIPET1000", "CESTONE"]
+    if "A-BIS" in req_m:
+        sat_limit = 300.0
+        display_m = "Daint A-bis"
+    elif "B-BIS" in req_m:
+        sat_limit = 500.0
+        display_m = "Daint B-Bis"
+    elif "DAINT_G" in req_m or ("DAINT" in req_m and "G" in req_m):
+        sat_limit = 4500.0
+        display_m = "Daint G"
+    else:
+        sat_limit = 4500.0
+        display_m = "Ripet C-Front"
 
-    is_heavy_requested = any(h in req_m for h in heavy_duty_models)
-    is_compact_requested = any(c in req_m for c in compact_models)
-
-    if realized_daily_bottles < 250.0 and is_heavy_requested:
+    if realized_daily_bottles > sat_limit:
+        overload = realized_daily_bottles - sat_limit
         gate_results["hardware_sizing_gate"] = {
             "status": "WARN",
             "label": "Hardware Sizing Gate",
-            "metric": f"Heavy-duty unit '{requested_machine}' oversized for {realized_daily_bottles:.1f} b/day",
+            "metric": f"{display_m} capacity ({sat_limit:.0f} b/d) exceeded by +{overload:.0f} b/d ({realized_daily_bottles:.1f} b/d)",
+            "flag": "CAPACITY BOTTLENECK"
+        }
+        warning_flags.append(
+            f"Requested machine '{display_m}' has a rated threshold of {sat_limit:.0f} bottles/day. Projected volume ({realized_daily_bottles:.1f} b/d) exceeds capacity by +{overload:.0f} b/d (+{(overload/sat_limit)*100:.0f}%), risking overflow and service downtime; upgrade to high-capacity unit (Daint G / Ripet C-Front 4,500 b/d)."
+        )
+        score -= 10
+    elif realized_daily_bottles < 150.0 and sat_limit >= 4500.0:
+        gate_results["hardware_sizing_gate"] = {
+            "status": "WARN",
+            "label": "Hardware Sizing Gate",
+            "metric": f"{display_m} (4,500 b/d) has high spare headroom for low volume ({realized_daily_bottles:.1f} b/d)",
             "flag": "OVERSIZED HARDWARE"
         }
         warning_flags.append(
-            f"Requested heavy-duty unit '{requested_machine}' is oversized, carrying excessive lease/amortization costs for projected volume ({realized_daily_bottles:.1f} b/d); downsize to compact unit (Ripet_V2 / DAINT_B) to protect ROI."
+            f"Requested unit '{display_m}' carries 4,500 b/d industrial capacity for low volume ({realized_daily_bottles:.1f} b/d); consider Daint A-bis (300 b/d) or Daint B-Bis (500 b/d) to optimize footprint."
         )
-        score -= 10
-    elif realized_daily_bottles > 600.0 and is_compact_requested:
-        gate_results["hardware_sizing_gate"] = {
-            "status": "WARN",
-            "label": "Hardware Sizing Gate",
-            "metric": f"Compact unit '{requested_machine}' undersized for {realized_daily_bottles:.1f} b/day",
-            "flag": "UNDERCAPACITY RISK"
-        }
-        warning_flags.append(
-            f"Requested compact unit '{requested_machine}' is undersized, risking frequent bin overflow and service downtime under high volume ({realized_daily_bottles:.1f} b/d); upgrade to heavy-duty unit (DAINT_G / Ripet_C-front)."
-        )
-        score -= 10
+        score -= 5
     else:
-        matched_str = f"Hardware '{requested_machine}' aligned with volume tier ({realized_daily_bottles:.1f} b/d)" if requested_machine else f"Hardware sizing aligned with volume tier ({realized_daily_bottles:.1f} b/d)"
+        matched_str = f"Hardware '{display_m}' capacity ({sat_limit:,.0f} b/d) optimally matches volume ({realized_daily_bottles:.1f} b/d)"
         gate_results["hardware_sizing_gate"] = {
             "status": "PASS",
             "label": "Hardware Sizing Gate",
@@ -919,10 +962,15 @@ def evaluate_location_suitability(
                 "flag": "HIGH-YIELD OUTPOST"
             }
     else:
+        is_self_bench = bool(kwargs.get("is_benchmark_self_match", False))
+        if is_self_bench:
+            logistics_metric = f"Active installed route node ({nearest_coripet_km:.1f} km to nearest sister hub)"
+        else:
+            logistics_metric = f"Integrated into active regional servicing route ({nearest_coripet_km:.1f} km to nearest node)"
         gate_results["logistics_feasibility_gate"] = {
             "status": "PASS",
             "label": "Logistics Feasibility Gate",
-            "metric": f"Integrated into active regional servicing route ({nearest_coripet_km:.1f} km to nearest node)",
+            "metric": logistics_metric,
             "flag": "EFFICIENT ROUTING"
         }
 

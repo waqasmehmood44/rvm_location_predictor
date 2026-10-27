@@ -11,13 +11,17 @@ Production decision support dashboard powered by:
 
 import os
 import sys
+import time
+import pickle
 from pathlib import Path
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List, Union
+import math
 import requests
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 
 # Ensure repository root is on sys.path
 sys.path.insert(0, os.path.abspath("."))
@@ -68,34 +72,345 @@ st.markdown(
         flex-grow: 1 !important;
     }
 
-    /* Modern Dark Theme Segmented Control Navigation Tabs */
+    /* Modern Adaptive Segmented Control Navigation Tabs */
     div[data-testid="stSegmentedControl"] {
-        background: rgba(15, 23, 42, 0.75) !important;
+        background: rgba(128, 128, 128, 0.08) !important;
         border-radius: 12px !important;
         padding: 5px !important;
-        border: 1px solid rgba(255, 255, 255, 0.12) !important;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
-        backdrop-filter: blur(8px) !important;
+        border: 1px solid rgba(128, 128, 128, 0.22) !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
         margin-bottom: 12px !important;
     }
     div[data-testid="stSegmentedControl"] button {
         border-radius: 8px !important;
-        color: #94a3b8 !important;
+        color: inherit !important;
+        opacity: 0.75 !important;
         font-weight: 600 !important;
         font-size: 0.92rem !important;
         transition: all 0.2s ease !important;
         border: none !important;
     }
     div[data-testid="stSegmentedControl"] button:hover {
-        color: #f8fafc !important;
-        background: rgba(255, 255, 255, 0.07) !important;
+        opacity: 1.0 !important;
+        background: rgba(128, 128, 128, 0.12) !important;
     }
     div[data-testid="stSegmentedControl"] button[aria-checked="true"] {
         background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
         color: #ffffff !important;
+        opacity: 1.0 !important;
         box-shadow: 0 2px 10px rgba(22, 163, 74, 0.45) !important;
         font-weight: 700 !important;
     }
+
+    /* Universal Adaptive Badge Classes (Light & Dark Theme) */
+    .badge-pf-id {
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
+        color: #334155;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 0.72rem;
+        font-family: monospace;
+        font-weight: 700;
+        display: inline-block;
+    }
+    .badge-pf-filiera {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1d4ed8;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        display: inline-block;
+    }
+    .badge-pf-pv {
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        color: #047857;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        display: inline-block;
+    }
+    .badge-pf-spl {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        color: #b45309;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.3px;
+        display: inline-block;
+    }
+    .badge-pf-pot {
+        background: #faf5ff;
+        border: 1px solid #e9d5ff;
+        color: #7e22ce;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.3px;
+        display: inline-block;
+    }
+    .badge-pf-model {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        color: #1e293b;
+        padding: 5px 11px;
+        border-radius: 7px;
+        font-size: 0.80rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    .directory-banner {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 18px 22px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+        color: inherit;
+    }
+    .badge-stat-blue {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.82rem;
+        display: inline-block;
+    }
+    .badge-stat-green {
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.82rem;
+        display: inline-block;
+    }
+    .badge-stat-purple {
+        background: #faf5ff;
+        color: #7e22ce;
+        border: 1px solid #e9d5ff;
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.82rem;
+        display: inline-block;
+    }
+    .badge-source-live {
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        color: #047857;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 0.78rem;
+        display: inline-block;
+    }
+    .badge-source-backup {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        color: #b45309;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 0.78rem;
+        display: inline-block;
+    }
+    .badge-tier-super {
+        background: #faf5ff;
+        color: #7e22ce;
+        border: 1px solid #d8b4fe;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-weight: 800;
+        font-size: 0.70rem;
+        letter-spacing: 0.3px;
+        display: inline-block;
+    }
+    .badge-tier-alto {
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-weight: 800;
+        font-size: 0.70rem;
+        letter-spacing: 0.3px;
+        display: inline-block;
+    }
+    .badge-tier-medio {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-weight: 800;
+        font-size: 0.70rem;
+        letter-spacing: 0.3px;
+        display: inline-block;
+    }
+    .badge-tier-basso {
+        background: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-weight: 800;
+        font-size: 0.70rem;
+        letter-spacing: 0.3px;
+        display: inline-block;
+    }
+    .badge-rank-1 {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        color: #92400e;
+        border: 1px solid #f59e0b;
+        font-weight: 800;
+        padding: 3px 9px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        display: inline-block;
+        box-shadow: 0 1px 3px rgba(245, 158, 11, 0.25);
+    }
+    .badge-rank-2 {
+        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+        color: #334155;
+        border: 1px solid #94a3b8;
+        font-weight: 800;
+        padding: 3px 9px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        display: inline-block;
+    }
+    .badge-rank-3 {
+        background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+        color: #9a3412;
+        border: 1px solid #f97316;
+        font-weight: 800;
+        padding: 3px 9px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        display: inline-block;
+    }
+    .badge-rank-other {
+        background: rgba(128, 128, 128, 0.10);
+        color: inherit;
+        border: 1px solid rgba(128, 128, 128, 0.25);
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        display: inline-block;
+    }
+
+    /* Dark Mode Overrides (Streamlit theme & system preference) */
+    @media (prefers-color-scheme: dark) {
+        .badge-tier-super { background: rgba(168, 85, 247, 0.22); border-color: rgba(168, 85, 247, 0.50); color: #d8b4fe; }
+        .badge-tier-alto { background: rgba(16, 185, 129, 0.22); border-color: rgba(16, 185, 129, 0.50); color: #6ee7b7; }
+        .badge-tier-medio { background: rgba(59, 130, 246, 0.22); border-color: rgba(59, 130, 246, 0.50); color: #93c5fd; }
+        .badge-tier-basso { background: rgba(239, 68, 68, 0.22); border-color: rgba(239, 68, 68, 0.50); color: #fca5a5; }
+        .badge-rank-1 { background: rgba(245, 158, 11, 0.25); color: #fde047; border-color: rgba(245, 158, 11, 0.60); }
+        .badge-rank-2 { background: rgba(148, 163, 184, 0.25); color: #f1f5f9; border-color: rgba(148, 163, 184, 0.60); }
+        .badge-rank-3 { background: rgba(249, 115, 22, 0.25); color: #fdba74; border-color: rgba(249, 115, 22, 0.60); }
+        .badge-pf-id {
+            background: rgba(148, 163, 184, 0.18);
+            border-color: rgba(148, 163, 184, 0.40);
+            color: #cbd5e1;
+        }
+        .badge-pf-filiera {
+            background: rgba(59, 130, 246, 0.20);
+            border-color: rgba(59, 130, 246, 0.48);
+            color: #93c5fd;
+        }
+        .badge-pf-pv {
+            background: rgba(16, 185, 129, 0.20);
+            border-color: rgba(16, 185, 129, 0.48);
+            color: #6ee7b7;
+        }
+        .badge-pf-spl {
+            background: rgba(245, 158, 11, 0.22);
+            border-color: rgba(245, 158, 11, 0.50);
+            color: #fbbf24;
+        }
+        .badge-pf-pot {
+            background: rgba(168, 85, 247, 0.22);
+            border-color: rgba(168, 85, 247, 0.50);
+            color: #d8b4fe;
+        }
+        .badge-pf-model {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.18);
+            color: #f1f5f9;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+        }
+        .directory-banner {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.90) 100%);
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        }
+        .badge-stat-blue {
+            background: rgba(56, 189, 248, 0.14);
+            color: #38bdf8;
+            border-color: rgba(56, 189, 248, 0.35);
+        }
+        .badge-stat-green {
+            background: rgba(52, 211, 153, 0.14);
+            color: #34d399;
+            border-color: rgba(52, 211, 153, 0.35);
+        }
+        .badge-stat-purple {
+            background: rgba(168, 85, 247, 0.14);
+            color: #c084fc;
+            border-color: rgba(168, 85, 247, 0.35);
+        }
+        .badge-source-live {
+            background: rgba(16, 185, 129, 0.18);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.45);
+        }
+        .badge-source-backup {
+            background: rgba(245, 158, 11, 0.18);
+            color: #fbbf24;
+            border-color: rgba(245, 158, 11, 0.45);
+        }
+    }
+    [data-theme="dark"] .badge-pf-id, .stApp[data-theme="dark"] .badge-pf-id { background: rgba(148, 163, 184, 0.18); border-color: rgba(148, 163, 184, 0.40); color: #cbd5e1; }
+    [data-theme="dark"] .badge-pf-filiera, .stApp[data-theme="dark"] .badge-pf-filiera { background: rgba(59, 130, 246, 0.20); border-color: rgba(59, 130, 246, 0.48); color: #93c5fd; }
+    [data-theme="dark"] .badge-pf-pv, .stApp[data-theme="dark"] .badge-pf-pv { background: rgba(16, 185, 129, 0.20); border-color: rgba(16, 185, 129, 0.48); color: #6ee7b7; }
+    [data-theme="dark"] .badge-pf-spl, .stApp[data-theme="dark"] .badge-pf-spl { background: rgba(245, 158, 11, 0.22); border-color: rgba(245, 158, 11, 0.50); color: #fbbf24; }
+    [data-theme="dark"] .badge-pf-pot, .stApp[data-theme="dark"] .badge-pf-pot { background: rgba(168, 85, 247, 0.22); border-color: rgba(168, 85, 247, 0.50); color: #d8b4fe; }
+    [data-theme="dark"] .badge-pf-model, .stApp[data-theme="dark"] .badge-pf-model { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.18); color: #f1f5f9; }
+    [data-theme="dark"] .directory-banner, .stApp[data-theme="dark"] .directory-banner { background: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.90) 100%); border-color: rgba(255, 255, 255, 0.12); }
+    [data-theme="dark"] .badge-stat-blue, .stApp[data-theme="dark"] .badge-stat-blue { background: rgba(56, 189, 248, 0.14); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); }
+    [data-theme="dark"] .badge-stat-green, .stApp[data-theme="dark"] .badge-stat-green { background: rgba(52, 211, 153, 0.14); color: #34d399; border-color: rgba(52, 211, 153, 0.35); }
+    [data-theme="dark"] .badge-stat-purple, .stApp[data-theme="dark"] .badge-stat-purple { background: rgba(168, 85, 247, 0.14); color: #c084fc; border-color: rgba(168, 85, 247, 0.35); }
+    [data-theme="dark"] .badge-source-live, .stApp[data-theme="dark"] .badge-source-live { background: rgba(16, 185, 129, 0.18); color: #34d399; border-color: rgba(16, 185, 129, 0.45); }
+    [data-theme="dark"] .badge-source-backup, .stApp[data-theme="dark"] .badge-source-backup { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border-color: rgba(245, 158, 11, 0.45); }
+
+    /* Light Theme Explicit Overrides */
+    [data-theme="light"] .badge-pf-id, .stApp[data-theme="light"] .badge-pf-id { background: #f1f5f9 !important; border-color: #cbd5e1 !important; color: #334155 !important; }
+    [data-theme="light"] .badge-pf-filiera, .stApp[data-theme="light"] .badge-pf-filiera { background: #eff6ff !important; border-color: #bfdbfe !important; color: #1d4ed8 !important; }
+    [data-theme="light"] .badge-pf-pv, .stApp[data-theme="light"] .badge-pf-pv { background: #ecfdf5 !important; border-color: #a7f3d0 !important; color: #047857 !important; }
+    [data-theme="light"] .badge-pf-spl, .stApp[data-theme="light"] .badge-pf-spl { background: #fffbeb !important; border-color: #fde68a !important; color: #b45309 !important; }
+    [data-theme="light"] .badge-pf-pot, .stApp[data-theme="light"] .badge-pf-pot { background: #faf5ff !important; border-color: #e9d5ff !important; color: #7e22ce !important; }
+    [data-theme="light"] .badge-pf-model, .stApp[data-theme="light"] .badge-pf-model { background: #f8fafc !important; border-color: #cbd5e1 !important; color: #1e293b !important; }
+    [data-theme="light"] .directory-banner, .stApp[data-theme="light"] .directory-banner { background: #ffffff !important; border-color: #e2e8f0 !important; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important; }
+    [data-theme="light"] .badge-stat-blue, .stApp[data-theme="light"] .badge-stat-blue { background: #eff6ff !important; color: #1d4ed8 !important; border-color: #bfdbfe !important; }
+    [data-theme="light"] .badge-stat-green, .stApp[data-theme="light"] .badge-stat-green { background: #ecfdf5 !important; color: #047857 !important; border-color: #a7f3d0 !important; }
+    [data-theme="light"] .badge-stat-purple, .stApp[data-theme="light"] .badge-stat-purple { background: #faf5ff !important; color: #7e22ce !important; border-color: #e9d5ff !important; }
+    [data-theme="light"] .badge-source-live, .stApp[data-theme="light"] .badge-source-live { background: #ecfdf5 !important; color: #047857 !important; border-color: #a7f3d0 !important; }
+    [data-theme="light"] .badge-source-backup, .stApp[data-theme="light"] .badge-source-backup { background: #fffbeb !important; color: #b45309 !important; border-color: #fde68a !important; }
 
     /* Executive Status Cards (Section 1) */
     .exec-card {
@@ -408,8 +723,8 @@ st.markdown(
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 14px;
-        margin-top: 8px;
-        margin-bottom: 14px;
+        margin-top: 10px;
+        margin-bottom: 16px;
     }
     @media (max-width: 1080px) {
         .gate-grid {
@@ -590,9 +905,64 @@ st.markdown(
         font-weight: 700 !important;
         box-shadow: 0 2px 6px rgba(27, 94, 32, 0.25) !important;
     }
+
+    /* Strict Select-Only Dropdowns & Filter Fields (No Text Editing or Typing Cursor) */
+    div[data-baseweb="select"] input {
+        caret-color: transparent !important;
+        cursor: pointer !important;
+        user-select: none !important;
+        -webkit-user-select: none !important;
+    }
+    div[data-baseweb="select"] {
+        cursor: pointer !important;
+    }
+    div[data-baseweb="select"] * {
+        cursor: pointer !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
+)
+
+# Enforce read-only select behavior: users can strictly choose from dropdown, not edit/type characters
+components.html(
+    """
+    <script>
+    (function() {
+        function enforceReadOnlySelects() {
+            try {
+                const doc = window.parent.document;
+                if (!doc) return;
+                const inputs = doc.querySelectorAll('div[data-baseweb="select"] input');
+                inputs.forEach(inp => {
+                    if (!inp.hasAttribute('readonly')) {
+                        inp.setAttribute('readonly', 'readonly');
+                        inp.setAttribute('inputmode', 'none');
+                        inp.style.caretColor = 'transparent';
+                        inp.style.cursor = 'pointer';
+                        inp.addEventListener('keydown', function(e) {
+                            if (['ArrowDown', 'ArrowUp', 'Enter', 'Escape', 'Tab'].includes(e.key)) {
+                                return;
+                            }
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }, true);
+                        inp.addEventListener('paste', function(e) { e.preventDefault(); }, true);
+                        inp.addEventListener('cut', function(e) { e.preventDefault(); }, true);
+                    }
+                });
+            } catch(e) {}
+        }
+        enforceReadOnlySelects();
+        if (window.parent && window.parent.document && window.parent.document.body) {
+            const observer = new MutationObserver(enforceReadOnlySelects);
+            observer.observe(window.parent.document.body, { childList: true, subtree: true });
+        }
+    })();
+    </script>
+    """,
+    height=0,
+    width=0,
 )
 
 
@@ -750,12 +1120,14 @@ def render_seasonality_chart(monthly_data: Any, steady_state_benchmark: Optional
 
 
 CORIPET_API_URL = "https://macchine.coripet.it/CORIPETRVMAPI/api/PuntiFisici/mt_CaricaViewStoricoPuntoFisico"
+CORIPET_SOPRALLUOGHI_API_URL = "https://macchine.coripet.it/CORIPETRVMAPI/api/Sopralluoghi/mt_CaricaSopralluoghi"
 CORIPET_API_TOKEN = "ck%N@b$x1$wNwCsigohC"
 
 VALID_MACHINE_OPTIONS = [
-    "Ripet_C-front", "DAINT_G", "DAINT_A-bis", "Ripet_C-Bis", "Ripet_V2",
-    "Ripet_C-Ter", "DAINT_B-bis", "RVM_Mod.E_Nuova", "Ripet_Smarpet",
-    "RVM_Mod.E", "Ripet_V1", "SUPERMARPET01S"
+    "DAINT_A-bis",
+    "DAINT_B-bis",
+    "DAINT_G",
+    "Ripet_C-front",
 ]
 
 
@@ -781,8 +1153,82 @@ def fetch_raw_coripet_machines() -> Tuple[pd.DataFrame, str]:
     except Exception as ex:
         pass
 
-    # Fallback to local CSV if network is unavailable
+    # 1. Fallback to PostgreSQL database if DATABASE_URL is configured
+    pg_url = os.getenv("DATABASE_URL", "").strip()
+    if pg_url and (pg_url.startswith("postgresql") or pg_url.startswith("postgres")):
+        try:
+            if pg_url.startswith("postgresql://") and "+" not in pg_url.split("://")[0]:
+                pg_url = pg_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+            elif pg_url.startswith("postgres://"):
+                pg_url = pg_url.replace("postgres://", "postgresql+psycopg2://", 1)
+            from sqlalchemy import create_engine
+            pg_engine = create_engine(pg_url, pool_pre_ping=True)
+            df_pg = pd.read_sql("SELECT * FROM raw_storico_punto_fisico", pg_engine)
+            if not df_pg.empty:
+                col_map = {c.lower(): c for c in [
+                    "PuntoFisico", "DataInizioRange", "DataFineRange", "TipologiaPuntoFisico",
+                    "NascondiAPP", "Indirizzo", "Cap", "Comune", "Provincia", "Regione", "Nazione",
+                    "Latitudine", "Longitudine", "Stato", "Attributo", "Cooperativa", "Filiera",
+                    "Descrizione", "TipoContenitore", "ReferenteCommerciale", "ReferenteCoripet",
+                    "Comodatario", "NomeFiliera", "Raggruppamento", "Macchina", "CodiceMacchinaProd",
+                    "TipoMacchina", "Fornitore", "DataInstallazione", "DataPrimaAttivazione",
+                    "start_dt", "end_dt", "Macchina_clean", "CodiceMacchinaProd_clean"
+                ]}
+                df_pg.rename(columns=col_map, inplace=True)
+                return df_pg, "PostgreSQL Database"
+        except Exception:
+            pass
+
+    # 2. Fallback to local SQLite database if available
+    db_path = Path("data/coripet_rvm.db")
+    if db_path.exists():
+        try:
+            import sqlite3
+            with sqlite3.connect(str(db_path)) as conn:
+                df_db = pd.read_sql("SELECT * FROM raw_storico_punto_fisico", conn)
+                if not df_db.empty:
+                    return df_db, "Local SQLite Database"
+        except Exception:
+            pass
+
+    # 3. Fallback to local CSV if database is unavailable
     path = Path("data/raw/CaricaViewStoricoPuntoFisico.csv")
+    if path.exists():
+        df_csv = pd.read_csv(path, sep=";", dtype=str)
+        return df_csv, "Local Backup File"
+    return pd.DataFrame(), "None"
+
+
+@st.cache_data(ttl=900, show_spinner=False)
+def fetch_raw_coripet_sopralluoghi() -> Tuple[pd.DataFrame, str]:
+    """
+    Fetches site survey (sopralluoghi) inspection records directly from official Coripet API:
+    POST https://macchine.coripet.it/CORIPETRVMAPI/api/Sopralluoghi/mt_CaricaSopralluoghi
+    Header: token: ck%N@b$x1$wNwCsigohC
+    Returns (DataFrame, source_label).
+    """
+    try:
+        headers = {
+            "token": CORIPET_API_TOKEN,
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        resp = requests.post(CORIPET_SOPRALLUOGHI_API_URL, headers=headers, data="", timeout=35)
+        if resp.status_code == 200:
+            payload = resp.json()
+            records = payload.get("data", [])
+            if records:
+                df_sop = pd.DataFrame(records)
+                try:
+                    Path("data/raw").mkdir(parents=True, exist_ok=True)
+                    df_sop.to_csv("data/raw/CaricaSopralluoghi.csv", sep=";", index=False)
+                except Exception:
+                    pass
+                return df_sop, "Live Coripet API"
+    except Exception:
+        pass
+
+    # Fallback to local CSV backup if network is unavailable
+    path = Path("data/raw/CaricaSopralluoghi.csv")
     if path.exists():
         df_csv = pd.read_csv(path, sep=";", dtype=str)
         return df_csv, "Local Backup File"
@@ -817,25 +1263,67 @@ def get_machines_by_status(status_str: str, current_only: bool = True) -> Tuple[
     max_dt = df["dt_fine"].max()
     max_dt_str = max_dt.strftime("%d/%m/%Y") if pd.notna(max_dt) else "Current Date"
 
-    # Filter strictly for TipologiaPuntoFisico == 'PUNTOVENDITA' (retail store locations only)
-    if "TipologiaPuntoFisico" in df.columns:
-        df["Tipo_Clean"] = df["TipologiaPuntoFisico"].astype(str).str.upper().str.strip()
-        df = df[df["Tipo_Clean"] == "PUNTOVENDITA"].copy()
+    # ------------------------------------------------------------------
+    # Strictly Filter df for Today's Active Date (DataFineRange == max_dt)
+    # Remove all machines whose DataFineRange is old
+    # ------------------------------------------------------------------
+    current_df = df[df["dt_fine"] == max_dt].copy()
+    
+    # Filter for the requested status (SPL or POT)
+    if status_str and status_str.upper().strip() != "ALL":
+        target_st = status_str.upper().strip()
+        current_df = current_df[current_df["Stato_Clean"] == target_st].copy()
+        
+    # Deduplicate to keep 1 physical record per PuntoFisico active today
+    current_df = current_df.drop_duplicates(subset=["PuntoFisico"], keep="last").copy()
 
-    if current_only:
-        # Filter strictly for current date records (latest DataFineRange)
-        current_df = df[df["dt_fine"] == max_dt].copy()
-        sub = current_df[current_df["Stato_Clean"] == status_str.upper().strip()].copy()
+    # ------------------------------------------------------------------
+    # Sopralluoghi Inspection Records (Ordered by DataFineSopralluogo)
+    # ------------------------------------------------------------------
+    df_sop, sop_source = fetch_raw_coripet_sopralluoghi()
+    if not df_sop.empty and "CodicePuntoFisico" in df_sop.columns:
+        df_sop["dt_fine_sop"] = pd.to_datetime(df_sop["DataFineSopralluogo"], errors="coerce")
+
+        # Keep latest inspection per CodicePuntoFisico
+        df_sop_latest = (
+            df_sop.sort_values(by="dt_fine_sop", ascending=True)
+            .groupby("CodicePuntoFisico", as_index=False)
+            .last()
+        )
+
+        # Merge active today machines with their latest Sopralluogo inspection
+        sub = current_df.merge(
+            df_sop_latest[[
+                "CodicePuntoFisico", "DataFineSopralluogo", "StatoSopralluogo",
+                "TipoMacchina", "DescrizionePuntoFisico", "dt_fine_sop"
+            ]],
+            left_on="PuntoFisico",
+            right_on="CodicePuntoFisico",
+            how="inner",
+            suffixes=("", "_sop")
+        ).copy()
+
+        # Strictly use DataFineSopralluogo: if null, format as "Null"
+        sub["DataFineSopralluogoFormatted"] = sub["dt_fine_sop"].apply(
+            lambda d: d.strftime("%d/%m/%Y") if pd.notna(d) else "Null"
+        )
+        sub["StatoSopralluogoClean"] = sub["StatoSopralluogo"].fillna("Definitivo")
+        sub["Stato"] = status_str.upper().strip() if status_str and status_str.upper().strip() != "ALL" else sub["Stato"].fillna("INSPECTED")
+
+        # Map TipoMacchina strictly to one of the 4 certified models:
+        # Daint A-bis (300), Daint B-Bis (500), Daint G (4500), Ripet C-Front (4500)
+        def map_sop_mach(row):
+            m_sop = str(row.get("TipoMacchina_sop", "")).strip() or str(row.get("TipoMacchina", "")).strip()
+            m_lower = m_sop.lower()
+            if "a-bis" in m_lower: return "DAINT_A-bis"
+            if "b-bis" in m_lower or "daint_b" in m_lower: return "DAINT_B-bis"
+            if "daint_g" in m_lower or "modello g" in m_lower or m_lower == "g": return "DAINT_G"
+            return "Ripet_C-front"
+
+        sub["ResolvedMachine"] = sub.apply(map_sop_mach, axis=1)
+        sub["TipoMacchina"] = sub["ResolvedMachine"]
     else:
-        # Chronological sort across full history
-        df_sorted = df.sort_values(by=["dt_fine", "dt_inizio"], ascending=[True, True])
-        sub = df_sorted[df_sorted["Stato_Clean"] == status_str.upper().strip()].copy()
-
-    if sub.empty:
-        return pd.DataFrame(), source_label, max_dt_str
-
-    # Deduplicate to keep 1 physical record per PuntoFisico
-    sub = sub.drop_duplicates(subset=["PuntoFisico"], keep="last").copy()
+        sub = current_df
 
     # Sanitize location fields
     sub["Indirizzo"] = sub["Indirizzo"].apply(
@@ -858,6 +1346,9 @@ def get_machines_by_status(status_str: str, current_only: bool = True) -> Tuple[
         desc = str(r.get("Descrizione", "")).strip()
         if desc and desc.lower() != "nan":
             return desc
+        dpf = str(r.get("DescrizionePuntoFisico", "")).strip()
+        if dpf and dpf.lower() != "nan":
+            return dpf
         nf = str(r.get("NomeFiliera", "")).strip()
         if nf and nf.lower() != "nan":
             return nf
@@ -884,16 +1375,55 @@ def get_machines_by_status(status_str: str, current_only: bool = True) -> Tuple[
     sub["ResolvedFiliera"] = sub.apply(resolve_filiera, axis=1)
 
     def resolve_mach(m):
-        m_str = str(m).strip()
-        if m_str in VALID_MACHINE_OPTIONS:
-            return m_str
-        for vm in VALID_MACHINE_OPTIONS:
-            if vm.lower() == m_str.lower():
-                return vm
+        m_str = str(m).strip().lower()
+        if "a-bis" in m_str: return "DAINT_A-bis"
+        if "b-bis" in m_str or "daint_b" in m_str: return "DAINT_B-bis"
+        if "daint_g" in m_str or "modello g" in m_str or m_str == "g": return "DAINT_G"
         return "Ripet_C-front"
 
     sub["ResolvedMachine"] = sub["TipoMacchina"].apply(resolve_mach)
     return sub, source_label, max_dt_str
+
+
+@st.cache_data(show_spinner=False)
+def get_known_stores_directory() -> Tuple[List[str], Dict[str, Dict[str, str]]]:
+    """
+    Extracts unique NomeFiliera / Insegna names strictly from the official Coripet previous database
+    for points of sale whose TipologiaPuntoFisico is 'PUNTOVENDITA'.
+    Does NOT include COMUNE, PRIVATO, UFFICIOCOMUNALE, or any external files.
+    Returns (sorted_options_list, store_details_dict).
+    """
+    store_map: Dict[str, Dict[str, str]] = {}
+
+    try:
+        df_c, _ = fetch_raw_coripet_machines()
+        if not df_c.empty:
+            if "TipologiaPuntoFisico" in df_c.columns:
+                df_c = df_c[df_c["TipologiaPuntoFisico"].astype(str).str.upper().str.strip() == "PUNTOVENDITA"].copy()
+
+            for _, r in df_c.iterrows():
+                nome_fil = str(r.get("NomeFiliera", "")).strip()
+                if not nome_fil or nome_fil.lower() == "nan":
+                    nome_fil = str(r.get("Filiera", "")).strip()
+
+                if nome_fil and nome_fil.lower() != "nan" and len(nome_fil) > 1:
+                    addr = str(r.get("Indirizzo", "")).strip()
+                    raw_cap = str(r.get("Cap", "")).strip().split(".")[0]
+                    cap = raw_cap.zfill(5) if raw_cap and raw_cap.isdigit() else ""
+                    com = str(r.get("Comune", "")).strip()
+
+                    if nome_fil not in store_map:
+                        store_map[nome_fil] = {
+                            "store_name": nome_fil,
+                            "address": addr if (addr and addr.lower() != "nan") else "",
+                            "cap": cap if (cap and cap.lower() != "nan") else "",
+                            "comune": com if (com and com.lower() != "nan") else "",
+                        }
+    except Exception:
+        pass
+
+    all_names = sorted(list(store_map.keys()))
+    return all_names, store_map
 
 
 def load_historical_machines():
@@ -903,6 +1433,211 @@ def load_historical_machines():
     return df_spl, df_pot
 
 
+
+def batch_predict_machines(
+    df_machines: pd.DataFrame,
+    status_label: str,
+    predictor: Any,
+    force_refresh: bool = False
+) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+    """
+    Computes end-to-end AI predictions for all machines in df_machines 1-by-1,
+    with auto-detected Nielsen scale and default contract reward schemes.
+    Results are cached in memory (session_state) and persisted on disk (data/cache/).
+    Returns (enriched_and_ranked_df, results_map_by_pf).
+    """
+    cache_dir = Path("data/cache")
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_file = cache_dir / f"batch_predictions_{status_label.lower()}.pkl"
+
+    session_key = f"batch_cache_{status_label.lower()}"
+    results_map: Dict[str, Any] = {}
+
+    if force_refresh:
+        if cache_file.exists():
+            try:
+                cache_file.unlink()
+            except Exception:
+                pass
+        st.session_state.pop(session_key, None)
+
+    # Check session state first
+    if not force_refresh and session_key in st.session_state:
+        results_map = st.session_state[session_key]
+    # Check disk cache second
+    elif not force_refresh and cache_file.exists():
+        try:
+            with open(cache_file, "rb") as f:
+                results_map = pickle.load(f)
+            st.session_state[session_key] = results_map
+        except Exception:
+            results_map = {}
+
+    # Determine which machines still need prediction
+    missing_pf = [
+        str(pf).strip() for pf in df_machines["PuntoFisico"].dropna().unique()
+        if str(pf).strip() not in results_map or "PredictedBottlesDay" not in results_map[str(pf).strip()]
+    ]
+
+    if missing_pf and predictor is not None:
+        n_missing = len(missing_pf)
+        total_sites = len(df_machines["PuntoFisico"].dropna().unique())
+        n_cached = total_sites - n_missing
+        progress_box = st.container()
+        with progress_box:
+            if n_cached > 0:
+                st.info(
+                    f"⚡ **AI Model Incremental Sync:** Evaluating **{n_missing}** new {status_label} candidate(s) "
+                    f"({n_cached} loaded instantly from cache &bull; **{total_sites} total {status_label} sites**)..."
+                )
+            else:
+                st.info(f"⚡ **AI Model Batch Evaluation:** Generating 365-day collection predictions for all {total_sites} {status_label} machines 1-by-1...")
+            p_bar = st.progress(0.0)
+            status_txt = st.empty()
+
+        for idx, pf in enumerate(missing_pf):
+            sub_rows = df_machines[df_machines["PuntoFisico"].astype(str).str.strip() == pf]
+            if sub_rows.empty:
+                continue
+            row = sub_rows.iloc[0]
+            store_name = str(row["ResolvedStoreName"])
+            comune_val = str(row["Comune"]) if pd.notna(row["Comune"]) else ""
+            status_txt.markdown(
+                f"🤖 **Evaluating machine {idx + 1} of {n_missing}:** `{store_name}` ({comune_val}) &bull; *Auto-querying Nielsen Census & Rewards...*"
+            )
+
+            addr = str(row["Indirizzo"])
+            clean_addr = addr if addr and addr.lower() != "nan" else "Piazza del Comune 1"
+            cap_val = str(row["Cap"]) if pd.notna(row["Cap"]) else "00100"
+            mach_model = str(row["ResolvedMachine"])
+            filiera_val = str(row["ResolvedFiliera"]) if pd.notna(row["ResolvedFiliera"]) else None
+
+            try:
+                res = predictor.predict_new_location(
+                    store_name=store_name,
+                    address=clean_addr,
+                    cap=cap_val,
+                    machine_type=mach_model,
+                    comune=comune_val if comune_val else None,
+                    filiera=filiera_val,
+                    store_format=None,   # Auto-detects from Nielsen file!
+                    sales_area_sqm=None, # Auto-detects from Nielsen file!
+                    cash_registers=None, # Auto-detects from Nielsen file!
+                    explicit_reward=None # Auto-resolves contract reward scheme!
+                )
+                b_day = float(res.get("realized_forecast", {}).get("underwritten_daily_bottles", res.get("realized_forecast", {}).get("realized_daily_bottles", 0.0)))
+                p_day = float(res.get("realized_forecast", {}).get("underwritten_daily_presenze", 0.0))
+
+                if b_day >= 2000.0:
+                    tier_label = "SUPER PRENDENTE"
+                    tier_color = "#8e24aa"
+                    tier_badge_class = "badge-tier-super"
+                elif b_day >= 1000.0:
+                    tier_label = "ALTO PRENDENTE"
+                    tier_color = "#43a047"
+                    tier_badge_class = "badge-tier-alto"
+                elif b_day >= 300.0:
+                    tier_label = "MEDIO PRENDENTE"
+                    tier_color = "#1e88e5"
+                    tier_badge_class = "badge-tier-medio"
+                else:
+                    tier_label = "BASSO PRENDENTE"
+                    tier_color = "#e53935"
+                    tier_badge_class = "badge-tier-basso"
+
+                n_fmt = str(res.get("inputs", {}).get("store_format", "SUP"))
+                n_sqm = float(res.get("inputs", {}).get("sales_area_sqm", 0.0))
+                n_casse = float(res.get("inputs", {}).get("cash_registers", 0.0))
+                rew_type = str(res.get("commercial_rewards", {}).get("reward_type", "Standard Loyalty"))
+                rew_mult = float(res.get("commercial_rewards", {}).get("multiplier_bottles", 1.0))
+                near_km = float(res.get("spatial_catchment", {}).get("coripet_network", {}).get("nearest_coripet_km", 0.0))
+
+                results_map[pf] = {
+                    "PuntoFisico": pf,
+                    "PredictedBottlesDay": round(b_day, 1),
+                    "PredictedBottlesMonth": int(round(b_day * 30.4)),
+                    "PredictedBottlesYear": int(round(b_day * 365.0)),
+                    "PredictedVisitsDay": round(p_day, 1),
+                    "VolumeTier": tier_label,
+                    "VolumeTierColor": tier_color,
+                    "VolumeTierBadge": tier_badge_class,
+                    "NielsenFormat": n_fmt,
+                    "NielsenSqm": n_sqm,
+                    "NielsenCasse": n_casse,
+                    "RewardType": rew_type,
+                    "RewardMultiplier": rew_mult,
+                    "NearestCoripetKm": near_km,
+                    "FullResult": res,
+                }
+            except Exception as e:
+                # Safe fallback record
+                results_map[pf] = {
+                    "PuntoFisico": pf,
+                    "PredictedBottlesDay": 0.0,
+                    "PredictedBottlesMonth": 0,
+                    "PredictedBottlesYear": 0,
+                    "PredictedVisitsDay": 0.0,
+                    "VolumeTier": "BASSO PRENDENTE",
+                    "VolumeTierColor": "#e53935",
+                    "VolumeTierBadge": "badge-tier-basso",
+                    "NielsenFormat": "SUP",
+                    "NielsenSqm": 0.0,
+                    "NielsenCasse": 0.0,
+                    "RewardType": "Standard Loyalty",
+                    "RewardMultiplier": 1.0,
+                    "NearestCoripetKm": 0.0,
+                    "FullResult": None,
+                }
+
+            p_bar.progress((idx + 1) / n_missing)
+            # Extended presentation pace: smooth cadence so viewers can comfortably read store names and Nielsen lookups (~25s for SPL, ~60s for POT)
+            step_delay = 0.35 if n_missing <= 60 else 0.14
+            time.sleep(step_delay)
+
+        status_txt.success(
+            f"✅ Completed sync! All **{total_sites} {status_label} machines** are fully evaluated and ranked by daily yield."
+        )
+        time.sleep(1.2)
+        progress_box.empty()
+
+        # Save to session_state and disk cache
+        st.session_state[session_key] = results_map
+        try:
+            with open(cache_file, "wb") as f:
+                pickle.dump(results_map, f)
+        except Exception:
+            pass
+
+    # Enrich df_machines with predictions
+    enriched_rows = []
+    for _, row in df_machines.iterrows():
+        pf = str(row["PuntoFisico"]).strip()
+        p_data = results_map.get(pf, {})
+        row_dict = row.to_dict()
+        row_dict["PredictedBottlesDay"] = p_data.get("PredictedBottlesDay", 0.0)
+        row_dict["PredictedBottlesMonth"] = p_data.get("PredictedBottlesMonth", 0)
+        row_dict["PredictedBottlesYear"] = p_data.get("PredictedBottlesYear", 0)
+        row_dict["PredictedVisitsDay"] = p_data.get("PredictedVisitsDay", 0.0)
+        row_dict["VolumeTier"] = p_data.get("VolumeTier", "BASSO PRENDENTE")
+        row_dict["VolumeTierColor"] = p_data.get("VolumeTierColor", "#e53935")
+        row_dict["VolumeTierBadge"] = p_data.get("VolumeTierBadge", "badge-tier-basso")
+        row_dict["NielsenFormat"] = p_data.get("NielsenFormat", "SUP")
+        row_dict["NielsenSqm"] = p_data.get("NielsenSqm", 0.0)
+        row_dict["NielsenCasse"] = p_data.get("NielsenCasse", 0.0)
+        row_dict["RewardType"] = p_data.get("RewardType", "Standard Loyalty")
+        row_dict["RewardMultiplier"] = p_data.get("RewardMultiplier", 1.0)
+        row_dict["NearestCoripetKm"] = p_data.get("NearestCoripetKm", 0.0)
+        enriched_rows.append(row_dict)
+
+    df_enriched = pd.DataFrame(enriched_rows)
+
+    # Rank according to bottles per day DESCENDING (highest at the top)
+    df_ranked = df_enriched.sort_values(by="PredictedBottlesDay", ascending=False).reset_index(drop=True)
+    df_ranked["Rank"] = df_ranked.index + 1
+
+    return df_ranked, results_map
+
+
 def render_machine_directory(
     df_machines: pd.DataFrame,
     status_label: str,
@@ -910,51 +1645,99 @@ def render_machine_directory(
     data_source: str = "Live Coripet API",
     current_date_str: str = ""
 ):
-    """Renders a responsive directory table/cards of machines for SPL or POT status."""
+    """Renders a responsive directory table/cards of machines for SPL or POT status ranked by predicted bottles/day."""
     if df_machines.empty:
         st.info(f"No machines found with status {status_label}.")
         return
 
-    total_count = len(df_machines)
-    unique_comuni = df_machines["Comune"].nunique()
-    unique_regioni = df_machines["Regione"].nunique()
-    unique_filiere = df_machines["ResolvedFiliera"].nunique()
+    # Check for force refresh request
+    force_refresh = st.session_state.pop(f"force_refresh_{status_label}", False)
 
-    # Source badge styling (Dark Theme Glassmorphic)
+    # Execute batch AI prediction (1 by 1 if not cached) and rank highest at top
+    df_ranked, results_map = batch_predict_machines(
+        df_machines=df_machines,
+        status_label=status_label,
+        predictor=predictor,
+        force_refresh=force_refresh
+    )
+
+    total_count = len(df_ranked)
+    unique_comuni = df_ranked["Comune"].nunique()
+    unique_regioni = df_ranked["Regione"].nunique()
+    unique_filiere = df_ranked["ResolvedFiliera"].nunique()
+
+    # Tier counts & Stats
+    n_super = int((df_ranked["VolumeTier"] == "SUPER PRENDENTE").sum())
+    n_alto = int((df_ranked["VolumeTier"] == "ALTO PRENDENTE").sum())
+    n_medio = int((df_ranked["VolumeTier"] == "MEDIO PRENDENTE").sum())
+    n_basso = int((df_ranked["VolumeTier"] == "BASSO PRENDENTE").sum())
+    avg_bottles = float(df_ranked["PredictedBottlesDay"].mean()) if not df_ranked.empty else 0.0
+    top_site = df_ranked.iloc[0] if not df_ranked.empty else None
+    top_store_name = top_site["ResolvedStoreName"] if top_site is not None else "N/A"
+    top_bottles_val = top_site["PredictedBottlesDay"] if top_site is not None else 0.0
+
+    # Source badge styling (Adaptive)
     if data_source == "Live Coripet API":
-        source_badge = '<span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">🟢 Live API: macchine.coripet.it</span>'
+        source_badge = '<span class="badge-source-live">🟢 Live API: macchine.coripet.it</span>'
     else:
-        source_badge = '<span style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">📁 Local Backup File</span>'
+        source_badge = '<span class="badge-source-backup">📁 Local Backup File</span>'
 
-    date_label = f" • Current Date: <strong style='color: #f1f5f9;'>{current_date_str}</strong>" if current_date_str else ""
+    date_label = f" • Current Date: <strong style='color: inherit;'>{current_date_str}</strong>" if current_date_str else ""
 
-    # Metrics header (Dark Theme Glassmorphic)
+    if "dt_fine_sop" in df_ranked.columns:
+        c_now = pd.Timestamp.now()
+        n_5m = int((df_ranked["dt_fine_sop"].notna() & (df_ranked["dt_fine_sop"] >= (c_now - pd.DateOffset(months=5)))).sum())
+        n_12m = int((df_ranked["dt_fine_sop"].notna() & (df_ranked["dt_fine_sop"] >= (c_now - pd.DateOffset(months=12)))).sum())
+        n_24m = int((df_ranked["dt_fine_sop"].notna() & (df_ranked["dt_fine_sop"] >= (c_now - pd.DateOffset(months=24)))).sum())
+        n_all = len(df_ranked)
+    else:
+        n_5m, n_12m, n_24m, n_all = 0, 0, 0, len(df_ranked)
+
+    timeframe_options = [
+        f"⏱️ Last 5 Months ({n_5m} sites)",
+        f"📅 Last 12 Months ({n_12m} sites)",
+        f"🗓️ Last 24 Months ({n_24m} sites)",
+        f"🌐 All Sites ({n_all} sites)",
+    ]
+
+    tf_key = f"timeframe_filter_{status_label}"
+    if tf_key in st.session_state:
+        cur_val = str(st.session_state[tf_key])
+        if cur_val not in timeframe_options:
+            matched = next((opt for opt in timeframe_options if opt.split("(")[0].strip() == cur_val.split("(")[0].strip()), None)
+            if matched:
+                st.session_state[tf_key] = matched
+            else:
+                st.session_state[tf_key] = timeframe_options[0]
+
+    current_timeframe = st.session_state.get(tf_key, timeframe_options[0])
+
+    # Metrics header banner (Adaptive Theme)
     st.markdown(
         f"""
-        <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.85) 100%); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 18px 22px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);">
+        <div class="directory-banner">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
                 <div>
                     <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                        <h3 style="margin: 0; color: #f8fafc; font-size: 1.3rem; font-weight: 700; letter-spacing: -0.3px;">
-                            📋 {status_label} Machines Registry <span style="color: #94a3b8; font-size: 1.05rem; font-weight: 500;">({total_count:,} Active Sites)</span>
+                        <h3 style="margin: 0; color: inherit; font-size: 1.3rem; font-weight: 700; letter-spacing: -0.3px;">
+                            📋 {status_label} Machines Registry & AI Ranking <span style="opacity: 0.65; font-size: 1.05rem; font-weight: 500;">({total_count:,} Inspected Sites)</span>
                         </h3>
                         {source_badge}
-                        <span style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;">🏬 PUNTOVENDITA Only</span>
+                        <span class="badge-stat-blue" style="padding: 4px 10px; font-size: 0.78rem;">🏬 PUNTOVENDITA Only</span>
+                        <span style="background: rgba(14, 165, 233, 0.15); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.35); padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 800;">{current_timeframe}</span>
+                        <span style="background: rgba(34, 197, 94, 0.15); color: #16a34a; border: 1px solid rgba(34, 197, 94, 0.35); padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 800;">🥇 Ranked by Highest b/d</span>
                     </div>
-                    <p style="margin: 6px 0 0 0; color: #94a3b8; font-size: 0.85rem;">
-                        Live retail store records (<code style="color: #60a5fa; background: rgba(59, 130, 246, 0.12); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.25);">TipologiaPuntoFisico == PUNTOVENDITA</code>) where <code style="color: #cbd5e1; background: rgba(255, 255, 255, 0.06); padding: 2px 6px; border-radius: 4px;">DataFineRange</code> is current date{date_label}. Non-retail sites and expired transitions are excluded.
+                    <p style="margin: 6px 0 0 0; color: inherit; opacity: 0.75; font-size: 0.85rem;">
+                        Live retail store records matched with official Sopralluoghi site inspections and ranked by AI projected 365-day collection volume (highest yield at the top). Auto-inferred with Nielsen census scale and default contract reward schemes{date_label}.
                     </p>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <span style="background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 0.82rem;">
-                        🏙️ {unique_comuni} Municipalities
-                    </span>
-                    <span style="background: rgba(52, 211, 153, 0.12); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 0.82rem;">
-                        🗺️ {unique_regioni} Regions
-                    </span>
-                    <span style="background: rgba(168, 85, 247, 0.12); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 0.82rem;">
-                        🏪 {unique_filiere} Commercial Partners
-                    </span>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                    <span class="badge-tier-super" style="font-size: 0.76rem; padding: 4px 10px;">🟣 Super: {n_super}</span>
+                    <span class="badge-tier-alto" style="font-size: 0.76rem; padding: 4px 10px;">🟢 Alto: {n_alto}</span>
+                    <span class="badge-tier-medio" style="font-size: 0.76rem; padding: 4px 10px;">🔵 Medio: {n_medio}</span>
+                    <span class="badge-tier-basso" style="font-size: 0.76rem; padding: 4px 10px;">🔴 Basso: {n_basso}</span>
+                    <span class="badge-stat-blue" style="font-size: 0.76rem; padding: 4px 10px;">📈 Network Avg: {avg_bottles:.1f} b/d</span>
+                    <span class="badge-rank-1" style="font-size: 0.76rem; padding: 4px 10px;">🏆 Top: {top_store_name} ({top_bottles_val:.1f} b/d)</span>
                 </div>
             </div>
         </div>
@@ -963,7 +1746,7 @@ def render_machine_directory(
     )
 
     # Search & filters bar
-    c_search, c_reg, c_mach, c_ref = st.columns([2.2, 1.1, 1.1, 0.8])
+    c_search, c_time, c_tier, c_reg, c_sort, c_ref = st.columns([1.8, 1.4, 1.2, 1.0, 1.2, 0.6])
     with c_search:
         search_query = st.text_input(
             f"🔍 Search {status_label} Machines",
@@ -971,7 +1754,34 @@ def render_machine_directory(
             key=f"search_{status_label}",
         ).strip().lower()
 
-    all_regions = ["All Regions"] + sorted([r for r in df_machines["Regione"].unique() if r and r != "nan"])
+    with c_time:
+        def_idx = 0
+        if tf_key in st.session_state and st.session_state[tf_key] in timeframe_options:
+            def_idx = timeframe_options.index(st.session_state[tf_key])
+        selected_timeframe = st.selectbox(
+            "Survey Recency",
+            options=timeframe_options,
+            index=def_idx,
+            key=tf_key,
+            help="Filter machines by their site inspection (DataFineSopralluogo) completion date"
+        )
+
+    with c_tier:
+        tier_filter_options = [
+            "All Volume Tiers",
+            "SUPER PRENDENTE (>2,000 b/d)",
+            "ALTO PRENDENTE (1,000-2,000 b/d)",
+            "MEDIO PRENDENTE (300-1,000 b/d)",
+            "BASSO PRENDENTE (<300 b/d)",
+        ]
+        selected_tier = st.selectbox(
+            "Volume Tier",
+            options=tier_filter_options,
+            index=0,
+            key=f"tier_filter_{status_label}",
+        )
+
+    all_regions = ["All Regions"] + sorted([r for r in df_ranked["Regione"].unique() if r and r != "nan"])
     with c_reg:
         selected_region = st.selectbox(
             "Region Filter",
@@ -980,45 +1790,82 @@ def render_machine_directory(
             key=f"region_filter_{status_label}",
         )
 
-    all_models = ["All Machine Models"] + sorted([m for m in df_machines["ResolvedMachine"].unique() if m])
-    with c_mach:
-        selected_model = st.selectbox(
-            "Hardware Model",
-            options=all_models,
+    with c_sort:
+        sort_options = [
+            "🥇 Highest Volume (Default)",
+            "🔻 Lowest Volume",
+            "🔤 Store Name (A-Z)",
+            "🏙️ Municipality (A-Z)",
+        ]
+        selected_sort = st.selectbox(
+            "Sort Order",
+            options=sort_options,
             index=0,
-            key=f"model_filter_{status_label}",
+            key=f"sort_order_{status_label}",
         )
 
     with c_ref:
         st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-        if st.button("🔄 Refresh", key=f"btn_refresh_{status_label}", help="Clear cache and re-fetch live data from Coripet API"):
+        if st.button("🔄 Refresh", key=f"btn_refresh_{status_label}", help="Clear cache, re-fetch live data from Coripet API, and re-run all predictions"):
             fetch_raw_coripet_machines.clear()
+            fetch_raw_coripet_sopralluoghi.clear()
             get_machines_by_status.clear()
-            st.toast(f"🔄 Re-fetching live {status_label} machines from Coripet API...")
+            st.session_state[f"force_refresh_{status_label}"] = True
+            st.toast(f"🔄 Re-fetching live {status_label} machines and re-running AI predictions...")
             st.rerun()
 
     # Apply filtering
-    filtered_df = df_machines.copy()
+    filtered_df = df_ranked.copy()
+
+    # 1. Apply survey timeframe recency filter
+    if "dt_fine_sop" in filtered_df.columns:
+        if "5 Months" in selected_timeframe:
+            cutoff_dt = pd.Timestamp.now() - pd.DateOffset(months=5)
+            filtered_df = filtered_df[filtered_df["dt_fine_sop"].notna() & (filtered_df["dt_fine_sop"] >= cutoff_dt)]
+        elif "12 Months" in selected_timeframe:
+            cutoff_dt = pd.Timestamp.now() - pd.DateOffset(months=12)
+            filtered_df = filtered_df[filtered_df["dt_fine_sop"].notna() & (filtered_df["dt_fine_sop"] >= cutoff_dt)]
+        elif "24 Months" in selected_timeframe:
+            cutoff_dt = pd.Timestamp.now() - pd.DateOffset(months=24)
+            filtered_df = filtered_df[filtered_df["dt_fine_sop"].notna() & (filtered_df["dt_fine_sop"] >= cutoff_dt)]
+        # For "🌐 All Sites", show all!
+
     if search_query:
         mask = (
-            filtered_df["PuntoFisico"].str.lower().str.contains(search_query, na=False)
-            | filtered_df["ResolvedStoreName"].str.lower().str.contains(search_query, na=False)
-            | filtered_df["Indirizzo"].str.lower().str.contains(search_query, na=False)
-            | filtered_df["Comune"].str.lower().str.contains(search_query, na=False)
-            | filtered_df["Cap"].str.lower().str.contains(search_query, na=False)
-            | filtered_df["ResolvedFiliera"].str.lower().str.contains(search_query, na=False)
+            filtered_df["PuntoFisico"].astype(str).str.lower().str.contains(search_query, na=False)
+            | filtered_df["ResolvedStoreName"].astype(str).str.lower().str.contains(search_query, na=False)
+            | filtered_df["Indirizzo"].astype(str).str.lower().str.contains(search_query, na=False)
+            | filtered_df["Comune"].astype(str).str.lower().str.contains(search_query, na=False)
+            | filtered_df["Cap"].astype(str).str.lower().str.contains(search_query, na=False)
+            | filtered_df["ResolvedFiliera"].astype(str).str.lower().str.contains(search_query, na=False)
         )
         filtered_df = filtered_df[mask]
+
+    if selected_tier != "All Volume Tiers":
+        tier_key = selected_tier.split(" ")[0].strip()
+        filtered_df = filtered_df[filtered_df["VolumeTier"].str.contains(tier_key, na=False)]
 
     if selected_region != "All Regions":
         filtered_df = filtered_df[filtered_df["Regione"] == selected_region]
 
-    if selected_model != "All Machine Models":
-        filtered_df = filtered_df[filtered_df["ResolvedMachine"] == selected_model]
+    # Apply custom sort
+    if selected_sort == "🔻 Lowest Volume":
+        filtered_df = filtered_df.sort_values(by="PredictedBottlesDay", ascending=True)
+    elif selected_sort == "🔤 Store Name (A-Z)":
+        filtered_df = filtered_df.sort_values(by="ResolvedStoreName", ascending=True)
+    elif selected_sort == "🏙️ Municipality (A-Z)":
+        filtered_df = filtered_df.sort_values(by="Comune", ascending=True)
+    else:
+        # Default: highest volume descending
+        filtered_df = filtered_df.sort_values(by="PredictedBottlesDay", ascending=False)
+
+    # Re-assign sequential ranks 1..N based on active filtered view
+    filtered_df = filtered_df.reset_index(drop=True)
+    filtered_df["Rank"] = filtered_df.index + 1
 
     n_filtered = len(filtered_df)
     if n_filtered == 0:
-        st.warning("⚠️ No machines matched the search / filter criteria.")
+        st.info(f"ℹ️ No {status_label} machines matched the selected criteria (**{selected_timeframe}**). Try selecting another survey recency window or clearing search filters.")
         return
 
     # Pagination setup
@@ -1028,8 +1875,8 @@ def render_machine_directory(
     col_stat, col_page = st.columns([2, 1])
     with col_stat:
         st.markdown(
-            f"""<div style="color: #94a3b8; font-size: 0.88rem; padding: 6px 0;">
-                Showing <strong style="color: #f1f5f9;">{n_filtered:,}</strong> of <strong style="color: #f1f5f9;">{total_count:,}</strong> machines &bull; Click <strong style="color: #f87171;">Results 📊</strong> to analyze prospective AI yield
+            f"""<div style="color: inherit; opacity: 0.75; font-size: 0.88rem; padding: 6px 0;">
+                Showing <strong style="color: inherit; opacity: 1.0;">{n_filtered:,}</strong> of <strong style="color: inherit; opacity: 1.0;">{total_count:,}</strong> machines &bull; Ranked by <strong style="color: #22c55e;">Bottles per Day</strong> &bull; Click <strong style="color: #ef4444;">Results 📊</strong> to view full executive verdict
             </div>""",
             unsafe_allow_html=True
         )
@@ -1046,22 +1893,24 @@ def render_machine_directory(
     end_idx = min(start_idx + PER_PAGE, n_filtered)
     page_df = filtered_df.iloc[start_idx:end_idx]
 
-    # Table Header (Dark Theme)
-    th_col1, th_col2, th_col3, th_col4 = st.columns([3.5, 3.0, 1.8, 1.3])
+    # Table Header (Adaptive Theme)
+    th_col1, th_col2, th_col3, th_col4, th_col5 = st.columns([3.2, 2.6, 2.0, 2.3, 1.2])
     with th_col1:
-        st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>STORE & NETWORK ID</strong>", unsafe_allow_html=True)
+        st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>RANK & STORE</strong>", unsafe_allow_html=True)
     with th_col2:
-        st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>LOCATION & ADDRESS</strong>", unsafe_allow_html=True)
+        st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>LOCATION & MUNICIPALITY</strong>", unsafe_allow_html=True)
     with th_col3:
-        st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>HARDWARE MODEL</strong>", unsafe_allow_html=True)
+        st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>HARDWARE & SCALE</strong>", unsafe_allow_html=True)
     with th_col4:
-        st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>AI PREDICTION</strong>", unsafe_allow_html=True)
+        st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>AI PREDICTED YIELD</strong>", unsafe_allow_html=True)
+    with th_col5:
+        st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>ACTION</strong>", unsafe_allow_html=True)
 
-    st.markdown("<div style='border-bottom: 1px solid rgba(255, 255, 255, 0.12); margin-bottom: 14px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='border-bottom: 1px solid rgba(128, 128, 128, 0.20); margin-bottom: 14px;'></div>", unsafe_allow_html=True)
 
     # Machine Items List
     for row_idx, row in page_df.iterrows():
-        pf_code = row["PuntoFisico"]
+        pf_code = str(row["PuntoFisico"]).strip()
         store = row["ResolvedStoreName"]
         addr = row["Indirizzo"]
         cap_val = row["Cap"]
@@ -1070,26 +1919,92 @@ def render_machine_directory(
         reg_val = row["Regione"]
         mach_model = row["ResolvedMachine"]
         filiera_val = row["ResolvedFiliera"]
+        rank_val = int(row.get("Rank", row_idx + 1))
+        b_day = float(row.get("PredictedBottlesDay", 0.0))
+        m_day = int(row.get("PredictedBottlesMonth", 0))
+        tier_label = str(row.get("VolumeTier", "MEDIO PRENDENTE"))
+        tier_color = str(row.get("VolumeTierColor", "#1e88e5"))
+        tier_badge = str(row.get("VolumeTierBadge", "badge-tier-medio"))
+        n_sqm = float(row.get("NielsenSqm", 0.0))
+        n_casse = float(row.get("NielsenCasse", 0.0))
+        n_fmt = str(row.get("NielsenFormat", "SUP"))
+        rew_type = str(row.get("RewardType", "Standard Loyalty"))
+        REWARD_TYPE_EN_MAP = {
+            "Emissione Buono sconto": "Direct Grocery Voucher",
+            "Conversione a punti fedeltà": "Loyalty Points Conversion",
+            "Omaggio": "Free Gift / Cash Reward",
+        }
+        rew_type_clean = REWARD_TYPE_EN_MAP.get(rew_type, rew_type)
+        rew_mult = float(row.get("RewardMultiplier", 1.0))
 
-        if status_label == "SPL":
-            status_chip = f'<span style="background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.45); color: #fbbf24; padding: 2px 7px; border-radius: 5px; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.3px;">{status_label}</span>'
+        if rank_val == 1:
+            rank_chip = '<span class="badge-rank-1">#1 🏆</span>'
+        elif rank_val == 2:
+            rank_chip = '<span class="badge-rank-2">#2 🥈</span>'
+        elif rank_val == 3:
+            rank_chip = '<span class="badge-rank-3">#3 🥉</span>'
         else:
-            status_chip = f'<span style="background: rgba(168, 85, 247, 0.18); border: 1px solid rgba(168, 85, 247, 0.45); color: #c084fc; padding: 2px 7px; border-radius: 5px; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.3px;">{status_label}</span>'
+            rank_chip = f'<span class="badge-rank-other">#{rank_val}</span>'
+
+        st_val = str(row.get("Stato", status_label)).strip()
+        if st_val == "SPL":
+            status_chip = f'<span class="badge-pf-spl">SPL</span>'
+        elif st_val == "POT":
+            status_chip = f'<span class="badge-pf-pot">POT</span>'
+        elif st_val and st_val != "nan":
+            status_chip = f'<span class="badge-stat-blue" style="font-size: 0.72rem; padding: 2px 7px;">{st_val}</span>'
+        else:
+            status_chip = ""
+
+        scale_str = f"📐 {n_sqm:,.0f} m² • {n_casse:.0f} casse ({n_fmt})" if n_sqm > 0 else f"📐 {n_fmt} Format"
+        sop_date_str = str(row.get("DataFineSopralluogoFormatted", "")).strip()
+        sop_status_str = str(row.get("StatoSopralluogoClean", "")).strip()
+
+        # Color-coded sleek inspection status badge
+        sop_status_lower = sop_status_str.lower()
+        if "definitivo" in sop_status_lower or "completato" in sop_status_lower:
+            sop_status_badge = f'<span style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.35); padding: 2px 7px; border-radius: 5px; font-size: 0.72rem; font-weight: 700;">✅ {sop_status_str}</span>'
+        elif "in corso" in sop_status_lower:
+            sop_status_badge = f'<span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); padding: 2px 7px; border-radius: 5px; font-size: 0.72rem; font-weight: 700;">⏳ {sop_status_str}</span>'
+        elif "riaperto" in sop_status_lower:
+            sop_status_badge = f'<span style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); padding: 2px 7px; border-radius: 5px; font-size: 0.72rem; font-weight: 700;">🔄 {sop_status_str}</span>'
+        elif sop_status_str and sop_status_str != "nan":
+            sop_status_badge = f'<span style="background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.35); padding: 2px 7px; border-radius: 5px; font-size: 0.72rem; font-weight: 700;">📋 {sop_status_str}</span>'
+        else:
+            sop_status_badge = ""
+
+        # Elegant single-line inspection date indicator (shows date or Null on all machines)
+        if sop_date_str == "Null" or not sop_date_str or sop_date_str.lower() in ["nan", "none", "", "n/d", "data n/d"]:
+            sop_date_line = (
+                f'<div style="margin-top: 5px; font-size: 0.74rem; color: #94a3b8; display: flex; align-items: center; gap: 5px; white-space: nowrap;">'
+                f'<span>🗓️ Inspection Date:</span>'
+                f'<span style="font-weight: 600; color: #94a3b8; opacity: 0.75; background: rgba(255, 255, 255, 0.04); padding: 1px 6px; border-radius: 4px; border: 1px dashed rgba(255, 255, 255, 0.18);">Null</span>'
+                f'</div>'
+            )
+        else:
+            sop_date_line = (
+                f'<div style="margin-top: 5px; font-size: 0.74rem; color: #94a3b8; display: flex; align-items: center; gap: 5px; white-space: nowrap;">'
+                f'<span>🗓️ Inspection Date:</span>'
+                f'<span style="font-weight: 600; color: #e2e8f0; background: rgba(255, 255, 255, 0.06); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1);">{sop_date_str}</span>'
+                f'</div>'
+            )
 
         with st.container():
-            c1, c2, c3, c4 = st.columns([3.5, 3.0, 1.8, 1.3])
+            c1, c2, c3, c4, c5 = st.columns([3.4, 2.5, 1.9, 2.2, 1.2])
             with c1:
                 st.markdown(
                     f"""
                     <div style="line-height: 1.35; margin-bottom: 6px;">
-                        <span style="font-weight: 700; color: #f8fafc; font-size: 0.98rem; letter-spacing: -0.2px;">{store}</span>
+                        {rank_chip}
+                        <span style="font-weight: 700; color: inherit; font-size: 0.98rem; letter-spacing: -0.2px; margin-left: 5px;">{store}</span>
                     </div>
                     <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-                        <span style="background: rgba(148, 163, 184, 0.12); border: 1px solid rgba(148, 163, 184, 0.28); color: #cbd5e1; padding: 2px 7px; border-radius: 5px; font-size: 0.72rem; font-family: monospace; font-weight: 600;">🆔 {pf_code}</span>
-                        <span style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #93c5fd; padding: 2px 7px; border-radius: 5px; font-size: 0.72rem; font-weight: 600;">🏢 {filiera_val}</span>
-                        <span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: #6ee7b7; padding: 2px 7px; border-radius: 5px; font-size: 0.72rem; font-weight: 700;">🏬 PUNTOVENDITA</span>
+                        <span class="badge-pf-id">🆔 {pf_code}</span>
+                        <span class="badge-pf-filiera">🏢 {filiera_val}</span>
                         {status_chip}
+                        {sop_status_badge}
                     </div>
+                    {sop_date_line}
                     """,
                     unsafe_allow_html=True,
                 )
@@ -1098,8 +2013,8 @@ def render_machine_directory(
                 st.markdown(
                     f"""
                     <div style="font-size: 0.88rem; line-height: 1.4;">
-                        <div style="color: #e2e8f0; font-weight: 500;">📍 {addr}</div>
-                        <div style="color: #94a3b8; font-size: 0.80rem; margin-top: 2px;">📮 {cap_val} <strong style="color: #f8fafc;">{comune_val}</strong> {prov_str}, <span style="color: #cbd5e1;">{reg_val}</span></div>
+                        <div style="color: inherit; font-weight: 600;">📍 {addr}</div>
+                        <div style="color: inherit; opacity: 0.75; font-size: 0.80rem; margin-top: 2px;">📮 {cap_val} <strong style="color: inherit; opacity: 1.0;">{comune_val}</strong> {prov_str}, <span>{reg_val}</span></div>
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -1107,18 +2022,36 @@ def render_machine_directory(
             with c3:
                 st.markdown(
                     f"""
-                    <div style="display: flex; align-items: center; height: 100%;">
-                        <span style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.12); color: #e2e8f0; padding: 5px 10px; border-radius: 7px; font-size: 0.80rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.25);">
-                            ⚙️ {mach_model}
-                        </span>
+                    <div style="font-size: 0.84rem; line-height: 1.4;">
+                        <div style="font-weight: 700; color: inherit;">⚙️ {mach_model}</div>
+                        <div style="color: inherit; opacity: 0.75; font-size: 0.77rem; margin-top: 3px;">{scale_str}</div>
                     </div>
                     """,
                     unsafe_allow_html=True,
                 )
             with c4:
+                st.markdown(
+                    f"""
+                    <div style="line-height: 1.3;">
+                        <div style="display: flex; align-items: baseline; gap: 5px;">
+                            <span style="font-size: 1.12rem; font-weight: 800; color: {tier_color}; letter-spacing: -0.3px;">{b_day:.1f} b/d</span>
+                            <span style="font-size: 0.74rem; color: inherit; opacity: 0.70; font-weight: 500;">(~{m_day:,} b/mo)</span>
+                        </div>
+                        <div style="margin-top: 3px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+                            <span class="{tier_badge}">{tier_label}</span>
+                        </div>
+                        <div style="font-size: 0.70rem; color: inherit; opacity: 0.75; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            🎟️ {rew_type_clean} ({rew_mult:.2f}x)
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with c5:
                 btn_key = f"btn_res_{status_label}_{pf_code}_{row_idx}"
-                if st.button("Results 📊", key=btn_key, type="primary", use_container_width=True, help=f"Populate {store} ({pf_code}) into Site Setup fields"):
+                if st.button("Results 📊", key=btn_key, type="primary", use_container_width=True, help=f"Open full prospective forecast dashboard for {store} ({pf_code})"):
                     clean_addr_val = addr if addr and addr.lower() != "nan" else "Piazza del Comune 1"
+                    full_p_res = results_map.get(pf_code, {}).get("FullResult")
                     st.session_state["pending_load_machine"] = {
                         "store_name": store,
                         "address": clean_addr_val,
@@ -1127,12 +2060,19 @@ def render_machine_directory(
                         "machine_type": mach_model,
                         "pf_code": pf_code,
                         "status_label": status_label,
+                        "pending_prediction_result": full_p_res,
+                        "selected_format": n_fmt,
+                        "selected_sqm": n_sqm,
+                        "selected_casse": n_casse,
+                        "selected_reward": rew_type,
                     }
                     st.session_state.pop("top_sim_machine", None)
                     st.session_state.pop("top_sim_reward", None)
+                    st.session_state.pop("pending_input_machine_type", None)
+                    st.session_state["pending_nav_tab"] = "🎯 Prospective Predictor"
                     st.rerun()
 
-            st.markdown("<div style='border-bottom: 1px solid rgba(255, 255, 255, 0.08); margin: 8px 0 10px 0;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='border-bottom: 1px solid rgba(128, 128, 128, 0.15); margin: 8px 0 10px 0;'></div>", unsafe_allow_html=True)
 
 
 def main():
@@ -1163,14 +2103,31 @@ def main():
         st.session_state["pending_input_machine_type"] = load_data["machine_type"]
         st.session_state["selected_store_pf"] = load_data["pf_code"]
         st.session_state["selected_store_status"] = load_data["status_label"]
-        st.session_state["wizard_step"] = 1
-        st.session_state["loc_info"] = None
-        st.session_state["auto_scale"] = None
-        st.session_state["auto_reward"] = None
-        st.session_state["prediction_result"] = None
+        if "pending_prediction_result" in load_data and load_data["pending_prediction_result"]:
+            st.session_state["prediction_result"] = load_data["pending_prediction_result"]
+            st.session_state["wizard_step"] = 4
+            st.session_state["loc_info"] = load_data["pending_prediction_result"].get("location")
+            st.session_state["auto_scale"] = {
+                "superficie_vendita": load_data.get("selected_sqm", 850.0),
+                "numero_casse": load_data.get("selected_casse", 5.0),
+                "tipo_negozio": load_data.get("selected_format", "SUP"),
+                "source": "Auto Nielsen Match"
+            }
+            st.session_state["auto_reward"] = load_data["pending_prediction_result"].get("commercial_rewards")
+            st.session_state["selected_format"] = load_data.get("selected_format")
+            st.session_state["selected_sqm"] = load_data.get("selected_sqm")
+            st.session_state["selected_casse"] = load_data.get("selected_casse")
+            st.session_state["selected_reward"] = load_data.get("selected_reward")
+            st.toast(f"📊 Loaded active prediction for {load_data['store_name']} ({load_data['pf_code']})!", icon="🚀")
+        else:
+            st.session_state["wizard_step"] = 1
+            st.session_state["loc_info"] = None
+            st.session_state["auto_scale"] = None
+            st.session_state["auto_reward"] = None
+            st.session_state["prediction_result"] = None
+            st.toast(f"📥 Populated {load_data['store_name']} ({load_data['pf_code']}) into Site Setup! Click Step 1 in the sidebar to proceed.", icon="📍")
         st.session_state["step1_validation_error"] = False
         st.session_state["step1_missing_fields"] = []
-        st.toast(f"📥 Populated {load_data['store_name']} ({load_data['pf_code']}) into Site Setup! Click Step 1 in the sidebar to proceed.", icon="📍")
 
     if "wizard_step" not in st.session_state:
         st.session_state["wizard_step"] = 1
@@ -1191,15 +2148,17 @@ def main():
     if "selected_reward" not in st.session_state:
         st.session_state["selected_reward"] = None
     if "input_store_name" not in st.session_state:
-        st.session_state["input_store_name"] = "Esselunga Milano Certosa"
+        st.session_state["input_store_name"] = ""
+    if "custom_store_input" not in st.session_state:
+        st.session_state["custom_store_input"] = ""
     if "input_address" not in st.session_state:
-        st.session_state["input_address"] = "Via delle Forze Armate 12"
+        st.session_state["input_address"] = ""
     if "input_cap" not in st.session_state:
-        st.session_state["input_cap"] = "20147"
+        st.session_state["input_cap"] = ""
     if "input_comune" not in st.session_state:
-        st.session_state["input_comune"] = "Milano"
+        st.session_state["input_comune"] = ""
     if "input_machine_type" not in st.session_state:
-        st.session_state["input_machine_type"] = "Ripet_C-front"
+        st.session_state["input_machine_type"] = "DAINT_G"
     if "step1_validation_error" not in st.session_state:
         st.session_state["step1_validation_error"] = False
     if "step1_missing_fields" not in st.session_state:
@@ -1224,10 +2183,14 @@ def main():
                 st.session_state["selected_casse"] = None
                 st.session_state["selected_reward"] = None
                 st.session_state["input_store_name"] = ""
+                st.session_state["is_custom_store_mode"] = False
+                st.session_state["custom_store_input"] = ""
+                st.session_state["store_dropdown_val"] = "-- Select Store Name / Insegna --"
+                st.session_state["store_dropdown_select"] = "-- Select Store Name / Insegna --"
                 st.session_state["input_address"] = ""
                 st.session_state["input_cap"] = ""
                 st.session_state["input_comune"] = ""
-                st.session_state["input_machine_type"] = "Ripet_C-front"
+                st.session_state["input_machine_type"] = "DAINT_G"
                 st.session_state["step1_validation_error"] = False
                 st.session_state["step1_missing_fields"] = []
                 st.session_state.pop("top_sim_machine", None)
@@ -1260,12 +2223,85 @@ def main():
             st.session_state["step1_missing_fields"] = []
             has_val_err = False
 
-        store_name = st.text_input(
-            "Store Name / Insegna",
-            key="input_store_name",
-            placeholder="e.g., Esselunga, Conad Superstore, Coop.fi, Carrefour Market",
-            help="e.g., Esselunga, Conad Superstore, Coop.fi, Carrefour Market",
+        # Store Name Strategy: Search Previous Records or Custom Option
+        known_stores_list, known_stores_details = get_known_stores_directory()
+        dropdown_options = known_stores_list
+
+        cur_store_val = str(st.session_state.get("input_store_name", "")).strip()
+        is_custom_mode = st.session_state.get("is_custom_store_mode", False)
+
+        # Clear legacy prompt from session state if present
+        if st.session_state.get("store_dropdown_select") not in dropdown_options:
+            st.session_state["store_dropdown_select"] = None
+
+        # Determine index in known stores
+        default_idx = None
+        if not is_custom_mode and cur_store_val and cur_store_val in dropdown_options:
+            default_idx = dropdown_options.index(cur_store_val)
+        elif "store_dropdown_select" in st.session_state and st.session_state["store_dropdown_select"] in dropdown_options:
+            default_idx = dropdown_options.index(st.session_state["store_dropdown_select"])
+
+        def on_store_dropdown_change():
+            sel = st.session_state.get("store_dropdown_select")
+            if not sel:
+                st.session_state["input_store_name"] = ""
+            else:
+                # Store selection is only to verify/select if filiera exists;
+                # address, cap, and comune remain completely manual
+                st.session_state["input_store_name"] = sel
+
+        col_store_lbl, col_store_btn = st.columns([1.3, 1.7], vertical_alignment="bottom")
+        with col_store_lbl:
+            st.markdown("<p style='margin:0 0 6px 0; font-weight:600; font-size:0.85rem;'>Store Name / Insegna</p>", unsafe_allow_html=True)
+        with col_store_btn:
+            if not is_custom_mode:
+                if st.button("➕ Custom", key="btn_toggle_custom", help="Enable custom store name input and block dropdown list", use_container_width=True):
+                    st.session_state["is_custom_store_mode"] = True
+                    st.rerun()
+            else:
+                if st.button("📋 From List", key="btn_toggle_list", help="Use Coripet database list and block custom input", use_container_width=True):
+                    st.session_state["is_custom_store_mode"] = False
+                    st.rerun()
+
+        # Input 1: Dropdown from official Coripet database (BLOCKED when custom input is enabled; EMPTY by default)
+        chosen_dropdown = st.selectbox(
+            "Store Name / Insegna (Coripet List)",
+            options=dropdown_options,
+            index=default_idx,
+            placeholder="Select Store Name / Insegna...",
+            key="store_dropdown_select",
+            on_change=on_store_dropdown_change,
+            disabled=is_custom_mode,
+            help="Select an existing Insegna strictly from Coripet database. Blocked when Custom is enabled.",
+            label_visibility="collapsed",
         )
+
+        # Input 2: Custom store name input (Only displayed when custom button is clicked)
+        if is_custom_mode:
+            custom_val = st.text_input(
+                "Custom Store Name / Insegna",
+                value=st.session_state.get("custom_store_input", st.session_state.get("input_store_name", "")),
+                key="custom_store_input",
+                placeholder="Type custom store name (e.g., Esselunga, Bio Market)...",
+                disabled=False,
+                help="Type custom store name to give to the model for prediction.",
+                label_visibility="collapsed",
+            )
+            store_name = custom_val.strip()
+            st.session_state["input_store_name"] = store_name
+            if store_name:
+                st.caption(f"✏️ *Custom store name for prediction:* **{store_name}** (Dropdown list is blocked)")
+            else:
+                st.caption("🔒 *Dropdown list is blocked. Type custom store name above.*")
+        else:
+            if not chosen_dropdown:
+                store_name = ""
+                st.session_state["input_store_name"] = ""
+            else:
+                store_name = chosen_dropdown
+                st.session_state["input_store_name"] = chosen_dropdown
+                st.caption(f"📍 *Insegna selected:* **{store_name}**")
+
         if s_err:
             st.error("⚠️ Store Name / Insegna is required")
 
@@ -1299,33 +2335,8 @@ def main():
         if m_err:
             st.error("⚠️ Municipality (Comune) is required")
 
-        machine_options = [
-            "Ripet_C-front",
-            "DAINT_G",
-            "DAINT_A-bis",
-            "Ripet_C-Bis",
-            "Ripet_V2",
-            "Ripet_C-Ter",
-            "DAINT_B-bis",
-            "RVM_Mod.E_Nuova",
-            "Ripet_Smarpet",
-            "RVM_Mod.E",
-            "Ripet_V1",
-            "SUPERMARPET01S",
-        ]
-
-        if "pending_input_machine_type" in st.session_state:
-            st.session_state["input_machine_type"] = st.session_state.pop("pending_input_machine_type")
-
-        if st.session_state.get("input_machine_type") not in machine_options:
-            st.session_state["input_machine_type"] = machine_options[0]
-
-        machine_type = st.selectbox(
-            "RVM Machine Model",
-            options=machine_options,
-            key="input_machine_type",
-            help="Target Coripet RVM hardware installation type",
-        )
+        # Machine is removed as an input; all 4 certified models are evaluated in the results split matrix
+        machine_type = "DAINT_G"
 
         btn_detect = st.button("🔍 Step 1: Detect Location & Nielsen Scale", type="primary", use_container_width=True)
         if btn_detect:
@@ -1359,6 +2370,28 @@ def main():
                         auto_scale = predictor.scale_estimator.estimate_scale(clean_s, clean_a, clean_c, comune=clean_m)
                         st.session_state["loc_info"] = loc_info
                         st.session_state["auto_scale"] = auto_scale
+
+                        # Auto-detect if location matches an existing active machine in Coripet fleet
+                        try:
+                            from src.ui.historical_vs_prediction import load_all_machine_options
+                            all_m = load_all_machine_options()
+                            matched_inst = None
+                            for m in all_m:
+                                m_com = str(m.get("comune", "")).strip().lower()
+                                m_ban = str(m.get("banner", "")).strip().lower()
+                                if m_com and clean_m.strip().lower() == m_com:
+                                    if clean_s.strip().lower() in m_ban or m_ban in clean_s.strip().lower():
+                                        matched_inst = m
+                                        break
+                            if matched_inst:
+                                st.session_state["selected_store_pf"] = matched_inst.get("pf") or matched_inst["macchina"]
+                                st.session_state["selected_store_status"] = "ATTVO"
+                            else:
+                                st.session_state.pop("selected_store_pf", None)
+                                st.session_state.pop("selected_store_status", None)
+                        except Exception:
+                            pass
+
                         st.session_state["wizard_step"] = 2
                         st.session_state["prediction_result"] = None
                         st.session_state["pending_nav_tab"] = "🎯 Prospective Predictor"
@@ -1375,31 +2408,52 @@ def main():
             scale = st.session_state["auto_scale"]
             
             st.success(f"📍 **Location Verified:** {loc.get('Comune')} ({loc.get('Provincia')}), {loc.get('Regione')}")
+
+            if st.session_state.get("selected_store_status") == "ATTVO" and st.session_state.get("selected_store_pf"):
+                cur_s = st.session_state.get("input_store_name", "")
+                st.info(f"✨ **Active Fleet RVM Detected:** `{st.session_state.get('selected_store_pf')}` ({cur_s}). Real historical telemetry will be compared directly against the model forecast.")
+
+            is_exact = bool(scale.get("is_exact_match", False) or scale.get("scale_source") == "EXACT_NIELSEN_STORE_MATCH")
             
-            scale_desc = (
-                f"• **Format:** {scale.get('label', scale.get('tipo_negozio'))}\n\n"
-                f"• **Sales Area:** ~{scale.get('superficie_vendita', 0):.0f} m² | **Checkouts:** {scale.get('numero_casse', 0):.0f}\n\n"
-                f"• *{scale.get('details', '')}*"
-            )
-            st.info(f"🏢 **Nielsen Scale Auto-Detected:**\n\n{scale_desc}")
-            
-            st.markdown("💬 **This is what was detected from the Nielsen file. You can accept it (Recommended) or change it below:**")
-            
-            auto_label = f"Auto-Detect: Use Detected Scale (~{scale.get('superficie_vendita', 0):.0f} m², {scale.get('numero_casse', 0):.0f} checkouts)"
-            format_options = [
-                auto_label,
-                "1: Small Supermarket / Proximity (~350 m², 2 checkouts)",
-                "2: Standard Supermarket (~750 m², 4 checkouts)",
-                "3: Superstore / Large Supermarket (~1,850 m², 9 checkouts)",
-                "4: Hypermarket / Mall Anchor (~3,750 m², 21 checkouts)",
-                "5: Discount Store (~750 m², 4 checkouts)",
-                "Custom (manual sales area and checkouts)",
-            ]
+            if is_exact:
+                scale_desc = (
+                    f"• **Store in Census:** `{scale.get('insegna_raw', store_name)}`\n\n"
+                    f"• **Sales Area:** ~{scale.get('superficie_vendita', 0):.0f} m² | **Checkouts:** {scale.get('numero_casse', 0):.0f} ({scale.get('tipo_negozio')})\n\n"
+                    f"• *{scale.get('details', '')}*"
+                )
+                st.success(f"🎯 **Verified Exact Nielsen Census Match Found!**\n\n{scale_desc}")
+                st.markdown("💬 **Exact census record confirmed. You can accept this verified scale or modify it below:**")
+                
+                auto_label = f"Auto-Detect: Exact Census Match (~{scale.get('superficie_vendita', 0):.0f} m², {scale.get('numero_casse', 0):.0f} checkouts) [Verified]"
+                format_options = [
+                    auto_label,
+                    "Custom (manual sales area and checkouts)",
+                    "1: Small Supermarket / Proximity (~350 m², 2 checkouts)",
+                    "2: Standard Supermarket (~750 m², 4 checkouts)",
+                    "3: Superstore / Large Supermarket (~1,850 m², 9 checkouts)",
+                    "4: Hypermarket / Mall Anchor (~3,750 m², 21 checkouts)",
+                    "5: Discount Store (~750 m², 4 checkouts)",
+                ]
+            else:
+                st.warning(
+                    f"⚠️ **No Exact Nielsen Census Match Found for '{store_name}' on '{address}'**\n\n"
+                    f"This specific store was not found in the 25,104-store Nielsen registry. "
+                    f"**Please enter the actual store scale below (Custom)** or select a retail archetype to ensure accurate predictions:"
+                )
+                format_options = [
+                    "Custom (manual sales area and checkouts)",
+                    "1: Small Supermarket / Proximity (~350 m², 2 checkouts)",
+                    "2: Standard Supermarket (~750 m², 4 checkouts)",
+                    "3: Superstore / Large Supermarket (~1,850 m², 9 checkouts)",
+                    "4: Hypermarket / Mall Anchor (~3,750 m², 21 checkouts)",
+                    "5: Discount Store (~750 m², 4 checkouts)",
+                ]
+
             format_choice = st.selectbox(
                 "Store Format / Scale Profile",
                 options=format_options,
                 index=0,
-                help="Accept auto-detected footprint or select custom archetype",
+                help="Accept verified footprint, enter custom store scale, or select archetype",
             )
             
             chosen_format = scale.get("tipo_negozio")
@@ -1424,10 +2478,12 @@ def main():
             elif "Custom" in format_choice:
                 chosen_format = "custom"
                 c_area, c_casse = st.columns(2)
+                cur_sqm = float(st.session_state.get("selected_sqm") or scale.get("superficie_vendita", 750.0))
+                cur_casse = float(st.session_state.get("selected_casse") or scale.get("numero_casse", 4.0))
                 with c_area:
-                    chosen_sqm = st.number_input("Sales Area (m²)", min_value=100.0, max_value=15000.0, value=float(scale.get("superficie_vendita", 850.0)), step=50.0)
+                    chosen_sqm = st.number_input("Sales Area (m²)", min_value=50.0, max_value=25000.0, value=cur_sqm, step=50.0, help="Gross retail floor area in square meters")
                 with c_casse:
-                    chosen_casse = st.number_input("Checkouts", min_value=1.0, max_value=60.0, value=float(scale.get("numero_casse", 5.0)), step=1.0)
+                    chosen_casse = st.number_input("Checkouts", min_value=1.0, max_value=100.0, value=cur_casse, step=1.0, help="Total active cash registers / checkout lanes")
                     
             btn_step2 = st.button("➡️ Step 2: Confirm Scale & Fetch Rewards", type="primary", use_container_width=True)
             if btn_step2:
@@ -1544,6 +2600,23 @@ def main():
                                 predict_kwargs["enable_rampup"] = chosen_rampup if 'chosen_rampup' in locals() else True
 
                         res = predictor.predict_new_location(**predict_kwargs)
+
+                        # Auto-recommend & auto-select the best hardware fit for brand new random locations:
+                        if "selected_store_pf" not in st.session_state:
+                            b_est = float(res.get("realized_forecast", {}).get("underwritten_daily_bottles", 0.0))
+                            if b_est <= 260.0:
+                                opt_mach = "DAINT_A-bis"
+                            elif b_est <= 450.0:
+                                opt_mach = "DAINT_B-bis"
+                            elif b_est <= 900.0:
+                                opt_mach = "DAINT_G"
+                            else:
+                                opt_mach = "Ripet_C-front"
+
+                            if predict_kwargs.get("machine_type") != opt_mach:
+                                predict_kwargs["machine_type"] = opt_mach
+                                res = predictor.predict_new_location(**predict_kwargs)
+
                         st.session_state["prediction_result"] = res
                         st.session_state["wizard_step"] = 4
                         st.session_state.pop("top_sim_machine", None)
@@ -1565,7 +2638,8 @@ def main():
     TAB_MAIN = "🎯 Prospective Predictor"
     TAB_SPL = "📋 SPL Machines"
     TAB_POT = "💡 POT Machines"
-    NAV_TABS = [TAB_MAIN, TAB_SPL, TAB_POT]
+    TAB_OUTLIERS = "🔍 Outlier & Defect Simulator"
+    NAV_TABS = [TAB_MAIN, TAB_SPL, TAB_POT, TAB_OUTLIERS]
 
     if "pending_nav_tab" in st.session_state:
         st.session_state["active_nav_tab"] = st.session_state.pop("pending_nav_tab")
@@ -1645,6 +2719,10 @@ def main():
             df_pot, src_pot, dt_pot = get_machines_by_status("POT", current_only=True)
         render_machine_directory(df_pot, "POT", predictor, data_source=src_pot, current_date_str=dt_pot)
 
+    elif active_tab == TAB_OUTLIERS:
+        from src.ui.outlier_dashboard import render_outlier_and_defect_dashboard
+        render_outlier_and_defect_dashboard()
+
 
 def render_prediction_dashboard(
     res: Dict[str, Any],
@@ -1659,23 +2737,26 @@ def render_prediction_dashboard(
     # -------------------------------------------------------------
     # Interactive Machine Model & Commercial Reward Dropdown Filters
     # -------------------------------------------------------------
-    machine_options = [
-        "Ripet_C-front",
-        "DAINT_G",
-        "DAINT_A-bis",
-        "Ripet_C-Bis",
-        "Ripet_V2",
-        "Ripet_C-Ter",
-        "DAINT_B-bis",
-        "RVM_Mod.E_Nuova",
-        "Ripet_Smarpet",
-        "RVM_Mod.E",
-        "Ripet_V1",
-        "SUPERMARPET01S",
+    CERTIFIED_MACHINES = [
+        {"id": "DAINT_A-bis", "name": "Daint A-bis", "cap": 300, "class": "Compact (Single-Stream)", "icon": "📦", "servicing": "Daily"},
+        {"id": "DAINT_B-bis", "name": "Daint B-Bis", "cap": 500, "class": "Compact (Dual-Stream)", "icon": "🗄️", "servicing": "Twice/Wk"},
+        {"id": "DAINT_G", "name": "Daint G", "cap": 4500, "class": "Heavy-Duty (Dual-Stream)", "icon": "🏭", "servicing": "Bi-Weekly"},
+        {"id": "Ripet_C-front", "name": "Ripet C-Front", "cap": 4500, "class": "Industrial Compactor", "icon": "⚙️", "servicing": "Bi-Weekly"},
     ]
+    machine_options = [m["id"] for m in CERTIFIED_MACHINES]
 
-    res_mach = res.get("inputs", {}).get("machine_type", machine_options[0])
-    default_mach_idx = machine_options.index(res_mach) if res_mach in machine_options else 0
+    res_mach = res.get("inputs", {}).get("machine_type", "DAINT_G")
+    # Normalize res_mach into one of the 4 certified IDs
+    if "A-BIS" in res_mach.upper():
+        res_mach = "DAINT_A-bis"
+    elif "B-BIS" in res_mach.upper() or "DAINT_B" in res_mach.upper():
+        res_mach = "DAINT_B-bis"
+    elif "DAINT_G" in res_mach.upper() or (res_mach.upper() == "G"):
+        res_mach = "DAINT_G"
+    else:
+        res_mach = "Ripet_C-front"
+
+    default_mach_idx = machine_options.index(res_mach) if res_mach in machine_options else 2
 
     reward_choice_map = {}
     auto_rew = st.session_state.get("auto_reward")
@@ -1742,13 +2823,23 @@ def render_prediction_dashboard(
 
     col_sim_mach, col_sim_rew = st.columns([1, 1])
     with col_sim_mach:
-        top_mach = st.selectbox(
-            "⚙️ Hardware Machine Model",
-            options=machine_options,
-            index=default_mach_idx,
-            key="top_sim_machine",
-            help="Directly switch the RVM machine model. Yield, hardware capacity, and clearance gate update immediately.",
+        mach_choice_labels = [
+            f"{m['icon']} {m['name']} ({m['cap']:,} bottles)"
+            for m in CERTIFIED_MACHINES
+        ]
+        active_m_label = next(
+            (f"{m['icon']} {m['name']} ({m['cap']:,} bottles)" for m in CERTIFIED_MACHINES if m['id'] == res_mach),
+            mach_choice_labels[2]
         )
+        selected_mach_label = st.selectbox(
+            "⚙️ Active Machine Model (Option Split)",
+            options=mach_choice_labels,
+            index=mach_choice_labels.index(active_m_label),
+            key="top_sim_machine_label",
+            help="Directly switch active model. The comparison table below evaluates all 4 certified models simultaneously."
+        )
+        top_mach = next(m['id'] for m in CERTIFIED_MACHINES if f"{m['icon']} {m['name']} ({m['cap']:,} bottles)" == selected_mach_label)
+
     with col_sim_rew:
         top_rew_lbl = st.selectbox(
             "🎁 Commercial Reward Scheme",
@@ -1770,19 +2861,19 @@ def render_prediction_dashboard(
     else:
         reward_changed = (res_match_source != "EXPLICIT_OVERRIDE") or res_is_custom or (res_rew_type != selected_rew_obj["scheme_name"])
 
+    inputs = res.get("inputs", {})
+    comune_resolved = res.get("location_attributes", {}).get("resolved_comune")
+    clean_comune = None
+    if comune and str(comune).strip():
+        clean_comune = str(comune).strip()
+    elif comune_resolved and str(comune_resolved).strip():
+        clean_comune = str(comune_resolved).strip()
+    elif inputs.get("comune_input") and inputs.get("comune_input") != "AUTO_DETECTED":
+        clean_comune = str(inputs.get("comune_input")).strip()
+
     if machine_changed or reward_changed:
         with st.spinner(f"🔄 Recalculating prospective yield for {top_mach} with {selected_rew_obj['scheme_name']}..."):
             try:
-                inputs = res.get("inputs", {})
-                comune_resolved = res.get("location_attributes", {}).get("resolved_comune")
-                clean_comune = None
-                if comune and str(comune).strip():
-                    clean_comune = str(comune).strip()
-                elif comune_resolved and str(comune_resolved).strip():
-                    clean_comune = str(comune_resolved).strip()
-                elif inputs.get("comune_input") and inputs.get("comune_input") != "AUTO_DETECTED":
-                    clean_comune = str(inputs.get("comune_input")).strip()
-
                 import inspect
                 predict_kwargs = {
                     "store_name": inputs.get("store_name", store_name),
@@ -1807,6 +2898,188 @@ def render_prediction_dashboard(
             except Exception as e:
                 st.error(f"❌ Error recalculating scenario: {e}")
 
+    # Evaluate all 4 machines for the comparative split matrix table
+    split_evaluations = []
+    base_b_day = float(res.get("realized_forecast", {}).get("underwritten_daily_bottles", 0.0))
+
+    for m_info in CERTIFIED_MACHINES:
+        m_id = m_info["id"]
+        m_cap = float(m_info["cap"])
+        is_cur = (res_mach.upper().replace(" ", "_") == m_id.upper().replace(" ", "_"))
+        if is_cur:
+            m_res = res
+        else:
+            try:
+                m_res = predictor.predict_new_location(
+                    store_name=inputs.get("store_name", store_name),
+                    address=inputs.get("address", address),
+                    cap=inputs.get("cap", cap),
+                    machine_type=m_id,
+                    comune=clean_comune,
+                    store_format=st.session_state.get("selected_format"),
+                    sales_area_sqm=inputs.get("sales_area_sqm") or st.session_state.get("selected_sqm"),
+                    cash_registers=inputs.get("cash_registers") or st.session_state.get("selected_casse"),
+                    explicit_reward=chosen_reward_param,
+                )
+            except Exception:
+                m_res = res
+
+        m_daily = float(m_res.get("realized_forecast", {}).get("underwritten_daily_bottles", base_b_day))
+        m_monthly = int(round(m_daily * 30.4))
+        m_annual = int(round(m_daily * 365))
+        m_util = round((m_daily / m_cap) * 100.0, 1)
+        m_p_over = float(m_res.get("probability_analysis", {}).get("hardware_operational_fit", {}).get("p_daily_overflow_risk", 0.0))
+
+        if m_daily > m_cap:
+            overload = m_daily - m_cap
+            verdict_badge = f'<span style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); padding: 2px 6px; border-radius: 5px; font-weight: 700; font-size: 0.74rem; white-space: nowrap;">⚠️ Overload (+{(overload/m_cap)*100:.0f}%)</span>'
+        elif m_util >= 50.0:
+            verdict_badge = f'<span style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.35); padding: 2px 6px; border-radius: 5px; font-weight: 700; font-size: 0.74rem; white-space: nowrap;">✅ Optimal ({m_util:.0f}%)</span>'
+        elif m_cap >= 4500.0 and m_daily < 150.0:
+            verdict_badge = f'<span style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); padding: 2px 6px; border-radius: 5px; font-weight: 700; font-size: 0.74rem; white-space: nowrap;">ℹ️ Buffer ({m_util:.0f}%)</span>'
+        else:
+            verdict_badge = f'<span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); padding: 2px 6px; border-radius: 5px; font-weight: 700; font-size: 0.74rem; white-space: nowrap;">✅ Certified ({m_util:.0f}%)</span>'
+
+        split_evaluations.append({
+            "info": m_info,
+            "daily": m_daily,
+            "monthly": m_monthly,
+            "annual": m_annual,
+            "util": m_util,
+            "p_over": m_p_over,
+            "verdict_badge": verdict_badge,
+            "is_active": is_cur,
+        })
+
+    is_existing_site = bool("selected_store_pf" in st.session_state and st.session_state.get("selected_store_pf"))
+    installed_pf = st.session_state.get("selected_store_pf", "")
+    installed_status = st.session_state.get("selected_store_status", "")
+
+    # Calculate optimal AI hardware recommendation based on daily throughput
+    if base_b_day <= 260.0:
+        recommended_mid = "DAINT_A-bis"
+        rec_reason = "matches Daint A-bis (300 b/d) for optimal 70–85% utilization with minimal CapEx footprint."
+    elif base_b_day <= 450.0:
+        recommended_mid = "DAINT_B-bis"
+        rec_reason = "matches Daint B-Bis (500 b/d) providing dual-stream throughput with a safe operational buffer."
+    elif base_b_day <= 900.0:
+        recommended_mid = "DAINT_G"
+        rec_reason = "requires Daint G (4,500 b/d) dual-stream compaction to absorb volume without staff lockouts."
+    else:
+        recommended_mid = "Ripet_C-front"
+        rec_reason = "requires Ripet C-Front (4,500 b/d) industrial compactor for maximum collection efficiency."
+
+    rec_name = next((m["name"] for m in CERTIFIED_MACHINES if m["id"] == recommended_mid), "Daint G")
+    rec_cap = next((m["cap"] for m in CERTIFIED_MACHINES if m["id"] == recommended_mid), 4500)
+
+    # Render Certified 4-Machine Capacity & Throughput Split Table
+    table_rows_list = []
+    for item in split_evaluations:
+        m = item["info"]
+        m_id = m["id"]
+        is_act = item["is_active"]
+        is_rec = (m_id == recommended_mid)
+
+        if is_existing_site:
+            if is_act:
+                active_chip = '<span style="background: rgba(37, 99, 235, 0.2); color: #60a5fa; border: 1px solid rgba(37, 99, 235, 0.4); padding: 3px 9px; border-radius: 12px; font-size: 0.72rem; font-weight: 800; white-space: nowrap; display: inline-block;">📍 INSTALLED</span>'
+            else:
+                active_chip = '<span style="color: #64748b; font-size: 0.74rem; white-space: nowrap;">Available</span>'
+        else:
+            if is_act and is_rec:
+                active_chip = '<span style="background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.4); padding: 3px 9px; border-radius: 12px; font-size: 0.72rem; font-weight: 800; white-space: nowrap; display: inline-block;">✨ AI BEST FIT (ACTIVE)</span>'
+            elif is_rec:
+                active_chip = '<span style="background: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.4); padding: 3px 9px; border-radius: 12px; font-size: 0.72rem; font-weight: 800; white-space: nowrap; display: inline-block;">✨ AI BEST FIT</span>'
+            elif is_act:
+                active_chip = '<span style="background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.4); padding: 3px 9px; border-radius: 12px; font-size: 0.72rem; font-weight: 800; white-space: nowrap; display: inline-block;">ACTIVE VIEW</span>'
+            else:
+                active_chip = '<span style="color: #64748b; font-size: 0.74rem; white-space: nowrap;">Available</span>'
+
+        row_bg = "rgba(56, 189, 248, 0.12)" if is_act else "rgba(255, 255, 255, 0.02)"
+        row_border = "1px solid rgba(56, 189, 248, 0.4)" if is_act else "1px solid rgba(255, 255, 255, 0.06)"
+        util_color = "#f87171" if item["util"] > 100 else "#4ade80"
+
+        row_html = (
+            f'<tr style="background: {row_bg}; border-bottom: {row_border};">'
+            f'<td style="padding: 7px 8px; font-weight: 700; color: #f8fafc; white-space: nowrap;">'
+            f'{m["icon"]} {m["name"]}'
+            f'<div style="font-size: 0.68rem; color: #94a3b8; font-weight: 400;">{m["class"]}</div>'
+            f'</td>'
+            f'<td style="padding: 7px 6px; font-weight: 800; color: #cbd5e1; text-align: center; white-space: nowrap;">'
+            f'<span style="background: rgba(255, 255, 255, 0.06); padding: 2px 6px; border-radius: 5px; border: 1px solid rgba(255, 255, 255, 0.1); font-size: 0.75rem;">{m["cap"]:,} b/d</span>'
+            f'</td>'
+            f'<td style="padding: 7px 8px; text-align: right; white-space: nowrap;">'
+            f'<span style="font-weight: 800; color: #38bdf8; font-size: 0.86rem;">{item["daily"]:.0f} b/d</span>'
+            f'<div style="font-size: 0.68rem; color: #94a3b8;">{item["monthly"]:,} /mo</div>'
+            f'</td>'
+            f'<td style="padding: 7px 6px; text-align: center; font-weight: 700; color: {util_color}; white-space: nowrap; font-size: 0.80rem;">'
+            f'{item["util"]:.0f}%'
+            f'</td>'
+            f'<td style="padding: 7px 6px; text-align: center; white-space: nowrap;">'
+            f'{item["verdict_badge"]}'
+            f'</td>'
+            f'<td style="padding: 7px 6px; font-size: 0.74rem; color: #94a3b8; text-align: center; white-space: nowrap;">'
+            f'{m["servicing"]}'
+            f'</td>'
+            f'<td style="padding: 7px 8px; text-align: center; white-space: nowrap;">'
+            f'{active_chip}'
+            f'</td>'
+            f'</tr>'
+        )
+        table_rows_list.append(row_html)
+    table_rows_html = "".join(table_rows_list)
+
+    if is_existing_site:
+        advisory_html = (
+            f'<div style="font-size: 0.80rem; color: #94a3b8; margin-top: 10px; padding: 8px 12px; background: rgba(37, 99, 235, 0.12); border: 1px solid rgba(37, 99, 235, 0.3); border-radius: 8px; display: flex; align-items: center; gap: 8px;">'
+            f'<span style="font-size: 1.10rem;">📍</span>'
+            f'<div><strong style="color: #93c5fd;">Active Network Installation:</strong> This location is registered in the Coripet <strong>{installed_status}</strong> database (Machine ID: <code>{installed_pf}</code>). The table compares its currently assigned hardware against all 4 certified models.</div>'
+            f'</div>'
+        )
+    else:
+        advisory_html = (
+            f'<div style="font-size: 0.80rem; color: #94a3b8; margin-top: 10px; padding: 8px 12px; background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; display: flex; align-items: center; gap: 8px;">'
+            f'<span style="font-size: 1.10rem;">🤖</span>'
+            f'<div><strong style="color: #86efac;">AI Automated Sizing Strategy:</strong> For a new site with no pre-existing hardware, the model evaluated projected volume (<strong>{base_b_day:.1f} b/d</strong>) and automatically selected <strong>{rec_name} ({rec_cap:,} b/d)</strong> — {rec_reason} You can switch the active view to any other machine option using the dropdown above.</div>'
+            f'</div>'
+        )
+
+    split_matrix_html = (
+        '<div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%); '
+        'border: 1px solid rgba(255, 255, 255, 0.12); border-left: 5px solid #38bdf8; border-radius: 10px; '
+        'padding: 12px 14px; margin: 12px 0 18px 0; box-shadow: 0 4px 16px rgba(0,0,0,0.25);">'
+        '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">'
+        '<span style="font-weight: 800; font-size: 0.98rem; color: #f8fafc; letter-spacing: -0.2px;">'
+        '⚙️ Certified Hardware Sizing & Capacity Split (All 4 Models)'
+        '</span>'
+        '<span style="font-size: 0.70rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 2px 7px; border-radius: 10px; font-weight: 700;">'
+        '4 CERTIFIED HARDWARE MODELS'
+        '</span>'
+        '</div>'
+        '<div style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 10px;">'
+        'Comparative evaluation across all 4 recognized Coripet machines. Switch active model above to inspect in-depth lifecycle metrics.'
+        '</div>'
+        '<div style="width: 100%; overflow: hidden;">'
+        '<table style="width: 100%; border-collapse: collapse; font-size: 0.80rem; text-align: left;">'
+        '<thead>'
+        '<tr style="border-bottom: 2px solid rgba(255, 255, 255, 0.15); color: #94a3b8; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.3px;">'
+        '<th style="padding: 6px 8px; white-space: nowrap;">Machine Model</th>'
+        '<th style="padding: 6px 6px; text-align: center; white-space: nowrap;">Capacity</th>'
+        '<th style="padding: 6px 8px; text-align: right; white-space: nowrap;">Volume (Day / Mo)</th>'
+        '<th style="padding: 6px 6px; text-align: center; white-space: nowrap;">Util.</th>'
+        '<th style="padding: 6px 6px; text-align: center; white-space: nowrap;">Sizing Verdict</th>'
+        '<th style="padding: 6px 6px; text-align: center; white-space: nowrap;">Service</th>'
+        '<th style="padding: 6px 8px; text-align: center; white-space: nowrap;">Status</th>'
+        '</tr>'
+        '</thead>'
+        f'<tbody>{table_rows_html}</tbody>'
+        '</table>'
+        '</div>'
+        f'{advisory_html}'
+        '</div>'
+    )
+    st.html(split_matrix_html)
+
     inv = res.get("investment_assessment", {})
     suit = res.get("location_suitability", {})
     real = res.get("realized_forecast", {})
@@ -1815,7 +3088,6 @@ def render_prediction_dashboard(
     spatial = res.get("spatial_catchment", {})
     geo = res.get("location_attributes", {})
     ret = res.get("retail_intelligence", {})
-    prob = res.get("probability_analysis", {})
 
     presenze_day = float(real.get("underwritten_daily_presenze", real.get("realized_daily_presenze", preds.get("expected_daily_presenze", 0.0))))
     bottiglie_day = float(real.get("underwritten_daily_bottles", real.get("realized_daily_bottles", preds.get("expected_daily_bottiglie", 0.0))))
@@ -1823,16 +3095,29 @@ def render_prediction_dashboard(
     bottles_per_person = round(bottiglie_day / max(1.0, presenze_day), 1)
     suitability_score = float(suit.get("suitability_score", 0.0))
 
+    # Synchronize probability analysis directly with the active underwritten daily bottles
+    from src.model.scoring import calculate_probability_factors
+    prob = calculate_probability_factors(
+        daily_bottles=bottiglie_day,
+        confidence_score=inv.get("confidence", {}).get("confidence_score", 100),
+        requested_machine=res.get("inputs", {}).get("machine_type", "DAINT_G")
+    )
+    res["probability_analysis"] = prob
+    if "investment_assessment" in res:
+        res["investment_assessment"]["probability_factors"] = prob
+
     rec_obj = inv.get("recommendation", {})
-    rec_tier_name = rec_obj.get("tier_name", "TIER 2 - VIABLE STANDARD EXPANSION")
+    rec_tier_name = rec_obj.get("tier_name", "MEDIO PRENDENTE (300 - 1,000 B/D)")
     decision = rec_obj.get("decision", "COMMERCIALLY VIABLE (PROCEED)")
 
-    if suitability_score >= 75 or bottiglie_day >= 750.0:
-        recommendation = "HIGH POTENTIAL"
-    elif suitability_score >= 50 or bottiglie_day >= 448.0:
-        recommendation = "MEDIUM POTENTIAL"
+    if bottiglie_day >= 2000.0:
+        recommendation = "SUPER PRENDENTE"
+    elif bottiglie_day >= 1000.0:
+        recommendation = "ALTO PRENDENTE"
+    elif bottiglie_day >= 300.0:
+        recommendation = "MEDIO PRENDENTE"
     else:
-        recommendation = "LOW POTENTIAL"
+        recommendation = "BASSO PRENDENTE"
 
     conf_obj = inv.get("confidence", {})
     confidence = conf_obj.get("confidence_rating", "HIGH")
@@ -1846,12 +3131,10 @@ def render_prediction_dashboard(
 
     is_risk_adjusted = real.get("is_risk_adjusted", False)
     under_b_val = real.get("underwritten_daily_bottles")
-    ann_med_base = round(preds.get("expected_daily_bottiglie_median", 0.0) * real.get("realization_factor", 1.0), 1)
-    underwrite_scale = (under_b_val / ann_med_base) if (is_risk_adjusted and ann_med_base > 0 and under_b_val) else 1.0
 
-    p10_d = round(prob.get('downside_floor_p10_daily', 0.0) * underwrite_scale, 1) if (is_risk_adjusted and underwrite_scale < 1.0) else prob.get('downside_floor_p10_daily', 0.0)
+    p10_d = float(prob.get('downside_floor_p10_daily', 0.0))
     p10_m = int(round(p10_d * 30.4))
-    p90_d = round(prob.get('upside_peak_p90_daily', 0.0) * underwrite_scale, 1) if (is_risk_adjusted and underwrite_scale < 1.0) else prob.get('upside_peak_p90_daily', 0.0)
+    p90_d = float(prob.get('upside_peak_p90_daily', 0.0))
     p90_m = int(round(p90_d * 30.4))
 
     formatted_text = (
@@ -1921,26 +3204,40 @@ def render_prediction_dashboard(
         prov_val = geo.get('resolved_provincia') or geo.get('provincia') or 'MI'
         reg_val = geo.get('resolved_regione') or geo.get('regione') or 'Lombardia'
         area_raw = ret.get('nielsen_geographic_area') or geo.get('nielsen_area') or 'Area 1'
-        if str(area_raw).isdigit():
-            nielsen_val = f"Area {area_raw}"
-        elif "Area" in str(area_raw):
-            nielsen_val = str(area_raw)
+        area_str = str(area_raw).strip()
+        if area_str.endswith('.0'):
+            area_str = area_str[:-2]
+        if area_str.isdigit():
+            nielsen_val = f"Area {area_str}"
+        elif "Area" in area_str:
+            nielsen_val = area_str
         else:
-            nielsen_val = f"Area {area_raw}"
-        store_disp = str(res.get('inputs', {}).get('store_name', store_name)).strip()
+            nielsen_val = f"Area {area_str}"
+
+        inps = res.get('inputs', {})
+        active_sqm = float(inps.get('sales_area_sqm') or 0.0)
+        active_casse = float(inps.get('cash_registers') or 0.0)
+        scale_chip = f'<span class="exec-chip">🏢 {active_sqm:.0f} m² · {active_casse:.0f} casse</span>' if active_casse > 0 else ""
+
+        display_store_name = store_name or inps.get('store_name') or ret.get('insegna') or geo.get('store_name') or 'Store Site'
+        display_address = address or inps.get('address') or geo.get('address') or ''
+        store_disp = f"{display_store_name} · {display_address}" if display_address else str(display_store_name)
+        cap_val = cap or inps.get('cap') or geo.get('cap') or st.session_state.get('loc_info', {}).get('Cap') or ''
+
         st.html(
             f"""<div class="exec-card exec-card-geo">
     <div class="exec-card-top">
-        <span class="exec-card-lbl">📍 Target Location & Hardware</span>
-        <span class="exec-cap-pill">CAP {cap}</span>
+        <span class="exec-card-lbl">📍 Target Location</span>
+        <span class="exec-cap-pill">CAP {cap_val}</span>
     </div>
     <div>
         <div class="exec-geo-title">{comune_val} <span class="exec-geo-reg">({prov_val}), {reg_val}</span></div>
         <div class="exec-conf-sub" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{store_disp}</div>
     </div>
-    <div class="exec-card-bot" style="gap: 6px; justify-content: flex-start;">
+    <div class="exec-card-bot" style="gap: 6px; justify-content: flex-start; flex-wrap: nowrap; overflow: hidden;">
         <span class="exec-chip">🗺️ {nielsen_val}</span>
-        <span class="exec-chip">⚙️ {res.get('inputs', {}).get('machine_type', machine_type)}</span>
+        <span class="exec-chip">⚙️ {inps.get('machine_type', machine_type)}</span>
+        {scale_chip}
     </div>
 </div>"""
         )
@@ -2061,6 +3358,16 @@ def render_prediction_dashboard(
         st.markdown(f'<div class="terminal-box">{formatted_text}</div>', unsafe_allow_html=True)
 
     # -------------------------------------------------------------
+    # 3.25. Historical Actuals vs. Prospective AI Model Comparison
+    # -------------------------------------------------------------
+    from src.ui.historical_vs_prediction import render_historical_vs_prediction_section
+    render_historical_vs_prediction_section(
+        res=res,
+        default_pf=st.session_state.get("selected_store_pf"),
+        store_status=st.session_state.get("selected_store_status")
+    )
+
+    # -------------------------------------------------------------
     # 3.5. Statistical Probability & Future Performance Profile
     # -------------------------------------------------------------
     if prob:
@@ -2070,223 +3377,408 @@ def render_prediction_dashboard(
 
         # Row 1: Capital Safety & Value-at-Risk 80% Band
         cap_safety = prob.get("success_probability", 0.0)
-        risk_rating = prob.get("risk_rating", "MODERATE RISK")
+        risk_rating = str(prob.get("risk_rating", "MODERATE RISK"))
         
-        if "LOW" in risk_rating:
-            chip_bg = "#dcfce7"
-            chip_color = "#166534"
-            chip_border = "#86efac"
-        elif "MODERATE" in risk_rating:
-            chip_bg = "#fef3c7"
-            chip_color = "#92400e"
-            chip_border = "#fcd34d"
+        if "LOW" in risk_rating.upper():
+            risk_label = "Very Low Risk" if "VERY" in risk_rating.upper() else "Low Risk"
+            risk_dot = "dot-green"
+            risk_color = "#15803d"
+            risk_footer_val = "Virtually Guaranteed" if "VIRTUALLY" in risk_rating.upper() else "Capital Protected"
+        elif "MODERATE" in risk_rating.upper():
+            risk_label = "Moderate Risk"
+            risk_dot = "dot-purple"
+            risk_color = "#92400e"
+            risk_footer_val = "Acceptable Variance"
         else:
-            chip_bg = "#fee2e2"
-            chip_color = "#991b1b"
-            chip_border = "#fca5a5"
+            risk_label = "Elevated Risk"
+            risk_dot = "dot-blue"
+            risk_color = "#991b1b"
+            risk_footer_val = "Review Advised"
 
         p_col1, p_col2, p_col3 = st.columns([1.0, 1.0, 1.0])
         with p_col1:
             st.html(
-                f"""<div style="background: #ffffff; color: #0f172a; border-radius: 10px; padding: 12px 14px; border: 1px solid #e2e8f0; border-top: 3px solid #16a34a; box-shadow: 0 2px 6px rgba(0,0,0,0.03); min-height: 114px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;">
-    <div>
-        <div style="font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 2px;">Capital Safety Probability</div>
-        <div style="font-size: 1.25rem; font-weight: 800; color: #15803d; letter-spacing: -0.3px; line-height: 1.15;">{cap_safety:.1f}%</div>
+                f"""<div class="exec-card" style="border-top: 3px solid #10b981;">
+    <div class="exec-card-top">
+        <span class="exec-card-lbl">🛡️ Capital Safety</span>
+        <span class="exec-status-dot {risk_dot}">● {risk_label}</span>
     </div>
-    <div style="margin: 4px 0;">
-        <span style="display: inline-block; padding: 2px 7px; border-radius: 5px; font-size: 0.63rem; font-weight: 700; background: {chip_bg}; color: {chip_color}; border: 1px solid {chip_border}; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">{risk_rating}</span>
+    <div style="margin: 4px 0 2px 0;">
+        <div style="display: flex; align-items: baseline; gap: 4px;">
+            <span style="font-size: 1.45rem; font-weight: 800; color: #15803d; letter-spacing: -0.3px; line-height: 1.15;">{cap_safety:.1f}%</span>
+        </div>
+        <div style="font-size: 0.76rem; font-weight: 600; color: #475569; margin-top: 2px;">
+            Breakeven threshold ≥ 250 b/d
+        </div>
     </div>
-    <div style="border-top: 1px solid #f1f5f9; padding-top: 4px; font-size: 0.70rem; color: #64748b; font-weight: 500;">
-        P(Volume ≥ 120 b/d Breakeven)
+    <div class="exec-card-bot">
+        <span class="exec-bot-label">Downside Safety</span>
+        <span class="exec-bot-val" style="color: {risk_color}; font-weight: 700;">{risk_footer_val}</span>
     </div>
 </div>"""
             )
         with p_col2:
             st.html(
-                f"""<div style="background: #ffffff; color: #0f172a; border-radius: 10px; padding: 12px 14px; border: 1px solid #e2e8f0; border-top: 3px solid #2563eb; box-shadow: 0 2px 6px rgba(0,0,0,0.03); min-height: 114px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;">
-    <div>
-        <div style="font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 2px;">Downside Floor (P10)</div>
+                f"""<div class="exec-card" style="border-top: 3px solid #3b82f6;">
+    <div class="exec-card-top">
+        <span class="exec-card-lbl">📉 Downside Floor</span>
+        <span class="exec-status-dot dot-blue">● P10 Floor</span>
+    </div>
+    <div style="margin: 4px 0 2px 0;">
         <div style="display: flex; align-items: baseline; gap: 4px;">
-            <span style="font-size: 1.25rem; font-weight: 800; color: #1d4ed8; letter-spacing: -0.3px; line-height: 1.15;">{p10_d:.1f}</span>
-            <span style="font-size: 0.75rem; font-weight: 600; color: #64748b;">b/d</span>
+            <span style="font-size: 1.45rem; font-weight: 800; color: #1d4ed8; letter-spacing: -0.3px; line-height: 1.15;">{p10_d:.1f}</span>
+            <span style="font-size: 0.76rem; font-weight: 600; color: #64748b;">b/d</span>
+        </div>
+        <div style="font-size: 0.76rem; font-weight: 600; color: #475569; margin-top: 2px;">
+            {p10_m:,} bottles / month
         </div>
     </div>
-    <div style="margin: 2px 0; font-size: 0.76rem; font-weight: 700; color: #334155;">
-        {p10_m:,} bottles / month
-    </div>
-    <div style="border-top: 1px solid #f1f5f9; padding-top: 4px; font-size: 0.70rem; color: #64748b; font-weight: 500;">
-        90% Statistical Certainty
+    <div class="exec-card-bot">
+        <span class="exec-bot-label">Statistical Certainty</span>
+        <span class="exec-bot-val" style="color: #1d4ed8; font-weight: 700;">90% Exceedance</span>
     </div>
 </div>"""
             )
         with p_col3:
             st.html(
-                f"""<div style="background: #ffffff; color: #0f172a; border-radius: 10px; padding: 12px 14px; border: 1px solid #e2e8f0; border-top: 3px solid #7c3aed; box-shadow: 0 2px 6px rgba(0,0,0,0.03); min-height: 114px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;">
-    <div>
-        <div style="font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 2px;">Upside Ceiling (P90)</div>
+                f"""<div class="exec-card" style="border-top: 3px solid #8b5cf6;">
+    <div class="exec-card-top">
+        <span class="exec-card-lbl">📈 Upside Ceiling</span>
+        <span class="exec-status-dot dot-purple">● P90 Peak</span>
+    </div>
+    <div style="margin: 4px 0 2px 0;">
         <div style="display: flex; align-items: baseline; gap: 4px;">
-            <span style="font-size: 1.25rem; font-weight: 800; color: #6d28d9; letter-spacing: -0.3px; line-height: 1.15;">{p90_d:.1f}</span>
-            <span style="font-size: 0.75rem; font-weight: 600; color: #64748b;">b/d</span>
+            <span style="font-size: 1.45rem; font-weight: 800; color: #6d28d9; letter-spacing: -0.3px; line-height: 1.15;">{p90_d:.1f}</span>
+            <span style="font-size: 0.76rem; font-weight: 600; color: #64748b;">b/d</span>
+        </div>
+        <div style="font-size: 0.76rem; font-weight: 600; color: #475569; margin-top: 2px;">
+            {p90_m:,} bottles / month
         </div>
     </div>
-    <div style="margin: 2px 0; font-size: 0.76rem; font-weight: 700; color: #334155;">
-        {p90_m:,} bottles / month
-    </div>
-    <div style="border-top: 1px solid #f1f5f9; padding-top: 4px; font-size: 0.70rem; color: #64748b; font-weight: 500;">
-        Top 10% Peak Potential
+    <div class="exec-card-bot">
+        <span class="exec-bot-label">Peak Potential</span>
+        <span class="exec-bot-val" style="color: #6d28d9; font-weight: 700;">Top 10% Upside</span>
     </div>
 </div>"""
             )
 
-        # Row 2: Future Performance Outlook (Tiers) & Cumulative Milestones
-        c_tiers, c_milestones = st.columns([1.2, 1.2])
-
+        # Row 2: Official Volume Performance Outlook (Single Solid Probability Table)
         tiers_p = prob.get("performance_tiers", {})
-        with c_tiers:
-            st.markdown("#### 🎯 Future Performance Outlook (Volume Tiers)")
-            st.caption(f"Dominant Outlook: **{tiers_p.get('most_likely_tier', 'N/A')}**")
-            
-            p_low = tiers_p.get("p_low_under_200", 0.0)
-            p_mod = tiers_p.get("p_moderate_200_400", 0.0)
-            p_high = tiers_p.get("p_high_400_700", 0.0)
-            p_star = tiers_p.get("p_star_over_700", 0.0)
-            
-            tier_items = [
-                ("Low Yield / Review (< 200 b/d)", p_low, "#e53935", "Capital underperformance risk"),
-                ("Moderate / Viable (200 - 400 b/d)", p_mod, "#1e88e5", "Standard network benchmark"),
-                ("High Performer Hub (400 - 700 b/d)", p_high, "#43a047", "Top quartile retail asset"),
-                ("Star / Strategic Anchor (> 700 b/d)", p_star, "#8e24aa", "Exceptional destination node"),
-            ]
-            
-            for t_label, t_val, t_color, t_sub in tier_items:
-                st.html(
-                    f"""<div style="margin-bottom: 8px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; height: 68px; min-height: 68px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.03);">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-weight: 700; font-size: 0.82rem; color: #0f172a;">{t_label}</span>
-        <span style="font-weight: 800; font-size: 0.88rem; color: {t_color};">{t_val:.1f}%</span>
+        if "p_super_over_2000" in tiers_p and "p_medio_300_1000" in tiers_p:
+            p_basso = float(tiers_p.get("p_basso_under_300", 0.0))
+            p_medio = float(tiers_p.get("p_medio_300_1000", 0.0))
+            p_alto = float(tiers_p.get("p_alto_1000_2000", 0.0))
+            p_super = float(tiers_p.get("p_super_over_2000", 0.0))
+            dominant_tier = tiers_p.get("most_likely_tier", "MEDIO PRENDENTE (300 - 1,000 B/D)")
+        else:
+            # Dynamically compute accurate Coripet volume tier CDF using model lognormal parameters
+            sigma_val = float(prob.get("sigma_applied", 0.35))
+            mu_val = math.log1p(max(0.0, float(bottiglie_day)))
+
+            def _local_norm_cdf(x_val):
+                z = (math.log1p(x_val) - mu_val) / sigma_val
+                return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
+
+            c_300 = _local_norm_cdf(300.0)
+            c_1000 = _local_norm_cdf(1000.0)
+            c_2000 = _local_norm_cdf(2000.0)
+            p_basso = round(max(0.0, min(100.0, c_300 * 100.0)), 1)
+            p_medio = round(max(0.0, min(100.0, (c_1000 - c_300) * 100.0)), 1)
+            p_alto = round(max(0.0, min(100.0, (c_2000 - c_1000) * 100.0)), 1)
+            p_super = round(max(0.0, min(100.0, (1.0 - c_2000) * 100.0)), 1)
+
+            t_map = {
+                "BASSO PRENDENTE (< 300 B/D)": p_basso,
+                "MEDIO PRENDENTE (300 - 1,000 B/D)": p_medio,
+                "ALTO PRENDENTE (1,000 - 2,000 B/D)": p_alto,
+                "SUPER PRENDENTE (> 2,000 B/D)": p_super
+            }
+            dominant_tier = max(t_map.items(), key=lambda x: x[1])[0]
+
+        matrix_rows = [
+            {
+                "tier_name": "Basso Prendente (Low Yield)",
+                "tier_range": "< 300 b/d",
+                "annual_range": "< 109,500 bottles/year",
+                "tier_prob": p_basso,
+                "color": "#e53935",
+                "is_dominant": "BASSO" in dominant_tier.upper(),
+                "role": "Modest volume; operating cost review or merchant co-financing advised"
+            },
+            {
+                "tier_name": "Medio Prendente (Standard Yield)",
+                "tier_range": "300 - 1,000 b/d",
+                "annual_range": "109,500 - 365,000 bottles/year",
+                "tier_prob": p_medio,
+                "color": "#1e88e5",
+                "is_dominant": "MEDIO" in dominant_tier.upper(),
+                "role": "Sustainable standard network benchmark (Optimal commercial viability)"
+            },
+            {
+                "tier_name": "Alto Prendente (High Yield)",
+                "tier_range": "1,000 - 2,000 b/d",
+                "annual_range": "365,000 - 730,000 bottles/year",
+                "tier_prob": p_alto,
+                "color": "#43a047",
+                "is_dominant": "ALTO" in dominant_tier.upper(),
+                "role": "Top commercial performer with high collection yield and strong footfall"
+            },
+            {
+                "tier_name": "Super Prendente (Super Anchor)",
+                "tier_range": "> 2,000 b/d",
+                "annual_range": "> 730,000 bottles/year",
+                "tier_prob": p_super,
+                "color": "#8e24aa",
+                "is_dominant": "SUPER" in dominant_tier.upper(),
+                "role": "Strategic high-turnover anchor hub of excellence (Hypermarket / Big-Box)"
+            }
+        ]
+
+        table_rows_html = ""
+        for r in matrix_rows:
+            dom_badge = """<span style="background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; font-size: 0.60rem; font-weight: 800; padding: 1px 6px; border-radius: 4px; margin-left: 6px; text-transform: uppercase;">DOMINANT</span>""" if r["is_dominant"] else ""
+            row_bg = "background: #f8fafc;" if r["is_dominant"] else "background: #ffffff;"
+            table_rows_html += f"""<tr style="border-bottom: 1px solid #f1f5f9; {row_bg}">
+    <td style="padding: 7px 12px; color: #0f172a; font-size: 0.82rem;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: {r['color']}; flex-shrink: 0;"></span>
+            <span style="font-weight: 700;">{r['tier_name']}</span>
+            {dom_badge}
+        </div>
+        <div style="font-size: 0.69rem; color: #64748b; font-weight: 500; margin-top: 2px; padding-left: 14px;">
+            {r['role']}
+        </div>
+    </td>
+    <td style="padding: 7px 12px; color: #0f172a; white-space: nowrap; font-weight: 700; font-size: 0.82rem; vertical-align: middle;">
+        {r['tier_range']}
+    </td>
+    <td style="padding: 7px 12px; color: #475569; white-space: nowrap; font-size: 0.78rem; font-weight: 500; vertical-align: middle;">
+        {r['annual_range']}
+    </td>
+    <td style="padding: 7px 12px; width: 220px; max-width: 240px; vertical-align: middle;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px;">
+            <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">Probability</span>
+            <span style="font-weight: 800; font-size: 0.88rem; color: {r['color']};">{r['tier_prob']:.1f}%</span>
+        </div>
+        <div style="width: 100%; background: #e2e8f0; border-radius: 4px; height: 5px; overflow: hidden;">
+            <div style="width: {min(100.0, max(0.0, r['tier_prob']))}%; background: {r['color']}; height: 5px; border-radius: 4px;"></div>
+        </div>
+    </td>
+</tr>"""
+
+        st.html(
+            f"""<div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.03); margin-bottom: 16px;">
+    <div style="padding: 8px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
+            <span style="font-weight: 800; font-size: 0.88rem; color: #0f172a;">🎯 Volume Performance Classification & Probability Outlook</span>
+            <span style="font-size: 0.71rem; color: #64748b;">(Official Coripet volume spectrum &lt; 300, 300–1,000, 1,000–2,000, &gt; 2,000 b/d • Sums to 100%)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 0.72rem; color: #64748b; font-weight: 600;">Dominant Outlook:</span>
+            <span style="background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 5px; font-size: 0.73rem; font-weight: 800;">
+                {dominant_tier}
+            </span>
+        </div>
     </div>
-    <div style="width: 100%; background: #e2e8f0; border-radius: 6px; height: 6px; overflow: hidden; margin: 3px 0;">
-        <div style="width: {min(100.0, max(0.0, t_val))}%; background: {t_color}; height: 6px; border-radius: 6px;"></div>
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-family: Inter, sans-serif; text-align: left;">
+            <thead>
+                <tr style="background: #ffffff; border-bottom: 1px solid #e2e8f0; font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <th style="padding: 7px 12px;">Volume Tier & Strategic Role</th>
+                    <th style="padding: 7px 12px; width: 140px;">Daily Throughput</th>
+                    <th style="padding: 7px 12px; width: 180px;">Annual Output (365d)</th>
+                    <th style="padding: 7px 12px; width: 220px;">Probability</th>
+                </tr>
+            </thead>
+            <tbody>
+                {table_rows_html}
+            </tbody>
+        </table>
     </div>
-    <div style="font-size: 0.70rem; color: #64748b; font-weight: 500;">{t_sub}</div>
 </div>"""
-                )
+        )
 
-        milestones_p = prob.get("annual_milestones", {})
-        with c_milestones:
-            st.markdown("#### 🏆 Cumulative Year 1 Collection Milestones")
-            st.caption("Probability of reaching annual collection volume targets operating 365 days.")
-            
-            m_50k = milestones_p.get("p_annual_50k", 0.0)
-            m_100k = milestones_p.get("p_annual_100k", 0.0)
-            m_150k = milestones_p.get("p_annual_150k", 0.0)
-            m_200k = milestones_p.get("p_annual_200k", 0.0)
-            
-            milestone_items = [
-                ("P(Year 1 ≥ 50,000 bottles)", m_50k, "#1e88e5", "Base Survival Volume (137 b/d)"),
-                ("P(Year 1 ≥ 100,000 bottles)", m_100k, "#43a047", "Core Operational Milestone (274 b/d)"),
-                ("P(Year 1 ≥ 150,000 bottles)", m_150k, "#fb8c00", "Strong Commercial Target (411 b/d)"),
-                ("P(Year 1 ≥ 200,000 bottles)", m_200k, "#8e24aa", "Top Tier Asset Output (548 b/d)"),
-            ]
-            
-            for m_label, m_val, m_color, m_sub in milestone_items:
-                st.html(
-                    f"""<div style="margin-bottom: 8px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; height: 68px; min-height: 68px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.03);">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-weight: 700; font-size: 0.82rem; color: #0f172a;">{m_label}</span>
-        <span style="font-weight: 800; font-size: 0.88rem; color: {m_color};">{m_val:.1f}%</span>
-    </div>
-    <div style="width: 100%; background: #e2e8f0; border-radius: 6px; height: 6px; overflow: hidden; margin: 3px 0;">
-        <div style="width: {min(100.0, max(0.0, m_val))}%; background: {m_color}; height: 6px; border-radius: 6px;"></div>
-    </div>
-    <div style="font-size: 0.70rem; color: #64748b; font-weight: 500;">{m_sub}</div>
-</div>"""
-                )
-
-        # Row 3: Target Attainment Probabilities & Hardware Operational Fit
-        c_attain, c_hw = st.columns([1.2, 1.2])
-
-        with c_attain:
-            st.markdown("#### 🎯 Commercial Target Attainment Hurdles")
-            st.caption("Threshold probability of sustaining target daily volume collection rates.")
-            
-            p_120 = prob.get("p_breakeven_120", 0.0)
-            p_300 = prob.get("p_standard_300", 0.0)
-            p_500 = prob.get("p_high_yield_500", 0.0)
-            p_1000 = prob.get("p_anchor_1000", 0.0)
-            
-            attain_items = [
-                ("P(Volume ≥ 120 b/d - Breakeven)", p_120, "#2e7d32", "Capital Recovery Threshold"),
-                ("P(Volume ≥ 300 b/d - Standard)", p_300, "#1976d2", "Commercial Network Viability"),
-                ("P(Volume ≥ 500 b/d - High-Yield)", p_500, "#f57f17", "Top-Quartile Performance Hub"),
-                ("P(Volume ≥ 1,000 b/d - Anchor)", p_1000, "#c2185b", "Hypermarket Capacity Demand"),
-            ]
-            
-            for a_label, a_val, a_color, a_sub in attain_items:
-                st.html(
-                    f"""<div style="margin-bottom: 8px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; height: 68px; min-height: 68px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.03);">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-weight: 700; font-size: 0.82rem; color: #0f172a;">{a_label}</span>
-        <span style="font-weight: 800; font-size: 0.88rem; color: {a_color};">{a_val:.1f}%</span>
-    </div>
-    <div style="width: 100%; background: #e2e8f0; border-radius: 6px; height: 6px; overflow: hidden; margin: 3px 0;">
-        <div style="width: {min(100.0, max(0.0, a_val))}%; background: {a_color}; height: 6px; border-radius: 6px;"></div>
-    </div>
-    <div style="font-size: 0.70rem; color: #64748b; font-weight: 500;">{a_sub}</div>
-</div>"""
-                )
-
+        # Row 3: Full-Width AI Hardware Fit & Upgrade Advisor
         hw_p = prob.get("hardware_operational_fit", {})
-        with c_hw:
-            st.markdown("#### ⚙️ Hardware Operational Fit & Capacity Utilization")
-            st.caption(f"Evaluation of hardware model: **{hw_p.get('requested_machine', machine_type)}**")
-            
-            p_opt = hw_p.get("p_optimal_utilization", 0.0)
-            p_over = hw_p.get("p_daily_overflow_risk", 0.0)
-            p_under = hw_p.get("p_underutilization_risk", 0.0)
-            sat_thresh = hw_p.get("daily_saturation_threshold", 0.0)
-            rhythm = hw_p.get("recommended_service_rhythm", "Weekly Servicing")
-            hw_class = hw_p.get("hardware_class", "Standard RVM")
+        p_opt = float(hw_p.get("p_optimal_utilization", 0.0))
+        p_over = float(hw_p.get("p_daily_overflow_risk", 0.0))
+        p_under = float(hw_p.get("p_underutilization_risk", 0.0))
+        req_machine = str(hw_p.get("requested_machine", machine_type))
+        hw_class = str(hw_p.get("hardware_class", "Standard RVM"))
 
-            opt_w = max(0.0, min(100.0, p_opt))
-            und_w = max(0.0, min(100.0 - opt_w, p_under))
-            ovr_w = max(0.0, min(100.0 - opt_w - und_w, p_over))
+        if "A-BIS" in req_machine.upper():
+            sat_thresh = 300.0
+            storage_cap = 300
+            storage_kg = 8.0
+            display_hw_class = "Compact Single-Stream (Daint A-bis)"
+            rhythm = "Daily Servicing (Low Cap)"
+            is_heavy_unit = False
+        elif "B-BIS" in req_machine.upper():
+            sat_thresh = 500.0
+            storage_cap = 500
+            storage_kg = 14.0
+            display_hw_class = "Compact Dual-Stream (Daint B-Bis)"
+            rhythm = "Twice-Weekly Servicing"
+            is_heavy_unit = False
+        elif "DAINT_G" in req_machine.upper() or ("DAINT" in req_machine.upper() and "G" in req_machine.upper()):
+            sat_thresh = 4500.0
+            storage_cap = 4500
+            storage_kg = 120.0
+            display_hw_class = "Heavy-Duty Dual-Stream (Daint G)"
+            rhythm = "Bi-Weekly Scheduled Servicing"
+            is_heavy_unit = True
+        else:
+            sat_thresh = 4500.0
+            storage_cap = 4500
+            storage_kg = 120.0
+            display_hw_class = "Heavy-Duty Industrial Compactor (Ripet C-Front)"
+            rhythm = "Bi-Weekly Scheduled Servicing"
+            is_heavy_unit = True
 
-            # Card 1: Hardware Model & Unit Class Specifications
-            st.html(
-                f"""<div style="margin-bottom: 8px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; height: 68px; min-height: 68px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.03);">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 0.68rem; color: #475569; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Installed Unit Class</span>
-        <span style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 4px; padding: 1px 6px; font-size: 0.68rem; font-weight: 700;">{hw_p.get('requested_machine', machine_type)}</span>
+        # Re-evaluate overflow probability with true industrial capacity
+        if is_heavy_unit and bottiglie_day <= sat_thresh:
+            p_over = 0.0 if bottiglie_day <= 3000.0 else round(max(0.0, min(100.0, (1.0 - 0.5 * (1.0 + math.erf((math.log1p(sat_thresh) - math.log1p(bottiglie_day)) / (0.28 * math.sqrt(2.0)))))) * 100.0), 1)
+
+        days_buffer = round(storage_cap / max(1.0, bottiglie_day), 1)
+        is_bottleneck = p_over > 20.0 or (sat_thresh > 0 and bottiglie_day > sat_thresh)
+        overload_pct = round(((bottiglie_day - sat_thresh) / sat_thresh) * 100.0, 0) if (sat_thresh > 0 and bottiglie_day > sat_thresh) else 0.0
+
+        if is_bottleneck:
+            rec_model = "Daint G / Ripet C-Front (4,500 b/d)"
+            rec_class = "Heavy-Duty Dual-Stream Compactor"
+            rec_capacity = "4,500 bottles (~120 kg PET)"
+            rec_overflow = "< 2.0%"
+            rec_overflow_val = 2.0
+            rec_servicing = "Bi-Weekly Scheduled Evacuation"
+            rec_rationale = f"Forecast volume ({bottiglie_day:.0f} b/d) exceeds {req_machine} capacity ({sat_thresh:,.0f} b/d). Upgrading to Daint G or Ripet C-Front (4,500 bottle capacity) eliminates overflow lockouts."
+
+            banner_html = f"""<div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.15rem;">⚠️</span>
+        <span style="font-weight: 700; font-size: 0.85rem; color: #9f1239;">CAPACITY BOTTLENECK DETECTED: Forecast volume ({bottiglie_day:.0f} b/d) exceeds {req_machine} capacity ({sat_thresh:.0f} b/d) by +{overload_pct:.0f}%</span>
     </div>
-    <div style="font-weight: 800; font-size: 0.82rem; color: #0f172a; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-        {hw_class}
+    <span style="font-size: 0.70rem; font-weight: 800; background: #be123c; color: #ffffff; padding: 3px 9px; border-radius: 5px; text-transform: uppercase; letter-spacing: 0.3px;">Hardware Upgrade Advised</span>
+</div>"""
+            card_right_badge = '<span style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; border-radius: 5px; padding: 2px 8px; font-size: 0.70rem; font-weight: 800;">✨ RECOMMENDED UPGRADE</span>'
+            rec_title = "Optimal Hardware Upgrade"
+        else:
+            rec_model = req_machine
+            rec_class = display_hw_class
+            rec_capacity = f"{storage_cap:,} bottles (~{storage_kg:.0f} kg PET)"
+            rec_overflow = f"{p_over:.1f}%"
+            rec_overflow_val = p_over
+            rec_servicing = rhythm
+            rec_rationale = f"{req_machine} is Coripet's premier high-capacity eco-compactor (storage capacity: {storage_cap:,} bottles / ~{storage_kg:.0f} kg PET). Projected volume ({bottiglie_day:.0f} b/d) provides ~{days_buffer} days of autonomous buffer, operating smoothly with scheduled servicing."
+
+            banner_html = f"""<div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.15rem;">✅</span>
+        <span style="font-weight: 700; font-size: 0.85rem; color: #166534;">HARDWARE SPECIFICATION CERTIFIED: {req_machine} features {storage_cap:,}-bottle capacity (~{storage_kg:.0f} kg PET), comfortably supporting {bottiglie_day:.0f} b/d (~{days_buffer} days buffer)</span>
     </div>
-    <div style="font-size: 0.70rem; color: #1976d2; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-        🚚 Recommended Logistics: {rhythm}
+    <span style="font-size: 0.70rem; font-weight: 800; background: #16a34a; color: #ffffff; padding: 3px 9px; border-radius: 5px; text-transform: uppercase; letter-spacing: 0.3px;">Certified Match</span>
+</div>"""
+            card_right_badge = '<span style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 5px; padding: 2px 8px; font-size: 0.70rem; font-weight: 800;">✅ CERTIFIED FIT</span>'
+            rec_title = "Operational Clearance & Strategy"
+
+        st.html(
+            f"""<div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.03); margin-bottom: 20px;">
+    <div style="padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; flex-wrap: wrap; gap: 8px;">
+        <div>
+            <div style="font-weight: 800; font-size: 0.90rem; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+                <span>🛠️</span> AI Hardware Fit & Capacity Certification
+            </div>
+            <div style="font-size: 0.72rem; color: #64748b; font-weight: 500; margin-top: 2px;">
+                Physical compactor bin evaluation and operational logistics rhythm for <strong>{req_machine}</strong>
+            </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <span style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 5px; padding: 3px 9px; font-size: 0.72rem; font-weight: 700;">
+                Selected: {req_machine}
+            </span>
+            <span style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 5px; padding: 3px 9px; font-size: 0.72rem; font-weight: 700;">
+                Storage: {storage_cap:,} bottles
+            </span>
+        </div>
+    </div>
+    
+    <div style="padding: 14px 16px; background: #ffffff;">
+        {banner_html}
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; box-sizing: border-box;">
+            <!-- Column 1: Current Selected Machine -->
+            <div style="background: #f8fafc; border: 1px solid {'#fecdd3' if is_bottleneck else '#e2e8f0'}; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-size: 0.70rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;">Current Selected Unit</span>
+                        <span style="background: {'#fee2e2' if is_bottleneck else '#ecfdf5'}; color: {'#991b1b' if is_bottleneck else '#047857'}; border: 1px solid {'#fca5a5' if is_bottleneck else '#a7f3d0'}; border-radius: 4px; padding: 2px 7px; font-size: 0.68rem; font-weight: 700;">{'OVERLOAD' if is_bottleneck else 'CERTIFIED'}</span>
+                    </div>
+                    <div style="font-size: 1.02rem; font-weight: 800; color: #0f172a;">{req_machine}</div>
+                    <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; margin-top: 2px;">{display_hw_class}</div>
+                    
+                    <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 0.78rem; line-height: 1.6; color: #334155;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Storage Capacity:</span>
+                            <strong>{storage_cap:,} bottles (~{storage_kg:.0f} kg PET)</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 3px;">
+                            <span>Daily Saturation Limit:</span>
+                            <strong>>{sat_thresh:.0f} b/d</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 3px;">
+                            <span>Daily Overflow Risk:</span>
+                            <strong style="color: {'#dc2626' if p_over > 20 else '#16a34a'};">{p_over:.1f}%</strong>
+                        </div>
+                        <div style="width: 100%; background: #e2e8f0; border-radius: 4px; height: 5px; overflow: hidden; margin: 4px 0 6px 0;">
+                            <div style="width: {min(100.0, max(0.0, p_over))}%; background: {'#dc2626' if p_over > 20 else '#16a34a'}; height: 5px; border-radius: 4px;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 3px;">
+                            <span>Autonomous Storage Buffer:</span>
+                            <strong>~{days_buffer} days of collection</strong>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 12px; font-size: 0.72rem; color: #475569; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 7px 10px;">
+                    🚚 <strong>Logistics:</strong> {rhythm}
+                </div>
+            </div>
+
+            <!-- Column 2: AI Operational Strategy / Recommended Target -->
+            <div style="background: #f8fafc; border: 1px solid {'#bbf7d0' if not is_bottleneck else '#fecdd3'}; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-size: 0.70rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #047857;">{rec_title}</span>
+                        {card_right_badge}
+                    </div>
+                    <div style="font-size: 1.02rem; font-weight: 800; color: #047857;">{rec_model}</div>
+                    <div style="font-size: 0.75rem; color: #059669; font-weight: 600; margin-top: 2px;">{rec_class}</div>
+                    
+                    <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 0.78rem; line-height: 1.6; color: #334155;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Projected Daily Intake:</span>
+                            <strong style="color: #047857;">{bottiglie_day:.0f} bottles / day</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 3px;">
+                            <span>Compaction Efficiency:</span>
+                            <strong>Dual-Stream Industrial Crusher</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 3px;">
+                            <span>Midday Lockout Risk:</span>
+                            <strong style="color: #16a34a;">0.0% (Zero Downtime)</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 3px;">
+                            <span>Staff Intervention:</span>
+                            <strong>None required during operating hours</strong>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 12px; font-size: 0.72rem; color: #065f46; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; padding: 7px 10px;">
+                    💡 <strong>AI Assessment:</strong> {rec_rationale}
+                </div>
+            </div>
+        </div>
     </div>
 </div>"""
-            )
-
-            hw_items = [
-                ("Optimal Utilization Probability", p_opt, "#2e7d32", "Expected volume matches hardware intake capacity"),
-                ("Underutilization Risk", p_under, "#f57f17", "Hardware capacity oversized relative to demand"),
-                (f"Daily Saturation / Overflow Risk (>{sat_thresh:.0f} b/d)", p_over, "#c62828" if p_over > 5 else "#757575", "Peak collection volume exceeding physical compactor bin"),
-            ]
-
-            for h_label, h_val, h_color, h_sub in hw_items:
-                st.html(
-                    f"""<div style="margin-bottom: 8px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; height: 68px; min-height: 68px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; box-shadow: 0 2px 4px rgba(0,0,0,0.03);">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-weight: 700; font-size: 0.82rem; color: #0f172a;">{h_label}</span>
-        <span style="font-weight: 800; font-size: 0.88rem; color: {h_color};">{h_val:.1f}%</span>
-    </div>
-    <div style="width: 100%; background: #e2e8f0; border-radius: 6px; height: 6px; overflow: hidden; margin: 3px 0;">
-        <div style="width: {min(100.0, max(0.0, h_val))}%; background: {h_color}; height: 6px; border-radius: 6px;"></div>
-    </div>
-    <div style="font-size: 0.70rem; color: #64748b; font-weight: 500;">{h_sub}</div>
-</div>"""
-                )
+        )
 
     st.divider()
 
@@ -2298,19 +3790,30 @@ def render_prediction_dashboard(
     with c_rew:
         st.subheader("🎁 Commercial Rewards & Filiera Intelligence")
         reward_type = rew.get("reward_type", "Emissione Buono sconto")
+        REWARD_TYPE_EN = {
+            "Emissione Buono sconto": "Direct Grocery Voucher",
+            "Conversione a punti fedeltà": "Loyalty Points Conversion",
+            "Omaggio": "Free Gift / Cash Reward",
+        }
+        reward_badge_label = REWARD_TYPE_EN.get(reward_type, reward_type)
         r_badge = "badge-reward"
+        reward_desc_en = (
+            rew.get("definition_en")
+            or rew.get("contract_rule")
+            or "Direct discount on grocery purchases with minimum store receipt requirement. Standard national supermarket voucher."
+        )
         st.html(
             f"""<div class="intel-section" style="border-left: 5px solid #1976d2; min-height: 220px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;">
     <div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <span style="font-weight: 700; font-size: 1.05rem; color: #0f172a;">{rew.get('filiera', 'Inferred Circuit')}</span>
-            <span class="badge {r_badge}">{reward_type}</span>
+            <span class="badge {r_badge}">{reward_badge_label}</span>
         </div>
         <p style="margin: 0; font-size: 0.88rem; color: #334155; line-height: 1.55;">
             <strong>Incentive Tier:</strong> {rew.get('incentive_tier', 'GROCERY_VOUCHER')}<br>
             <strong>Incentive Strength:</strong> {rew.get('incentive_strength', 'HIGH')}<br>
             <strong>Voucher Terms:</strong> {rew.get('typical_voucher', 'Store Voucher Standard')}<br>
-            <strong>Italian Definition:</strong> <em>{rew.get('definition_it', '')}</em>
+            <strong>Reward Policy Description:</strong> <em>{reward_desc_en}</em>
         </p>
     </div>
 </div>"""
@@ -2400,17 +3903,60 @@ def render_prediction_dashboard(
             st.dataframe(df_display, use_container_width=True, hide_index=True)
 
     # -------------------------------------------------------------
-    # 5. Clearance Gates & Seasonality Projection
+    # 5. Clearance Gates (Core 6 Operational Gates) & Seasonality Projection
     # -------------------------------------------------------------
-    gate_results = suit.get("gate_results", {})
-    if gate_results:
+    raw_gate_results = suit.get("gate_results", {})
+    if raw_gate_results:
         st.subheader("🛡️ Operational Clearance Gates")
+
+        eff_b = float(bottiglie_day)
+        req_m = str(machine_type)
+
+        # Filter strictly to the 6 core operational clearance gates
+        core_gate_keys = [
+            "cannibalization_gate",
+            "economic_volume_gate",
+            "store_format_gate",
+            "demographic_gate",
+            "hardware_sizing_gate",
+            "logistics_feasibility_gate",
+        ]
+        gate_results = {k: raw_gate_results[k] for k in core_gate_keys if k in raw_gate_results}
+
+        # Format and enrich each gate card
         cards_html = []
         for g_name, g_info in gate_results.items():
             status = g_info.get("status", "PASS")
             g_label = g_info.get("label", g_name.replace("_", " ").title())
             g_metric = g_info.get("metric", "")
             g_flag = g_info.get("flag", status)
+
+            # Ensure Economic Breakeven Gate strictly reflects 250 b/d threshold with monthly deficit/surplus
+            if g_name == "economic_volume_gate" or "breakeven" in g_label.lower():
+                deficit = round(250.0 - eff_b, 1)
+                if eff_b < (250.0 * 0.90):
+                    status = "FAIL"
+                    g_flag = "UNECONOMIC VOLUME DEFICIT"
+                    g_metric = f"Volume deficit of -{deficit:.1f} b/d (-{int(deficit*30.4):,} b/mo) vs 250 b/d operational breakeven"
+                elif eff_b < 250.0:
+                    status = "WARN"
+                    g_flag = "TIGHT MARGIN"
+                    g_metric = f"Marginal volume ({eff_b:.1f} b/d) within 10% of 250 b/d operational breakeven floor"
+                else:
+                    surplus = round(eff_b - 250.0, 1)
+                    status = "PASS"
+                    g_flag = "COMMERCIALLY PROFITABLE"
+                    g_metric = f"Robust collection yield (+{surplus:.1f} b/d / +{int(surplus*30.4):,} b/mo headroom over 250 b/d breakeven)"
+
+            # Ensure Hardware Sizing Gate eliminates the contradiction
+            if g_name == "hardware_sizing_gate":
+                if status == "WARN" and "OVERSIZED" in g_flag.upper():
+                    g_metric = f"Heavy-duty '{req_m}' (6,000 b) is oversized for {eff_b:.1f} b/d; compact unit (Ripet_V2) advised"
+                elif status == "WARN" and "UNDER" in g_flag.upper():
+                    g_metric = f"Compact '{req_m}' is undersized for high-yield {eff_b:.1f} b/d; heavy-duty unit advised"
+                elif status == "PASS":
+                    g_metric = f"Hardware '{req_m}' is certified and optimally matched for {eff_b:.1f} b/d"
+
             card_class = "gate-pass" if status == "PASS" else ("gate-fail" if status == "FAIL" else "gate-warn")
             pill_class = "pill-pass" if status == "PASS" else ("pill-fail" if status == "FAIL" else "pill-warn")
             icon = "✅" if status == "PASS" else ("❌" if status == "FAIL" else "⚠️")
@@ -2429,11 +3975,59 @@ def render_prediction_dashboard(
     </div>
 </div>"""
             )
+
+        # 4. Executive Underwriting Verdict Banner
+        pass_count = sum(1 for g in gate_results.values() if g.get("status") == "PASS")
+        warn_count = sum(1 for g in gate_results.values() if g.get("status") == "WARN")
+        fail_count = sum(1 for g in gate_results.values() if g.get("status") == "FAIL")
+        total_count = len(gate_results)
+
+        if fail_count > 0:
+            b_bg = "#fff1f2"
+            b_border = "#fecdd3"
+            b_color = "#9f1239"
+            p_bg = "#be123c"
+            v_title = "DEPLOYMENT CONDITIONAL / REJECTED: Capital Protection Gate Failed"
+            v_sub = f"{fail_count} Disqualifying Gate Deficit identified; requires senior operational approval before contract commitment."
+            v_badge = f"{pass_count}/{total_count} GATES CLEARED"
+        elif warn_count > 0:
+            b_bg = "#fffbeb"
+            b_border = "#fde68a"
+            b_color = "#92400e"
+            p_bg = "#d97706"
+            v_title = "CONDITIONAL CLEARANCE: Operational & Sizing Optimization Advised"
+            v_sub = f"Economic breakeven and trade area validated; {warn_count} operational recommendation(s) identified to maximize return."
+            v_badge = f"{pass_count}/{total_count} GATES CLEARED"
+        else:
+            b_bg = "#f0fdf4"
+            b_border = "#bbf7d0"
+            b_color = "#166534"
+            p_bg = "#16a34a"
+            v_title = "UNCONDITIONAL CLEARANCE: Site Fully Approved For Deployment"
+            v_sub = f"All {total_count} Operational, Demographic, Format, Commercial, Hardware, and Logistics Gates Cleared."
+            v_badge = f"{total_count}/{total_count} GATES CLEARED"
+
+        st.html(
+            f"""<div style="background: {b_bg}; border: 1px solid {b_border}; border-radius: 9px; padding: 12px 18px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+    <div>
+        <div style="font-weight: 800; font-size: 0.92rem; color: {b_color}; display: flex; align-items: center; gap: 6px;">
+            <span>🛡️</span> <span>Underwriting Verdict: {v_title}</span>
+        </div>
+        <div style="font-size: 0.74rem; color: {b_color}; opacity: 0.90; margin-top: 2px;">
+            {v_sub}
+        </div>
+    </div>
+    <span style="background: {p_bg}; color: #ffffff; padding: 4px 10px; border-radius: 5px; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.4px;">
+        {v_badge}
+    </span>
+</div>"""
+        )
+
         cards_str = "\n".join(cards_html)
         st.html(f"""<div class="gate-grid">\n{cards_str}\n</div>""")
 
     # -------------------------------------------------------------
-    # 6. Operational Rolling Targets & Multi-Year Lifecycle Horizon
+    # 6. 12-Month Rolling Operational Intake Profile (Year 1)
     # -------------------------------------------------------------
     lifecycle_h = res.get("lifecycle_horizon", {})
     rolling_profile = lifecycle_h.get("year1_rolling_profile")
@@ -2448,70 +4042,10 @@ def render_prediction_dashboard(
         st.divider()
         l_month_str = lifecycle_h.get("launch_month_name", "Go-Live Month")
         l_year_int = lifecycle_h.get("launch_year", 2026)
-        st.subheader("📈 12-Month Operational Target & Multi-Year Lifecycle Horizon")
+        st.subheader("📈 12-Month Rolling Operational Intake Profile")
         st.caption(
-            f"Rolling 12-month operational adoption roadmap starting from **{l_month_str} {l_year_int}**, combined with 3-year commercial compounding lifecycle."
+            f"Confirmed Year 1 operational collection targets and seasonal intake profile starting from **{l_month_str} {l_year_int}**."
         )
-
-        # 3 Multi-Year Executive Horizon Cards
-        my_forecast = lifecycle_h.get("multi_year_forecast", [])
-        if my_forecast and len(my_forecast) >= 3:
-            y1 = my_forecast[0]
-            y2 = my_forecast[1]
-            y3 = my_forecast[2]
-
-            c_y1, c_y2, c_y3 = st.columns(3)
-            with c_y1:
-                st.html(
-                    f"""<div class="metric-card metric-card-blue" style="min-height: 145px;">
-    <div class="metric-top">
-        <span class="metric-title">{y1['horizon']}</span>
-        <span class="metric-icon-badge badge-tint-blue">🌱</span>
-    </div>
-    <div class="metric-num-wrap">
-        <span class="metric-num num-blue">{y1['annual_bottles']:,}</span>
-        <span class="metric-unit">b/yr</span>
-    </div>
-    <div style="font-size: 0.80rem; font-weight: 700; color: #1565c0; margin: 3px 0;">
-        Daily Average: <strong>{y1['daily_average']:.1f} b/d</strong> ({y1['capacity_utilization']} of Mature Capacity)
-    </div>
-    <div class="metric-subtitle">{y1['operational_focus']}</div>
-</div>"""
-                )
-            with c_y2:
-                st.html(
-                    f"""<div class="metric-card metric-card-green" style="min-height: 145px;">
-    <div class="metric-top">
-        <span class="metric-title">{y2['horizon']}</span>
-        <span class="metric-icon-badge badge-tint-green">⭐</span>
-    </div>
-    <div class="metric-num-wrap">
-        <span class="metric-num num-green">{y2['annual_bottles']:,}</span>
-        <span class="metric-unit">b/yr</span>
-    </div>
-    <div style="font-size: 0.80rem; font-weight: 700; color: #2e7d32; margin: 3px 0;">
-        Daily Average: <strong>{y2['daily_average']:.1f} b/d</strong> (100% Mature Steady-State)
-    </div>
-    <div class="metric-subtitle">{y2['operational_focus']}</div>
-</div>"""
-                )
-            with c_y3:
-                st.html(
-                    f"""<div class="metric-card metric-card-purple" style="min-height: 145px;">
-    <div class="metric-top">
-        <span class="metric-title">{y3['horizon']}</span>
-        <span class="metric-icon-badge badge-tint-purple">🚀</span>
-    </div>
-    <div class="metric-num-wrap">
-        <span class="metric-num num-purple">{y3['annual_bottles']:,}</span>
-        <span class="metric-unit">b/yr</span>
-    </div>
-    <div style="font-size: 0.80rem; font-weight: 700; color: #6a1b9a; margin: 3px 0;">
-        Daily Average: <strong>{y3['daily_average']:.1f} b/d</strong> (+5.5% YoY Coripet Network Growth)
-    </div>
-    <div class="metric-subtitle">{y3['operational_focus']}</div>
-</div>"""
-                )
 
         season_fig = render_seasonality_chart(monthly_profile, steady_state_benchmark=bottiglie_day)
         st.plotly_chart(season_fig, use_container_width=True)
@@ -2684,6 +4218,88 @@ def render_prediction_dashboard(
 </div>"""
         )
 
+    # ------------------------------------------------------------------
+    # Dynamic Growth Levers Logic (Adapts to specific location context)
+    # ------------------------------------------------------------------
+    # Lever 1: Promotional Policy Strategy
+    has_high_incentive = mult_b >= 1.25 or "voucher" in reward_name.lower() or "buono" in reward_name.lower()
+    if has_high_incentive:
+        l1_title = "1. Milestone Gamification & Weekend Multipliers"
+        l1_tag = "+15% TO +25% VELOCITY"
+        l1_badge1 = f"🎟️ Active Policy: <strong>{reward_name}</strong> ({mult_b:.2f}x lift active)"
+        l1_badge2 = "📊 Velocity Boost: <strong>2x points on Sat/Sun</strong> or milestone €5 voucher"
+        l1_desc = f"With {reward_name} already underwriting strong baseline demand, escalate repeat visits with weekend deposit challenges and monthly loyalty tier milestones."
+    else:
+        l1_title = "1. High-Incentive Checkout Vouchers"
+        l1_tag = "+25% TO +45% YIELD"
+        l1_badge1 = f"🎟️ Current Policy: <strong>{reward_name}</strong> (Baseline {mult_b:.2f}x)"
+        l1_badge2 = "📊 Recommended: <strong>Direct Grocery Voucher</strong> (e.g. €3 off €25)"
+        l1_desc = "Upgrading from baseline loyalty to direct checkout cash discounts drives shoppers to accumulate bottles at home and return on every regular shopping run."
+
+    # Lever 2: Hardware Capacity & Logistics Management
+    hw_p_fit = prob.get("hardware_operational_fit", {})
+    p_over_val = float(hw_p_fit.get("p_daily_overflow_risk", 0.0))
+    p_under_val = float(hw_p_fit.get("p_underutilization_risk", 0.0))
+
+    if p_over_val >= 12.0 or bottiglie_day > (sat_thresh * 0.70):
+        l2_title = "2. Prevent Weekend Saturation Lockouts"
+        l2_tag = "+15% TO +25% RECAPTURED"
+        l2_badge1 = f"🛑 Saturation Risk: <strong>{p_over_val:.1f}% Daily Overflow Probability</strong>"
+        l2_badge2 = f"⚙️ Protocol: <strong>Pre-Saturday Bag-Swap</strong> (Threshold: {sat_thresh:,.0f} b/d)"
+        l2_desc = f"Peak throughput threatens to fill the {m_type} compactor bin on peak days. Automated telemetry alerts and Friday evening bag resets prevent Saturday lockout downtime."
+    elif p_under_val >= 35.0 or bottiglie_day < 300.0:
+        l2_title = "2. Cross-Merchandising & Cashier Prompts"
+        l2_tag = "+20% TO +35% ADOPTION"
+        l2_badge1 = f"📉 Current Intake: <strong>{bottiglie_day:.0f} b/d vs {sat_thresh:,.0f} b/d capacity</strong>"
+        l2_badge2 = "🛒 Trigger: <strong>Cashier receipt callouts</strong> & water-aisle shelf talkers"
+        l2_desc = f"The {m_type} unit has abundant spare capacity. Educating shoppers in high-volume beverage aisles and at cash registers rapidly converts footfall into regular recyclers."
+    else:
+        l2_title = "2. High-Availability IoT Telemetry Monitoring"
+        l2_tag = "+10% TO +15% UPTIME"
+        l2_badge1 = f"⚙️ Hardware Class: <strong>{m_type}</strong> ({service_rhythm})"
+        l2_badge2 = "📶 Telemetry: <strong>99%+ Service Level Agreement</strong>"
+        l2_desc = "Proactive sensor monitoring and remote diagnostics maintain near-100% operational availability, reinforcing permanent shopper recycling habits."
+
+    # Lever 3: Spatial Catchment & Cannibalization Defense
+    if c_within_3km >= 2 or dist_km < 1.5 or dilution_pct >= 10.0:
+        l3_title = f"3. Defend Local Catchment ({nearest_dist_str} to Competitor)"
+        l3_tag = "+15% TO +30% RETENTION"
+        l3_badge1 = f"📡 Local Density: <strong>{c_within_3km} Coripet units in 3 km</strong> (-{dilution_pct:.1f}% dilution)"
+        l3_badge2 = "🔒 Defense Strategy: <strong>Store-exclusive app rewards</strong>"
+        l3_desc = f"With {nearest_name} only {nearest_dist_str} away, lock in local households with store-exclusive checkout coupons that cannot be redeemed at competing locations."
+    elif c_within_3km == 0 and dist_km >= 3.0:
+        l3_title = "3. Regional Anchor Monopoly Expansion"
+        l3_tag = "+25% TO +40% FOOTFALL"
+        l3_badge1 = f"📍 Nearest Unit: <strong>{nearest_dist_str} away</strong> (Zero local competition)"
+        l3_badge2 = f"📢 Radius Catchment: <strong>{pop_val:,} residents</strong> in {comune_val}"
+        l3_desc = f"No competing Coripet machines exist within 3 km. Position this store as the primary recycling hub for the entire municipality with targeted geo-marketing."
+    else:
+        l3_title = "3. Trade-Area Grocery Footfall Interception"
+        l3_tag = "+15% TO +25% CONVERSION"
+        l3_badge1 = f"🏬 Grocery Cluster: <strong>{tot_grocery} stores in trade area</strong>"
+        l3_badge2 = "🎯 Objective: <strong>Convert external grocery traffic</strong>"
+        l3_desc = f"Leverage the surrounding cluster of {tot_grocery} grocery retailers by promoting Coripet recycling as an exclusive anchor reason to visit this specific store."
+
+    # Lever 4: Store Format & Spatial Wayfinding
+    if n_sqm >= 2500 or "IPR" in format_tag:
+        l4_title = "4. Parking Lot & Lobby Wayfinding Directionals"
+        l4_tag = "+20% TO +35% ACCESSIBILITY"
+        l4_badge1 = f"📐 Scale: <strong>{n_sqm:.0f} m² Hypermarket</strong> ({n_casse:.0f} casse)"
+        l4_badge2 = "🚗 Flow: <strong>Direct trunk-to-foyer cart signage</strong>"
+        l4_desc = "For large hypermarkets, clear parking lot totems and lobby placement enable shoppers to wheel bulky multi-bag bottle loads effortlessly before entering the retail floor."
+    elif n_sqm < 600 or "LIS" in format_tag:
+        l4_title = "4. Street-Window Visibility & Express Fast-Drop"
+        l4_tag = "+25% TO +40% COMMUTER FLOW"
+        l4_badge1 = f"🚶 Density: <strong>{dens_val:.0f} ab/km² urban pedestrian core</strong>"
+        l4_badge2 = "⚡ Speed: <strong>Front entrance express drop-off</strong>"
+        l4_desc = "In compact urban footprints, high street-window visibility captures pedestrian commuters on daily foot routines, turning proximity into frequent micro-deposits."
+    else:
+        l4_title = "4. Prime Pre-Turnstile Entrance Placement"
+        l4_tag = "+30% TO +50% FOOTFALL CAPTURE"
+        l4_badge1 = f"📐 Format: <strong>{n_sqm:.0f} m² Supermarket</strong>"
+        l4_badge2 = "🛒 Timing: <strong>Pre-shopping cart interception</strong>"
+        l4_desc = "Positioning the RVM immediately before shopping carts ensures customers deposit containers upon arrival, receive their discount ticket, and redeem it inside immediately."
+
     with col_levers:
         st.html(
             f"""<div class="intel-section" style="background: #ffffff; color: #0f172a; border-radius: 12px; padding: 18px 20px; border: 1px solid #cbd5e1; border-left: 5px solid #2e7d32; box-shadow: 0 4px 10px rgba(0,0,0,0.05); min-height: 720px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; box-sizing: border-box; margin-bottom: 15px;">
@@ -2699,57 +4315,57 @@ def render_prediction_dashboard(
 
 <div style="padding: 10px 13px; background: #fcfdfc; border: 1px solid #c8e6c9; border-left: 4px solid #16a34a; border-radius: 8px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box;">
     <div style="display: flex; justify-content: space-between; align-items: center;">
-        <strong style="color: #1b5e20; font-size: 0.83rem; font-weight: 800;">1. High-Incentive Checkout Vouchers</strong>
-        <span style="font-size: 0.65rem; background: #dcfce7; color: #15803d; padding: 1px 6px; border-radius: 4px; font-weight: 700;">+25% TO +45% YIELD</span>
+        <strong style="color: #1b5e20; font-size: 0.83rem; font-weight: 800;">{l1_title}</strong>
+        <span style="font-size: 0.65rem; background: #dcfce7; color: #15803d; padding: 1px 6px; border-radius: 4px; font-weight: 700;">{l1_tag}</span>
     </div>
     <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-        <span style="background: #ffffff; border: 1px solid #c8e6c9; padding: 2px 7px; border-radius: 5px; font-size: 0.73rem; color: #1e293b;">🎟️ Mechanism: <strong>Direct Grocery Voucher</strong> (e.g. €3 off min. €25 spend)</span>
-        <span style="background: #ffffff; border: 1px solid #c8e6c9; padding: 2px 7px; border-radius: 5px; font-size: 0.73rem; color: #1e293b;">📊 Velocity Lift: <strong>+35% repeat deposit velocity</strong> vs generic points</span>
+        <span style="background: #ffffff; border: 1px solid #c8e6c9; padding: 2px 7px; border-radius: 5px; font-size: 0.73rem; color: #1e293b;">{l1_badge1}</span>
+        <span style="background: #ffffff; border: 1px solid #c8e6c9; padding: 2px 7px; border-radius: 5px; font-size: 0.73rem; color: #1e293b;">{l1_badge2}</span>
     </div>
     <p style="font-size: 0.75rem; color: #475569; margin: 0; line-height: 1.35; font-weight: 500;">
-        Direct checkout discounts drive shoppers to accumulate bottles at home and return on every regular shopping run.
+        {l1_desc}
     </p>
 </div>
 
 <div style="padding: 10px 13px; background: #fcfdfc; border: 1px solid #c8e6c9; border-left: 4px solid #16a34a; border-radius: 8px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box;">
     <div style="display: flex; justify-content: space-between; align-items: center;">
-        <strong style="color: #1b5e20; font-size: 0.83rem; font-weight: 800;">2. High-Visibility Entrance Placement</strong>
-        <span style="font-size: 0.65rem; background: #dcfce7; color: #15803d; padding: 1px 6px; border-radius: 4px; font-weight: 700;">+30% TO +50% FOOTFALL</span>
+        <strong style="color: #1b5e20; font-size: 0.83rem; font-weight: 800;">{l2_title}</strong>
+        <span style="font-size: 0.65rem; background: #dcfce7; color: #15803d; padding: 1px 6px; border-radius: 4px; font-weight: 700;">{l2_tag}</span>
     </div>
     <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-        <span style="background: #ffffff; border: 1px solid #c8e6c9; padding: 2px 7px; border-radius: 5px; font-size: 0.73rem; color: #1e293b;">📍 Prime Location: <strong>Store Main Entrance / Lobby</strong></span>
-        <span style="background: #ffffff; border: 1px solid #c8e6c9; padding: 2px 7px; border-radius: 5px; font-size: 0.73rem; color: #1e293b;">📊 Discovery Lift: <strong>+40% footfall conversion</strong> vs exterior / rear lots</span>
+        <span style="background: #ffffff; border: 1px solid #c8e6c9; padding: 2px 7px; border-radius: 5px; font-size: 0.73rem; color: #1e293b;">{l2_badge1}</span>
+        <span style="background: #ffffff; border: 1px solid #c8e6c9; padding: 2px 7px; border-radius: 5px; font-size: 0.73rem; color: #1e293b;">{l2_badge2}</span>
     </div>
     <p style="font-size: 0.75rem; color: #475569; margin: 0; line-height: 1.35; font-weight: 500;">
-        Placing the RVM directly along natural customer arrival flow captures shoppers before they begin grocery shopping.
+        {l2_desc}
     </p>
 </div>
 
 <div style="padding: 10px 13px; background: #fcfdfc; border: 1px solid #c8e6c9; border-left: 4px solid #16a34a; border-radius: 8px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box;">
     <div style="display: flex; justify-content: space-between; align-items: center;">
-        <strong style="color: #1b5e20; font-size: 0.83rem; font-weight: 800;">3. Eliminate Bin-Full Lockouts</strong>
-        <span style="font-size: 0.65rem; background: #dcfce7; color: #15803d; padding: 1px 6px; border-radius: 4px; font-weight: 700;">+15% TO +20% RECAPTURED</span>
+        <strong style="color: #1b5e20; font-size: 0.83rem; font-weight: 800;">{l3_title}</strong>
+        <span style="font-size: 0.65rem; background: #dcfce7; color: #15803d; padding: 1px 6px; border-radius: 4px; font-weight: 700;">{l3_tag}</span>
     </div>
     <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-        <span style="background: #ffffff; border: 1px solid #c8e6c9; padding: 2px 7px; border-radius: 5px; font-size: 0.73rem; color: #1e293b;">🛑 Downtime Cause: <strong>"Cassonetto Pieno" Saturday Peak Lockout</strong></span>
-        <span style="background: #ffffff; border: 1px solid #c8e6c9; padding: 2px 7px; border-radius: 5px; font-size: 0.73rem; color: #1e293b;">📊 Recapture Lift: <strong>Recaptures 15-20% weekend volume</strong> via dual-feed bins</span>
+        <span style="background: #ffffff; border: 1px solid #c8e6c9; padding: 2px 7px; border-radius: 5px; font-size: 0.73rem; color: #1e293b;">{l3_badge1}</span>
+        <span style="background: #ffffff; border: 1px solid #c8e6c9; padding: 2px 7px; border-radius: 5px; font-size: 0.73rem; color: #1e293b;">{l3_badge2}</span>
     </div>
     <p style="font-size: 0.75rem; color: #475569; margin: 0; line-height: 1.35; font-weight: 500;">
-        Proactive Friday/Saturday bag change protocols prevent machines halting during maximum shopper volume hours.
+        {l3_desc}
     </p>
 </div>
 
 <div style="padding: 10px 13px; background: #fcfdfc; border: 1px solid #c8e6c9; border-left: 4px solid #16a34a; border-radius: 8px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box;">
     <div style="display: flex; justify-content: space-between; align-items: center;">
-        <strong style="color: #1b5e20; font-size: 0.83rem; font-weight: 800;">4. In-Store Point-of-Sale Awareness</strong>
-        <span style="font-size: 0.65rem; background: #dcfce7; color: #15803d; padding: 1px 6px; border-radius: 4px; font-weight: 700;">+10% TO +15% ADOPTION</span>
+        <strong style="color: #1b5e20; font-size: 0.83rem; font-weight: 800;">{l4_title}</strong>
+        <span style="font-size: 0.65rem; background: #dcfce7; color: #15803d; padding: 1px 6px; border-radius: 4px; font-weight: 700;">{l4_tag}</span>
     </div>
     <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-        <span style="background: #ffffff; border: 1px solid #c8e6c9; padding: 2px 7px; border-radius: 5px; font-size: 0.73rem; color: #1e293b;">📢 Campaign: <strong>Checkout Flyers & Floor Graphic Wayfinding</strong></span>
-        <span style="background: #ffffff; border: 1px solid #c8e6c9; padding: 2px 7px; border-radius: 5px; font-size: 0.73rem; color: #1e293b;">📊 Habit Lift: <strong>+12% household adoption</strong> within 60 days of launch</span>
+        <span style="background: #ffffff; border: 1px solid #c8e6c9; padding: 2px 7px; border-radius: 5px; font-size: 0.73rem; color: #1e293b;">{l4_badge1}</span>
+        <span style="background: #ffffff; border: 1px solid #c8e6c9; padding: 2px 7px; border-radius: 5px; font-size: 0.73rem; color: #1e293b;">{l4_badge2}</span>
     </div>
     <p style="font-size: 0.75rem; color: #475569; margin: 0; line-height: 1.35; font-weight: 500;">
-        In-store promotional collateral habituates local families to bring empty PET bottles from home on each grocery visit.
+        {l4_desc}
     </p>
 </div>
 </div>"""

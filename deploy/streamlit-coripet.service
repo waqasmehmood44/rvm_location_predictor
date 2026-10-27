@@ -1,0 +1,16 @@
+[Unit]
+Description=Coripet RVM Predictor Streamlit Service
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/vhosts/simulator.coripet.it/httpdocs
+Environment="PATH=/var/www/vhosts/simulator.coripet.it/httpdocs/venv/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/var/www/vhosts/simulator.coripet.it/httpdocs/venv/bin/streamlit run src/ui/app.py --server.port 8501 --server.address 127.0.0.1 --server.headless true --browser.gatherUsageStats false
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

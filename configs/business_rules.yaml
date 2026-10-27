@@ -21,20 +21,27 @@ scoring:
     bottles_per_person_target: 30.0
 
 recommendations:
-  # Suitability score tiers (0 - 100%)
+  # Official Coripet volume performance tiers (bottles/day)
   tiers:
-    high_potential:
-      min_score: 75.0
-      label: "HIGH POTENTIAL"
-      description: "High volume location with strong footfall and efficient collection."
-    medium_potential:
-      min_score: 50.0
-      label: "MEDIUM POTENTIAL"
-      description: "Moderate operational volume; acceptable installation viability."
-    low_potential:
-      min_score: 0.0
-      label: "LOW POTENTIAL"
-      description: "Below operational viability threshold; requires scrutiny or alternative placement."
+    super_prendente:
+      min_daily_bottles: 2000.0
+      label: "SUPER PRENDENTE"
+      description: "Hub strategico di eccellenza (> 2.000 b/giorno) ad altissima rotazione."
+    alto_prendente:
+      min_daily_bottles: 1000.0
+      max_daily_bottles: 2000.0
+      label: "ALTO PRENDENTE"
+      description: "Top performer commerciale (1.000 - 2.000 b/giorno) ad alto rendimento."
+    medio_prendente:
+      min_daily_bottles: 300.0
+      max_daily_bottles: 1000.0
+      label: "MEDIO PRENDENTE"
+      description: "Benchmark di rete standard sostenibile (300 - 1.000 b/giorno)."
+    basso_prendente:
+      min_daily_bottles: 0.0
+      max_daily_bottles: 300.0
+      label: "BASSO PRENDENTE"
+      description: "Volume contenuto (< 300 b/giorno); richiede presidio o monitoraggio costi."
 
 confidence:
   # Factors determining prediction confidence: HIGH, MEDIUM, LOW
