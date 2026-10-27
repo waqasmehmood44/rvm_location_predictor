@@ -55,7 +55,11 @@ def load_cached_audit_report() -> pd.DataFrame:
             pass
 
     # Fallback to running a fast audit if missing
-    return run_fleet_audit_scan()
+    try:
+        return run_fleet_audit_scan()
+    except Exception as e:
+        st.error(f"⚠️ Fleet audit scan requires database access: {e}. Please check your database connection in .env.")
+        return pd.DataFrame()
 
 
 def run_fleet_audit_scan() -> pd.DataFrame:
@@ -107,14 +111,19 @@ def fetch_machine_historical_records(machine_id: str) -> pd.DataFrame:
         WHERE codicemacchinaprod = :m_id
         ORDER BY giorno_dt ASC;
     """)
+    df = pd.DataFrame()
     try:
         with engine.connect() as conn:
             df = pd.read_sql(query, conn, params={"m_id": machine_id})
     except Exception:
-        # Fallback reconnect attempt in case pool connection was reset
-        engine.dispose()
-        with engine.connect() as conn:
-            df = pd.read_sql(query, conn, params={"m_id": machine_id})
+        try:
+            # Fallback reconnect attempt in case pool connection was reset
+            engine.dispose()
+            with engine.connect() as conn:
+                df = pd.read_sql(query, conn, params={"m_id": machine_id})
+        except Exception as e:
+            st.warning(f"Unable to load historical records from database: {e}")
+            return pd.DataFrame()
 
     if not df.empty:
         df["giorno_dt"] = pd.to_datetime(df["giorno_dt"])
