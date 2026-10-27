@@ -30,6 +30,16 @@ REPORT_CSV = ROOT_DIR / "data" / "reports" / "defected_and_outlier_machines.csv"
 @st.cache_resource
 def get_db_engine():
     """Returns a cached SQLAlchemy engine supporting PostgreSQL, MariaDB/MySQL, and SQLite."""
+    db_pass = os.getenv("DB_PASSWORD") or os.getenv("DB_PASS")
+    if db_pass:
+        from sqlalchemy.engine import URL
+        db_user = os.getenv("DB_USER", "waqas")
+        db_host = os.getenv("DB_HOST", "127.0.0.1")
+        db_port = int(os.getenv("DB_PORT", "3306"))
+        db_name = os.getenv("DB_NAME", "coripet_rvm")
+        url_obj = URL.create("mysql+pymysql", username=db_user, password=db_pass, host=db_host, port=db_port, database=db_name)
+        return create_engine(url_obj, pool_pre_ping=True, pool_size=5, max_overflow=10, pool_recycle=1800)
+
     db_url = os.getenv("DATABASE_URL", "").strip()
     if not db_url or db_url.startswith("sqlite"):
         db_path = ROOT_DIR / "data" / "coripet_rvm.db"
