@@ -1267,7 +1267,6 @@ def get_machines_by_status(status_str: str, current_only: bool = True) -> Tuple[
     # Sopralluoghi Inspection Records (Ordered by DataFineSopralluogo)
     # ------------------------------------------------------------------
     df_sop, sop_source = fetch_raw_coripet_sopralluoghi()
-    sop_pfs = set()
     df_sop_latest = pd.DataFrame()
     if not df_sop.empty and "CodicePuntoFisico" in df_sop.columns:
         df_sop["dt_fine_sop"] = pd.to_datetime(df_sop["DataFineSopralluogo"], errors="coerce")
@@ -1276,19 +1275,14 @@ def get_machines_by_status(status_str: str, current_only: bool = True) -> Tuple[
             .groupby("CodicePuntoFisico", as_index=False)
             .last()
         )
-        sop_pfs = set(df_sop_latest["CodicePuntoFisico"].dropna().unique())
 
     # Strictly Filter df for Today's Active Date (DataFineRange == max_dt)
     current_df = df[df["dt_fine"] == max_dt].copy()
     
-    # Filter for the requested status (SPL or POT)
+    # Filter for requested status strictly based on machine final status
     if status_str and status_str.upper().strip() != "ALL":
         target_st = status_str.upper().strip()
-        if target_st == "SPL":
-            # For SPL: include machines currently marked SPL OR that have an official Sopralluogo inspection
-            current_df = current_df[(current_df["Stato_Clean"] == "SPL") | (current_df["PuntoFisico"].isin(sop_pfs))].copy()
-        else:
-            current_df = current_df[current_df["Stato_Clean"] == target_st].copy()
+        current_df = current_df[current_df["Stato_Clean"] == target_st].copy()
         
     # Deduplicate to keep 1 physical record per PuntoFisico active today
     current_df = current_df.drop_duplicates(subset=["PuntoFisico"], keep="last").copy()
