@@ -906,58 +906,83 @@ st.markdown(
         box-shadow: 0 2px 6px rgba(27, 94, 32, 0.25) !important;
     }
 
-    /* Strict Select-Only Dropdowns & Filter Fields (No Text Editing or Typing Cursor) */
+    /* Strict Select-Only Dropdowns & Filter Fields: Non-editable, no typing cursor, no text modification */
     div[data-baseweb="select"] input {
+        pointer-events: none !important;
         caret-color: transparent !important;
         cursor: pointer !important;
         user-select: none !important;
         -webkit-user-select: none !important;
     }
+    div[data-baseweb="select"] input:focus {
+        caret-color: transparent !important;
+        outline: none !important;
+        box-shadow: none !important;
+    }
     div[data-baseweb="select"] {
         cursor: pointer !important;
+        user-select: none !important;
+        -webkit-user-select: none !important;
     }
     div[data-baseweb="select"] * {
         cursor: pointer !important;
+        user-select: none !important;
+        -webkit-user-select: none !important;
     }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# Enforce read-only select behavior: users can strictly choose from dropdown, not edit/type characters
+# Enforce strict read-only select behavior: block all typing, pasting, or text editing on selectboxes across all screens
 components.html(
     """
     <script>
     (function() {
-        function enforceReadOnlySelects() {
+        function setupSelectProtection() {
             try {
-                const doc = window.parent.document;
-                if (!doc) return;
-                const inputs = doc.querySelectorAll('div[data-baseweb="select"] input');
-                inputs.forEach(inp => {
-                    if (!inp.hasAttribute('readonly')) {
-                        inp.setAttribute('readonly', 'readonly');
-                        inp.setAttribute('inputmode', 'none');
-                        inp.style.caretColor = 'transparent';
-                        inp.style.cursor = 'pointer';
-                        inp.addEventListener('keydown', function(e) {
-                            if (['ArrowDown', 'ArrowUp', 'Enter', 'Escape', 'Tab'].includes(e.key)) {
+                const targetDoc = window.parent && window.parent.document ? window.parent.document : document;
+                if (!targetDoc) return;
+
+                // Capture-phase listener to block any keyboard typing into selectbox inputs
+                const blockInputEvents = ['keydown', 'keypress', 'beforeinput', 'input', 'paste', 'cut'];
+                blockInputEvents.forEach(eventType => {
+                    targetDoc.addEventListener(eventType, function(e) {
+                        const el = e.target;
+                        if (el && el.tagName === 'INPUT' && el.closest('div[data-baseweb="select"]')) {
+                            // Allow keyboard navigation keys only (arrows, enter, escape, tab)
+                            if (e.type === 'keydown' && ['ArrowDown', 'ArrowUp', 'Enter', 'Escape', 'Tab'].includes(e.key)) {
                                 return;
                             }
                             e.preventDefault();
                             e.stopPropagation();
-                        }, true);
-                        inp.addEventListener('paste', function(e) { e.preventDefault(); }, true);
-                        inp.addEventListener('cut', function(e) { e.preventDefault(); }, true);
-                    }
+                        }
+                    }, true);
                 });
+
+                // Set readonly and pointer-events on all selectbox input elements
+                function applyReadOnly() {
+                    const inputs = targetDoc.querySelectorAll('div[data-baseweb="select"] input');
+                    inputs.forEach(inp => {
+                        inp.setAttribute('readonly', 'readonly');
+                        inp.setAttribute('inputmode', 'none');
+                        inp.setAttribute('autocomplete', 'off');
+                        inp.style.pointerEvents = 'none';
+                        inp.style.caretColor = 'transparent';
+                        inp.style.cursor = 'pointer';
+                        inp.style.userSelect = 'none';
+                    });
+                }
+
+                applyReadOnly();
+                const observer = new MutationObserver(applyReadOnly);
+                if (targetDoc.body) {
+                    observer.observe(targetDoc.body, { childList: true, subtree: true });
+                }
             } catch(e) {}
         }
-        enforceReadOnlySelects();
-        if (window.parent && window.parent.document && window.parent.document.body) {
-            const observer = new MutationObserver(enforceReadOnlySelects);
-            observer.observe(window.parent.document.body, { childList: true, subtree: true });
-        }
+        setupSelectProtection();
+        setInterval(setupSelectProtection, 1500);
     })();
     </script>
     """,
