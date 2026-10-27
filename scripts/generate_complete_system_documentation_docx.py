@@ -333,7 +333,7 @@ meta_data = [
     ["Loss Formulation", "MultiTaskHuberLoss (delta=1.0) with Task-Balancing & Anomaly Sample Weights"],
     ["Certified Hardware Suite", "4 Certified Models Evaluated Simultaneously: Daint A-bis, Daint B-Bis, Daint G, Ripet C-Front"],
     ["Geographic Coverage", "Republic of Italy: 107 Provinces, 7,904 Municipalities, 25,104 Nielsen Store Universe"],
-    ["Database Repository", "Universal MariaDB 10.6+ / PostgreSQL 16 Architecture (2,039 Physical Machines, 1,982 Active Points, 1.77M Telemetry Rows in master_daily_rvm)"],
+    ["Database Repository", "Universal MariaDB 10.6+ / PostgreSQL 16 Architecture (1,849 Active Installed Machines, 1.77M Telemetry Rows in master_daily_rvm)"],
     ["Inspection Ingestion", "Live Coripet REST API (macchine.coripet.it) with PUNTOVENDITA Commercial Grocery Filter"],
     ["Clearance Engine", "6 Core Operational Clearance Gates with 250 b/d Breakeven Economic Threshold"],
     ["Anomaly Fleet Audit", "10-Option Rule Filtering Dropdown covering 8 Certified Hardware & Operational Anomaly Regimes"]
@@ -370,31 +370,49 @@ nav_data = [
 ]
 create_styled_table(doc, nav_headers, nav_data, col_widths=[0.8, 1.8, 2.7, 1.5])
 
-add_heading_2(doc, "1.1 Verified National Fleet Census & Machine Breakdown")
+add_heading_2(doc, "1.1 Verified National Fleet Census & Pipeline Breakdown")
 add_body_p(
     doc,
-    "The Coripet intelligence architecture maintains strict distinction between physical machine hardware serials (macchina), "
-    "physical supermarket store points (PF / Punto Fisico), and candidate pipeline stages across Italy:"
+    "The Coripet intelligence architecture strictly filters and categorizes the national network into active operational installations "
+    "and prospective candidate pipeline stages across Italy, removing all decommissioned or inactive machines:"
 )
 
 census_headers = ["Fleet Census Metric", "Exact Count", "Database Scope & Architectural Definition", "Application & Modeling Role"]
 census_data = [
-    ["Total Physical Machines (Telemetry)", "2,039 machines", "Distinct 'macchina' hardware serials across all chronological telemetry records in master_daily_rvm.", "Complete physical hardware telemetry universe."],
-    ["Active Supermarket Locations (PF)", "1,982 locations", "Physical supermarket sites (Punto Fisico) actively operating with 'ATTVO' status.", "Live commercial network footprint."],
-    ["Modern Operational Fleet (>= 2024)", "1,996 machines", "1,963 distinct physical stores with recorded bottle collections from 2024 to present date.", "Contemporary operational network baseline."],
-    ["Certified Training Cohort", "1,681 stores", "1,481,324 certified daily records meeting 4-gate maturity rules (supermarket retail, standard attribute, mature).", "Baseline training and validation population for MultiTaskRVMNet & LightGBM."],
-    ["Fleet Registry Master", "2,237 machines", "Master registry table raw_storico_punto_fisico (2,567 unique PFs, 5,735 lifecycle installation assignments).", "Authoritative historical hardware allocation & contract tracking."],
-    ["Inspected Candidate Pipeline (SPL)", "61 machines", "Inspected candidate stores in Tab 2 with completed technical inspection (Sopralluogo Completato).", "Immediate deployment decision pipeline."],
-    ["Prospective Potential Pipeline (POT)", "331 machines", "Prospective candidate locations in Tab 3 undergoing preliminary feasibility screening (Potenziale).", "Early-stage commercial pipeline."],
-    ["Fleet Audit & Defect Diagnostics", "1,849 machines", "Active fleet continuously audited in Tab 4 across 8 certified anomaly & operational defect regimes.", "Proactive maintenance triage & anomaly alerts."]
+    [
+        "Active Installed Fleet (INSTALLAZIONI)",
+        "1,849 machines",
+        "Official Coripet active operational installation universe (PowerBI Installazioni baseline). Exactly 1,849 live, actively collecting RVMs operating across Italy (1,217 Cestone, 425 Cassonetto, 207 Sacco; 986 DAINT_G, 165 DAINT_A-bis, 19 DAINT_B-bis, 6 DAINT_B, 2 DAINT_A, Ripet C-Front/Bis).",
+        "Active commercial footprint and operational telemetry universe for fleet monitoring."
+    ],
+    [
+        "Certified AI Training Cohort",
+        "1,681 stores",
+        "1,481,324 certified daily collection records meeting 4-gate maturity rules (supermarket grocery retail, active installation, standard reward attribute, mature operating baseline >= 90 days).",
+        "Authoritative baseline training and cross-validation population for MultiTaskRVMNet & LightGBM."
+    ],
+    [
+        "Inspected Candidate Pipeline (SPL)",
+        "61 machines",
+        "Candidate supermarket store locations in Tab 2 with completed on-site technical inspection ('Sopralluogo Completato').",
+        "Immediate deployment decision, capital allocation, and underwriting handoff pipeline."
+    ],
+    [
+        "Prospective Candidate Pipeline (POT)",
+        "331 machines",
+        "Prospective candidate supermarket locations in Tab 3 undergoing preliminary feasibility screening ('Potenziale').",
+        "Early-stage commercial opportunity exploration and screening prior to field dispatch."
+    ]
 ]
 create_styled_table(doc, census_headers, census_data, col_widths=[1.7, 1.1, 2.3, 1.7])
 
 add_callout(
     doc,
-    "The 2,039 physical machines installed across 1,982 active physical supermarket locations represent the verified national telemetry fleet. "
-    "For machine learning training, exactly 1,681 stores meet all four certification gates (PUNTOVENDITA retail classification, active status, standard reward attribute, and >= 90-day post-activation maturity).",
-    title="FLEET CENSUS CERTIFICATION"
+    "The operational network consists strictly of 1,849 active installed machines across Italy, directly matching Coripet's official PowerBI Installazioni dashboard. "
+    "All decommissioned, inactive, or removed machines have been purged from the active operational scope. "
+    "For predictive machine learning modeling, exactly 1,681 mature active stores satisfy all 4 certification gates (PUNTOVENDITA retail classification, active status, standard reward attribute, and >= 90-day post-activation maturity). "
+    "Candidate uninstalled locations are tracked separately in the SPL (61 inspected) and POT (331 prospective) development pipelines.",
+    title="ACTIVE FLEET & PIPELINE CENSUS CERTIFICATION"
 )
 
 # =========================================================================
@@ -524,7 +542,7 @@ add_bullet_p(doc, "Expected unique daily recycling visitors visiting the RVM uni
 add_bullet_p(doc, "Underwritten daily PET container intake under mature operating conditions.", bold_prefix="• Daily PET Yield (b/day): ")
 add_bullet_p(doc, "30-day operational collection run (Daily Yield x 30.4).", bold_prefix="• Monthly Volume (b/mo): ")
 add_bullet_p(doc, "Recycle intensity per visit (Daily Bottles / Daily Footfall). Standard national range is 22 to 45 b/user.", bold_prefix="• Bottles / User (b/user): ")
-add_bullet_p(doc, "Network benchmark percentile ranking this store against the 2,039 operational Coripet machines (1,982 active physical store locations).", bold_prefix="• Suitability Rank (% score): ")
+add_bullet_p(doc, "Network benchmark percentile ranking this store against the 1,849 active installed Coripet machines across Italy.", bold_prefix="• Suitability Rank (% score): ")
 
 add_heading_2(doc, "3.5 Two-Column Visuals & Verbatim Location Analysis")
 add_body_p(
@@ -838,7 +856,7 @@ add_heading_1(doc, "8. Tab 4: Fleet Outlier & Hardware Defect Detection Simulato
 add_body_p(
     doc,
     "Tab 4 (`🔍 Outlier & Defect Simulator`) provides a complete fleet intelligence and predictive maintenance engine. "
-    "It continuously audits all 1,849 diagnostic fleet machines in the active census (drawn from the 2,039 physical machines) to identify hardware breakdowns, capacity jams, "
+    "It continuously audits all 1,849 active installed machines in the live census to identify hardware breakdowns, capacity jams, "
     "commercial spikes, and erratic operating regimes."
 )
 
@@ -898,26 +916,31 @@ add_body_p(
     doc,
     "The underlying technical stack is engineered for production stability, low latency, and high mathematical precision:"
 )
-add_bullet_p(doc, "Universal MariaDB 10.6+ and PostgreSQL 16 relational database with master table `master_daily_rvm` containing 1.77M+ (1,770,755) certified collection records across 2,039 physical machines and 1,982 active locations. Optimized with sub-10ms indexed UNION queries and connection pooling.", bold_prefix="• Database Layer: ")
+add_bullet_p(doc, "Universal MariaDB 10.6+ and PostgreSQL 16 relational database with master table `master_daily_rvm` containing 1.77M+ (1,770,755) certified collection records across the 1,849 active installed machines. Optimized with sub-10ms indexed UNION queries and connection pooling.", bold_prefix="• Database Layer: ")
 add_bullet_p(doc, "Multi-task tabular neural network built in PyTorch (MultiTaskRVMNet) with entity embeddings for categorical features, GELU activations, and LayerNorm. Simulates an 84-day seasonal calendar grid.", bold_prefix="• Neural Network Core: ")
 add_bullet_p(doc, "Calibrated gradient-boosted decision trees (LightGBM) blended with neural network predictions using optimal cross-validated ensemble weights.", bold_prefix="• Stacking Ensemble: ")
 add_bullet_p(doc, "Haversine spatial calculations, concentric buffer rings (1km, 3km, 5km), and demographic census integration from ISTAT municipal records.", bold_prefix="• Spatial Intelligence: ")
 add_bullet_p(doc, "Streamlit web application running on port 8501 with custom CSS glassmorphism, responsive column flexboxes, and interactive Plotly visualization components.", bold_prefix="• User Interface: ")
 
-# Save Document to both paths
-saved_paths = []
-try:
-    doc.save(str(OUTPUT_DOCX))
-    saved_paths.append(str(OUTPUT_DOCX))
-    print(f"Master Document successfully generated at: {OUTPUT_DOCX}")
-except PermissionError:
-    print(f"Warning: {OUTPUT_DOCX} is currently open.")
+# Save Document across standard paths to handle any open file locks gracefully
+output_targets = [
+    ROOT_DIR / "docs" / "Coripet_RVM_Predictor_Complete_System_Manual.docx",
+    ROOT_DIR / "docs" / "Coripet_RVM_Predictor_Complete_System_Manual_Updated.docx",
+    ROOT_DIR / "docs" / "Coripet_RVM_Predictor_Complete_System_Manual_Final.docx",
+    ROOT_DIR / "docs" / "Coripet_RVM_Predictor_Active_Fleet_System_Manual.docx"
+]
 
-alt_docx = ROOT_DIR / "docs" / "Coripet_RVM_Predictor_Complete_System_Manual_Updated.docx"
-try:
-    doc.save(str(alt_docx))
-    saved_paths.append(str(alt_docx))
-    print(f"Updated copy saved to: {alt_docx}")
-except PermissionError:
-    print(f"Warning: {alt_docx} is currently open.")
+saved_paths = []
+for p in output_targets:
+    try:
+        doc.save(str(p))
+        saved_paths.append(str(p))
+        print(f"Successfully generated: {p.name}")
+    except PermissionError:
+        print(f"Skipping locked file: {p.name} (currently open in MS Word)")
+
+if saved_paths:
+    print(f"\nDocument generation complete. Updated {len(saved_paths)} file(s).")
+else:
+    print("\nError: All destination paths are currently locked by MS Word.")
 
