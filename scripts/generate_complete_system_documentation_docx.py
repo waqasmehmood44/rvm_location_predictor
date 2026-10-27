@@ -922,25 +922,10 @@ add_bullet_p(doc, "Calibrated gradient-boosted decision trees (LightGBM) blended
 add_bullet_p(doc, "Haversine spatial calculations, concentric buffer rings (1km, 3km, 5km), and demographic census integration from ISTAT municipal records.", bold_prefix="• Spatial Intelligence: ")
 add_bullet_p(doc, "Streamlit web application running on port 8501 with custom CSS glassmorphism, responsive column flexboxes, and interactive Plotly visualization components.", bold_prefix="• User Interface: ")
 
-# Save Document across standard paths to handle any open file locks gracefully
-output_targets = [
-    ROOT_DIR / "docs" / "Coripet_RVM_Predictor_Complete_System_Manual.docx",
-    ROOT_DIR / "docs" / "Coripet_RVM_Predictor_Complete_System_Manual_Updated.docx",
-    ROOT_DIR / "docs" / "Coripet_RVM_Predictor_Complete_System_Manual_Final.docx",
-    ROOT_DIR / "docs" / "Coripet_RVM_Predictor_Active_Fleet_System_Manual.docx"
-]
-
-saved_paths = []
-for p in output_targets:
-    try:
-        doc.save(str(p))
-        saved_paths.append(str(p))
-        print(f"Successfully generated: {p.name}")
-    except PermissionError:
-        print(f"Skipping locked file: {p.name} (currently open in MS Word)")
-
-if saved_paths:
-    print(f"\nDocument generation complete. Updated {len(saved_paths)} file(s).")
-else:
-    print("\nError: All destination paths are currently locked by MS Word.")
+# Save Document strictly to single authoritative master file
+try:
+    doc.save(str(OUTPUT_DOCX))
+    print(f"\nAuthoritative Master Document successfully generated at: {OUTPUT_DOCX.name}")
+except PermissionError:
+    print(f"\nWarning: {OUTPUT_DOCX.name} is currently open in MS Word. Please close MS Word and re-run.")
 
