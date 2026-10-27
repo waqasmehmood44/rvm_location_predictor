@@ -1,11 +1,11 @@
 {
-  "train_rows": 890395,
-  "val_rows": 215445,
-  "test_rows": 290704,
-  "train_pfs": 1061,
-  "val_pfs": 265,
+  "train_rows": 940722,
+  "val_rows": 233052,
+  "test_rows": 307550,
+  "train_pfs": 1080,
+  "val_pfs": 270,
   "test_pfs": 331,
-  "total_rows": 1396544,
-  "total_pfs": 1657,
+  "total_rows": 1481324,
+  "total_pfs": 1681,
   "seed": 42
 }
