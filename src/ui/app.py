@@ -1745,8 +1745,17 @@ def render_machine_directory(
         unsafe_allow_html=True,
     )
 
+    # Filter Reset Callback
+    def reset_filters_callback():
+        st.session_state[f"search_{status_label}"] = ""
+        st.session_state[tf_key] = default_opt
+        st.session_state[f"tier_filter_{status_label}"] = "All Volume Tiers"
+        st.session_state[f"region_filter_{status_label}"] = "All Regions"
+        st.session_state[f"sort_order_{status_label}"] = "🥇 Highest Volume (Default)"
+        st.toast(f"↺ Filters reset for {status_label} machines!")
+
     # Search & filters bar
-    c_search, c_time, c_tier, c_reg, c_sort, c_ref = st.columns([1.8, 1.4, 1.2, 1.0, 1.2, 0.6])
+    c_search, c_time, c_tier, c_reg, c_sort, c_reset, c_ref = st.columns([1.8, 1.3, 1.1, 1.0, 1.1, 0.65, 0.65])
     with c_search:
         search_query = st.text_input(
             f"🔍 Search {status_label} Machines",
@@ -1802,6 +1811,15 @@ def render_machine_directory(
             options=sort_options,
             index=0,
             key=f"sort_order_{status_label}",
+        )
+
+    with c_reset:
+        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+        st.button(
+            "↺ Reset",
+            key=f"btn_reset_{status_label}",
+            help=f"Reset all filters and search query for {status_label} machines back to default",
+            on_click=reset_filters_callback
         )
 
     with c_ref:
@@ -1865,7 +1883,8 @@ def render_machine_directory(
 
     n_filtered = len(filtered_df)
     if n_filtered == 0:
-        st.info(f"ℹ️ No {status_label} machines matched the selected criteria (**{selected_timeframe}**). Try selecting another survey recency window or clearing search filters.")
+        st.info(f"ℹ️ No {status_label} machines matched the selected criteria (**{selected_timeframe}**).")
+        st.button("↺ Reset All Filters", key=f"btn_reset_empty_{status_label}", on_click=reset_filters_callback)
         return
 
     # Pagination setup
