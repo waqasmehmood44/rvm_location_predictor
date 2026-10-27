@@ -116,10 +116,10 @@ class TestLocationSuitabilityEngine(unittest.TestCase):
         self.assertEqual(rec["decision"], "NOT RECOMMENDED (DO NOT INSTALL)")
 
     def test_conditional_pilot_marginal_store(self):
-        """Test that a store with marginal volume near 120 b/d breakeven gets CONDITIONAL status without being rejected."""
+        """Test that a store with marginal volume near 250 b/d breakeven gets CONDITIONAL status without being rejected."""
         suit = evaluate_location_suitability(
-            realized_daily_bottles=135.0,
-            unconstrained_daily_bottles=150.0,
+            realized_daily_bottles=275.0,
+            unconstrained_daily_bottles=300.0,
             nearest_coripet_km=1.2,
             nearest_pf_name="Pam",
             dilution_percentage=8.0,

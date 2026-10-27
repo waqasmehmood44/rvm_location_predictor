@@ -152,10 +152,11 @@ def save_benchmarks(benchmarks):
 def compute_metrics(benchmarks):
     results = []
     for b in benchmarks:
-        pred_b = b["pred_bottles"]
-        act_b = b["actual_bottles"]
-        pred_u = b.get("pred_users", 0.0)
-        act_u = b.get("actual_users", 0.0)
+        pred_b = float(b.get("pred_bottles", b.get("predB", 0.0)))
+        act_b = float(b.get("actual_bottles", b.get("actB", 0.0)))
+        pred_u = float(b.get("pred_users", b.get("predU", 0.0)))
+        act_u = float(b.get("actual_users", b.get("actU", 0.0)))
+        s_name = b.get("store_name", b.get("name", ""))
 
         err_b = pred_b - act_b
         pct_err_b = (err_b / act_b) * 100.0 if act_b > 0 else 0.0
@@ -167,6 +168,11 @@ def compute_metrics(benchmarks):
 
         results.append({
             **b,
+            "store_name": s_name,
+            "pred_bottles": round(pred_b, 1),
+            "actual_bottles": round(act_b, 1),
+            "pred_users": round(pred_u, 1),
+            "actual_users": round(act_u, 1),
             "error_bottles": round(err_b, 1),
             "pct_error_bottles": round(pct_err_b, 1),
             "accuracy_bottles": round(acc_b, 1),
