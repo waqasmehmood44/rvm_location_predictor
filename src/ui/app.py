@@ -1264,33 +1264,36 @@ def get_machines_by_status(status_str: str, current_only: bool = True) -> Tuple[
     max_dt_str = max_dt.strftime("%d/%m/%Y") if pd.notna(max_dt) else "Current Date"
 
     # ------------------------------------------------------------------
-    # Strictly Filter df for Today's Active Date (DataFineRange == max_dt)
-    # Remove all machines whose DataFineRange is old
-    # ------------------------------------------------------------------
-    current_df = df[df["dt_fine"] == max_dt].copy()
-    
-    # Filter for the requested status (SPL or POT)
-    if status_str and status_str.upper().strip() != "ALL":
-        target_st = status_str.upper().strip()
-        current_df = current_df[current_df["Stato_Clean"] == target_st].copy()
-        
-    # Deduplicate to keep 1 physical record per PuntoFisico active today
-    current_df = current_df.drop_duplicates(subset=["PuntoFisico"], keep="last").copy()
-
-    # ------------------------------------------------------------------
     # Sopralluoghi Inspection Records (Ordered by DataFineSopralluogo)
     # ------------------------------------------------------------------
     df_sop, sop_source = fetch_raw_coripet_sopralluoghi()
+    sop_pfs = set()
+    df_sop_latest = pd.DataFrame()
     if not df_sop.empty and "CodicePuntoFisico" in df_sop.columns:
         df_sop["dt_fine_sop"] = pd.to_datetime(df_sop["DataFineSopralluogo"], errors="coerce")
-
-        # Keep latest inspection per CodicePuntoFisico
         df_sop_latest = (
             df_sop.sort_values(by="dt_fine_sop", ascending=True)
             .groupby("CodicePuntoFisico", as_index=False)
             .last()
         )
+        sop_pfs = set(df_sop_latest["CodicePuntoFisico"].dropna().unique())
 
+    # Strictly Filter df for Today's Active Date (DataFineRange == max_dt)
+    current_df = df[df["dt_fine"] == max_dt].copy()
+    
+    # Filter for the requested status (SPL or POT)
+    if status_str and status_str.upper().strip() != "ALL":
+        target_st = status_str.upper().strip()
+        if target_st == "SPL":
+            # For SPL: include machines currently marked SPL OR that have an official Sopralluogo inspection
+            current_df = current_df[(current_df["Stato_Clean"] == "SPL") | (current_df["PuntoFisico"].isin(sop_pfs))].copy()
+        else:
+            current_df = current_df[current_df["Stato_Clean"] == target_st].copy()
+        
+    # Deduplicate to keep 1 physical record per PuntoFisico active today
+    current_df = current_df.drop_duplicates(subset=["PuntoFisico"], keep="last").copy()
+
+    if not df_sop_latest.empty:
         # Merge active today machines with their latest Sopralluogo inspection
         sub = current_df.merge(
             df_sop_latest[[
@@ -1701,6 +1704,7 @@ def render_machine_directory(
     ]
 
     tf_key = f"timeframe_filter_{status_label}"
+    default_opt = timeframe_options[0] if n_5m > 0 else timeframe_options[-1]
     if tf_key in st.session_state:
         cur_val = str(st.session_state[tf_key])
         if cur_val not in timeframe_options:
@@ -1708,9 +1712,11 @@ def render_machine_directory(
             if matched:
                 st.session_state[tf_key] = matched
             else:
-                st.session_state[tf_key] = timeframe_options[0]
+                st.session_state[tf_key] = default_opt
+    else:
+        st.session_state[tf_key] = default_opt
 
-    current_timeframe = st.session_state.get(tf_key, timeframe_options[0])
+    current_timeframe = st.session_state.get(tf_key, default_opt)
 
     # Metrics header banner (Adaptive Theme)
     st.markdown(
