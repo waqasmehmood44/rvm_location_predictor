@@ -1003,9 +1003,85 @@ st.markdown(
         pointer-events: none !important;
     }
 
+    /* Dropdown Filters (SPL, POT, Outliers): Full-box clickable, strictly non-editable, no cursor */
+    div[data-testid="stSelectbox"] div[data-baseweb="select"],
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] * {
+        cursor: pointer !important;
+    }
+    div[data-testid="stSelectbox"] input {
+        caret-color: transparent !important;
+        cursor: pointer !important;
+        user-select: none !important;
+        -webkit-user-select: none !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
+)
+
+# Enforce strictly non-editable, full-box clickable behavior on all dropdown filters
+components.html(
+    """
+    <script>
+    (function() {
+        function protectSelectFilters() {
+            try {
+                const doc = window.parent && window.parent.document ? window.parent.document : document;
+                if (!doc) return;
+
+                // Make all selectbox dropdown filter inputs readonly
+                const selectInputs = doc.querySelectorAll('div[data-testid="stSelectbox"] input');
+                selectInputs.forEach(inp => {
+                    // Strictly exclude login password & text inputs
+                    if (inp.type === 'password' || inp.closest('div[data-testid="stTextInput"]') || inp.closest('div[data-baseweb="input"]')) {
+                        return;
+                    }
+                    if (!inp.readOnly) {
+                        inp.readOnly = true;
+                        inp.setAttribute('readonly', 'readonly');
+                        inp.setAttribute('inputmode', 'none');
+                    }
+                });
+
+                if (!doc.__selectFilterProtectionActive) {
+                    doc.__selectFilterProtectionActive = true;
+
+                    // Block any keyboard typing into dropdown filters
+                    const blockKeys = ['keydown', 'keypress', 'beforeinput', 'input', 'paste', 'cut'];
+                    blockKeys.forEach(evt => {
+                        doc.addEventListener(evt, function(e) {
+                            const el = e.target;
+                            if (el && el.tagName === 'INPUT' && el.closest('div[data-testid="stSelectbox"]')) {
+                                if (e.type === 'keydown' && ['ArrowDown', 'ArrowUp', 'Enter', 'Escape', 'Tab'].includes(e.key)) {
+                                    return;
+                                }
+                                e.preventDefault();
+                                e.stopPropagation();
+                            }
+                        }, true);
+                    });
+
+                    // Full-box clickable: clicking anywhere on select container opens dropdown
+                    doc.addEventListener('click', function(e) {
+                        const selectBox = e.target.closest('div[data-testid="stSelectbox"] div[data-baseweb="select"]');
+                        if (selectBox && !e.target.closest('ul[role="listbox"]') && !e.target.closest('li[role="option"]')) {
+                            const inp = selectBox.querySelector('input');
+                            if (inp && e.target !== inp) {
+                                inp.focus();
+                            }
+                        }
+                    }, true);
+                }
+            } catch(e) {}
+        }
+
+        protectSelectFilters();
+        setInterval(protectSelectFilters, 600);
+    })();
+    </script>
+    """,
+    height=0,
+    width=0,
 )
 
 
