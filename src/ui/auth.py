@@ -1,11 +1,15 @@
 """
 Administrative Authentication Module for Coripet RVM Predictor.
 Implements timing-attack resistant credentials validation,
-session state management, and protected administrative gating.
+session state management, protected administrative gating,
+and persistent authenticated sessions across browser refreshes via HMAC-signed tokens.
 """
 
 import os
+import time
 import hmac
+import hashlib
+from typing import Optional
 from pathlib import Path
 import streamlit as st
 from dotenv import load_dotenv
@@ -16,6 +20,7 @@ load_dotenv(ROOT_DIR / ".env")
 # Configured admin credentials with secure defaults
 DEFAULT_ADMIN_USER = os.getenv("ADMIN_USERNAME", "admin").strip()
 DEFAULT_ADMIN_PASS = os.getenv("ADMIN_PASSWORD", "CoripetAdmin2026*").strip()
+AUTH_SALT = os.getenv("AUTH_SALT", "coripet_auth_token_salt_2026")
 
 
 def check_credentials(username: str, password: str) -> bool:
@@ -35,8 +40,90 @@ def check_credentials(username: str, password: str) -> bool:
     return user_match and pass_match
 
 
+def generate_auth_token(username: str) -> str:
+    """Generates a cryptographically signed authentication token."""
+    target_pass = os.getenv("ADMIN_PASSWORD", DEFAULT_ADMIN_PASS).strip()
+    timestamp = int(time.time())
+    secret = (target_pass + AUTH_SALT).encode("utf-8")
+    payload = f"{username}:{timestamp}"
+    sig = hmac.new(secret, payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    return f"{payload}:{sig}"
+
+
+def verify_auth_token(token: str, max_age_days: int = 30) -> Optional[str]:
+    """
+    Verifies the HMAC signature and timestamp of an authentication token.
+    Returns the authenticated username if valid, otherwise None.
+    """
+    if not token or ":" not in token:
+        return None
+    parts = token.split(":")
+    if len(parts) != 3:
+        return None
+    username, timestamp_str, sig = parts
+    try:
+        timestamp = int(timestamp_str)
+    except ValueError:
+        return None
+
+    # Expiry verification (default 30 days)
+    if time.time() - timestamp > max_age_days * 86400:
+        return None
+
+    target_user = os.getenv("ADMIN_USERNAME", DEFAULT_ADMIN_USER).strip()
+    target_pass = os.getenv("ADMIN_PASSWORD", DEFAULT_ADMIN_PASS).strip()
+
+    secret = (target_pass + AUTH_SALT).encode("utf-8")
+    expected_sig = hmac.new(secret, f"{username}:{timestamp}".encode("utf-8"), hashlib.sha256).hexdigest()
+
+    if hmac.compare_digest(sig, expected_sig) and username == target_user:
+        return username
+    return None
+
+
+def _get_auth_param() -> Optional[str]:
+    """Retrieves auth token from URL query parameters across Streamlit versions."""
+    try:
+        if hasattr(st, "query_params"):
+            val = st.query_params.get("auth")
+            if isinstance(val, list):
+                return val[0] if val else None
+            return val
+        elif hasattr(st, "experimental_get_query_params"):
+            params = st.experimental_get_query_params()
+            vals = params.get("auth", [])
+            return vals[0] if vals else None
+    except Exception:
+        pass
+    return None
+
+
+def _set_auth_param(token: str):
+    """Sets persistent auth token in URL query parameters."""
+    try:
+        if hasattr(st, "query_params"):
+            st.query_params["auth"] = token
+        elif hasattr(st, "experimental_set_query_params"):
+            st.experimental_set_query_params(auth=token)
+    except Exception:
+        pass
+
+
+def _clear_auth_param():
+    """Removes auth token from URL query parameters."""
+    try:
+        if hasattr(st, "query_params"):
+            if "auth" in st.query_params:
+                del st.query_params["auth"]
+        elif hasattr(st, "experimental_set_query_params"):
+            st.experimental_set_query_params()
+    except Exception:
+        pass
+
+
 def logout():
-    """Clears authentication session state and forces a fresh rerun."""
+    """Clears authentication session state, URL token, and forces a fresh rerun."""
+    _clear_auth_param()
     st.session_state["is_authenticated"] = False
     st.session_state.pop("authenticated_user", None)
     st.rerun()
@@ -68,15 +155,30 @@ def render_sidebar_user_badge():
 def require_auth() -> bool:
     """
     Complete security gate for the application.
-    If authenticated, renders user badge in the sidebar and returns True.
+    If authenticated via session state or valid signed URL token,
+    renders user badge in the sidebar and returns True without prompting for login.
     If unauthenticated, hides all internal components, renders the login portal,
     and returns False.
     """
+    # 1. Fast check: active session state in current memory
     if st.session_state.get("is_authenticated", False):
         render_sidebar_user_badge()
         return True
 
-    # Hide sidebar completely while logged out
+    # 2. Page refresh check: persistent cryptographically-signed token from URL
+    token = _get_auth_param()
+    if token:
+        valid_user = verify_auth_token(token)
+        if valid_user:
+            st.session_state["is_authenticated"] = True
+            st.session_state["authenticated_user"] = valid_user
+            render_sidebar_user_badge()
+            return True
+        else:
+            # Token expired or tampered -> clean up
+            _clear_auth_param()
+
+    # 3. Unauthenticated: Render Login Screen
     st.markdown(
         """
         <style>
@@ -151,6 +253,9 @@ def require_auth() -> bool:
                 if check_credentials(user_input, pass_input):
                     st.session_state["is_authenticated"] = True
                     st.session_state["authenticated_user"] = user_input
+                    # Set persistent signed token in URL query parameter
+                    token = generate_auth_token(user_input)
+                    _set_auth_param(token)
                     st.toast("✅ Authentication successful. Welcome to Coripet Predictor!", icon="🔓")
                     st.rerun()
                 else:
@@ -166,4 +271,3 @@ def require_auth() -> bool:
         )
 
     return False
-
