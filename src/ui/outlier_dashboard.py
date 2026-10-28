@@ -335,29 +335,6 @@ def render_outlier_and_defect_dashboard():
         unsafe_allow_html=True
     )
 
-    # Enforce strictly non-editable, full-box clickable dropdowns in Outlier tab
-    st.markdown(
-        """
-        <style>
-        div[data-testid="stSelectbox"],
-        div[data-baseweb="select"],
-        div[data-baseweb="select"] * {
-            cursor: pointer !important;
-        }
-        div[data-testid="stSelectbox"] input,
-        div[data-baseweb="select"] input,
-        div[role="combobox"] input,
-        input[aria-autocomplete="list"] {
-            caret-color: transparent !important;
-            pointer-events: auto !important;
-            user-select: none !important;
-            cursor: pointer !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
     # -------------------------------------------------------------
     # 3. Interactive Outlier Rule Filtering Bar
     # -------------------------------------------------------------
