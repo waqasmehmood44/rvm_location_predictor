@@ -22,16 +22,17 @@ REGION_TO_NIELSEN_AREA = {
 }
 
 def clean_retail_text(text: Any) -> str:
-    """Cleans and standardizes Italian store text, accents, and encoding artifacts."""
+    """Cleans and standardizes Italian store text, accents, apostrophes, and encoding artifacts."""
     if text is None or pd.isna(text):
         return ""
     s = str(text)
-    s = s.replace("ò", "o").replace("Ò", "O")
-    s = s.replace("à", "a").replace("À", "A")
-    s = s.replace("è", "e").replace("È", "E")
-    s = s.replace("é", "e").replace("É", "E")
-    s = s.replace("ì", "i").replace("Ì", "I")
-    s = s.replace("ù", "u").replace("Ù", "U")
+    # Strip smart quotes, apostrophes, and backticks
+    s = s.replace("'", " ").replace("’", " ").replace("`", " ").replace("´", " ")
+    s = s.replace("ò", "o").replace("Ò", "O").replace("ó", "o").replace("Ó", "O")
+    s = s.replace("à", "a").replace("À", "A").replace("á", "a").replace("Á", "A")
+    s = s.replace("è", "e").replace("È", "E").replace("é", "e").replace("É", "E")
+    s = s.replace("ì", "i").replace("Ì", "I").replace("í", "i").replace("Í", "I")
+    s = s.replace("ù", "u").replace("Ù", "U").replace("ú", "u").replace("Ú", "U")
     s = s.replace("\ufffd", "O")
     norm = unicodedata.normalize("NFKD", s).encode("ASCII", "ignore").decode("utf-8")
     norm = norm.upper()

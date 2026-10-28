@@ -61,11 +61,71 @@ def get_db_engine():
     return create_engine(db_url, pool_pre_ping=True)
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def load_all_machine_options() -> List[Dict[str, str]]:
     """Loads list of all physical machines (macchina) from database or cache for search selector."""
     engine = get_db_engine()
-    query = """
+
+    # 1. High-speed primary path: Query raw_storico_punto_fisico (~5k rows, executes in ~0.02s)
+    try:
+        query_fast = text("""
+            SELECT 
+                macchina, 
+                puntofisico as pf, 
+                codicemacchinaprod,
+                coalesce(nullif(nomefiliera, ''), nullif(filiera, ''), nullif(descrizione, ''), nullif(comodatario, ''), 'Store') as banner, 
+                descrizione,
+                comune, 
+                regione, 
+                tipomacchina as model,
+                indirizzo,
+                cap,
+                stato
+            FROM raw_storico_punto_fisico
+            WHERE macchina IS NOT NULL AND macchina != ''
+            ORDER BY id DESC
+        """)
+        with engine.connect() as conn:
+            df = pd.read_sql(query_fast, conn)
+        if not df.empty:
+            df_dedup = df.drop_duplicates(subset=["macchina"], keep="first")
+            records = []
+            for _, r in df_dedup.iterrows():
+                macchina = str(r["macchina"]).strip()
+                pf = str(r.get("pf", "")).strip()
+                sn = str(r.get("codicemacchinaprod", "")).strip()
+                banner = str(r.get("banner", "Store")).strip()
+                descrizione = str(r.get("descrizione", "")).strip()
+                comune = str(r.get("comune", "")).strip()
+                regione = str(r.get("regione", "")).strip()
+                model = str(r.get("model", "RVM")).strip()
+                indirizzo = str(r.get("indirizzo", "")).strip()
+                cap = str(r.get("cap", "")).strip()
+                stato = str(r.get("stato", "")).strip()
+
+                site_info = f" | Site: {pf}" if pf and pf != macchina else ""
+                label = f"{macchina} - {banner} ({comune}, {regione}) [{model}{site_info}]"
+                records.append({
+                    "macchina": macchina,
+                    "pf": pf,
+                    "serial": sn,
+                    "label": label,
+                    "banner": banner,
+                    "descrizione": descrizione,
+                    "comune": comune,
+                    "regione": regione,
+                    "model": model,
+                    "indirizzo": indirizzo,
+                    "cap": cap,
+                    "stato": stato
+                })
+            if records:
+                return records
+    except Exception:
+        pass
+
+    # 2. Secondary fallback: Query master_daily_rvm
+    query_fallback = """
         SELECT 
             macchina, 
             MAX(pf) as pf, 
@@ -81,7 +141,7 @@ def load_all_machine_options() -> List[Dict[str, str]]:
     """
     try:
         with engine.connect() as conn:
-            df = pd.read_sql(query, conn)
+            df = pd.read_sql(query_fallback, conn)
         records = []
         for _, r in df.iterrows():
             macchina = str(r["macchina"])

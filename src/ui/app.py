@@ -2420,16 +2420,41 @@ def main():
                             from src.ui.historical_vs_prediction import load_all_machine_options
                             all_m = load_all_machine_options()
                             matched_inst = None
+                            clean_s_norm = clean_retail_text(clean_s)
+                            clean_m_norm = clean_retail_text(clean_m)
+                            clean_a_core = extract_street_core(clean_a)
+                            clean_c_str = str(clean_c).strip().zfill(5)
+
                             for m in all_m:
-                                m_com = str(m.get("comune", "")).strip().lower()
-                                m_ban = str(m.get("banner", "")).strip().lower()
-                                if m_com and clean_m.strip().lower() == m_com:
-                                    if clean_s.strip().lower() in m_ban or m_ban in clean_s.strip().lower():
-                                        matched_inst = m
-                                        break
+                                m_com = clean_retail_text(m.get("comune", ""))
+                                m_ban = clean_retail_text(m.get("banner", ""))
+                                m_desc = clean_retail_text(m.get("descrizione", ""))
+                                m_addr = extract_street_core(m.get("indirizzo", ""))
+                                m_cap = str(m.get("cap", "")).strip().zfill(5)
+
+                                # Check municipality match
+                                if m_com and clean_m_norm and (clean_m_norm in m_com or m_com in clean_m_norm):
+                                    # Brand match: clean_retail_text handles accents (e.g., DECO matches DECÒ)
+                                    brand_match = (
+                                        clean_s_norm in m_ban or m_ban in clean_s_norm
+                                        or clean_s_norm in m_desc or m_desc in clean_s_norm
+                                        or clean_brand_name(clean_s) == clean_brand_name(m.get("banner", ""))
+                                        or clean_brand_name(clean_s) == clean_brand_name(m.get("descrizione", ""))
+                                    )
+                                    if brand_match:
+                                        # 1. Exact street match is highest priority
+                                        if clean_a_core and m_addr and (clean_a_core in m_addr or m_addr in clean_a_core):
+                                            matched_inst = m
+                                            break
+                                        # 2. CAP match candidate (keep searching in case street matches a later machine)
+                                        elif clean_c_str and m_cap and clean_c_str == m_cap:
+                                            matched_inst = m
+                                        elif not matched_inst:
+                                            matched_inst = m
+
                             if matched_inst:
                                 st.session_state["selected_store_pf"] = matched_inst.get("pf") or matched_inst["macchina"]
-                                st.session_state["selected_store_status"] = "ATTVO"
+                                st.session_state["selected_store_status"] = matched_inst.get("stato", "ATTVO")
                             else:
                                 st.session_state.pop("selected_store_pf", None)
                                 st.session_state.pop("selected_store_status", None)

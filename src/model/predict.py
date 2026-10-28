@@ -55,20 +55,14 @@ from src.business.rewards import (
 )
 
 def normalize_text(text: Any) -> str:
-    """Standardizes string for case/space-insensitive matching."""
-    if text is None or pd.isna(text):
-        return ""
-    t = str(text).strip().upper()
-    t = re.sub(r"[^\w\s]", " ", t)
-    return re.sub(r"\s+", " ", t).strip()
+    """Standardizes string for case/accent/space-insensitive matching."""
+    from src.model.preprocessing import clean_retail_text
+    return clean_retail_text(text)
 
 def extract_street_core(address_str: str) -> str:
-    """Extracts core street name (e.g. 'VIA FERROVIA 66' -> 'FERROVIA')."""
-    norm = normalize_text(address_str)
-    prefixes = ["VIA", "CORSO", "PIAZZA", "VIALE", "VICOLO", "STRADA", "LOC", "LOCALITA", "LARGO"]
-    tokens = norm.split()
-    filtered = [tok for tok in tokens if tok not in prefixes and not tok.isdigit()]
-    return " ".join(filtered) if filtered else norm
+    """Extracts core street name using unified Italian road normalization."""
+    from src.spatial.store_scale import extract_street_core as spatial_extract_street_core
+    return spatial_extract_street_core(address_str)
 
 # Preset configurations for store scales based on empirical Italian retail benchmarks
 STORE_FORMAT_PRESETS = {
