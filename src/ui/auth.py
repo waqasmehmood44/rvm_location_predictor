@@ -265,6 +265,16 @@ def require_auth() -> bool:
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
             margin-top: 40px;
         }
+        .login-card input,
+        .login-card input[type="password"],
+        .login-card input[type="text"],
+        div[data-testid="stTextInput"] input {
+            caret-color: #22c55e !important;
+            pointer-events: auto !important;
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            cursor: text !important;
+        }
         [data-theme="light"] .login-card {
             background: #ffffff;
             border: 1px solid rgba(0, 0, 0, 0.10);

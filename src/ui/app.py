@@ -923,28 +923,30 @@ st.markdown(
         box-shadow: 0 2px 6px rgba(27, 94, 32, 0.25) !important;
     }
 
-    /* Strict Select-Only Dropdowns & Filter Fields: Non-editable, no typing cursor, no text modification */
-    div[data-baseweb="select"] input {
-        pointer-events: none !important;
+    /* Ensure all text inputs and password inputs are 100% normal, editable, and clickable */
+    div[data-testid="stTextInput"] input,
+    div[data-baseweb="input"] input,
+    input[type="password"],
+    input[type="text"] {
+        caret-color: auto !important;
+        pointer-events: auto !important;
+        user-select: text !important;
+        -webkit-user-select: text !important;
+        cursor: text !important;
+    }
+
+    /* Strict Select-Only Dropdowns: Non-editable, no typing cursor, full area clickable */
+    div[data-testid="stSelectbox"] input,
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] input {
+        pointer-events: auto !important;
         caret-color: transparent !important;
         cursor: pointer !important;
         user-select: none !important;
         -webkit-user-select: none !important;
     }
-    div[data-baseweb="select"] input:focus {
-        caret-color: transparent !important;
-        outline: none !important;
-        box-shadow: none !important;
-    }
-    div[data-baseweb="select"] {
+    div[data-testid="stSelectbox"],
+    div[data-testid="stSelectbox"] * {
         cursor: pointer !important;
-        user-select: none !important;
-        -webkit-user-select: none !important;
-    }
-    div[data-baseweb="select"] * {
-        cursor: pointer !important;
-        user-select: none !important;
-        -webkit-user-select: none !important;
     }
 
     /* Dropdown Popover and Menu Item Full Visibility: Prevent truncating option labels & counts */
@@ -1013,16 +1015,23 @@ st.markdown(
         pointer-events: none !important;
     }
 
-    /* Enforce strictly non-editable, full-box clickable dropdowns */
+    /* Strictly allow text inputs and password inputs to be fully editable with visible caret */
+    div[data-testid="stTextInput"] input,
+    div[data-baseweb="input"] input,
+    input[type="password"] {
+        caret-color: auto !important;
+        pointer-events: auto !important;
+        user-select: text !important;
+        -webkit-user-select: text !important;
+        cursor: text !important;
+    }
+
+    /* Enforce strictly non-editable, full-box clickable dropdowns on stSelectbox only */
     div[data-testid="stSelectbox"],
-    div[data-baseweb="select"],
-    div[data-baseweb="select"] * {
+    div[data-testid="stSelectbox"] * {
         cursor: pointer !important;
     }
-    div[data-testid="stSelectbox"] input,
-    div[data-baseweb="select"] input,
-    div[role="combobox"] input,
-    input[aria-autocomplete="list"] {
+    div[data-testid="stSelectbox"] input {
         caret-color: transparent !important;
         pointer-events: auto !important;
         user-select: none !important;
@@ -1048,7 +1057,11 @@ components.html(
                 blockInputEvents.forEach(eventType => {
                     targetDoc.addEventListener(eventType, function(e) {
                         const el = e.target;
-                        if (el && el.tagName === 'INPUT' && el.closest('div[data-baseweb="select"]')) {
+                        // EXPLICIT BYPASS: Never block password or text inputs!
+                        if (!el || el.type === 'password' || el.closest('div[data-testid="stTextInput"]') || el.closest('div[data-baseweb="input"]')) {
+                            return;
+                        }
+                        if (el.tagName === 'INPUT' && (el.closest('div[data-testid="stSelectbox"]') || el.closest('div[data-baseweb="select"]'))) {
                             // Allow keyboard navigation keys only (arrows, enter, escape, tab)
                             if (e.type === 'keydown' && ['ArrowDown', 'ArrowUp', 'Enter', 'Escape', 'Tab'].includes(e.key)) {
                                 return;
@@ -1061,7 +1074,10 @@ components.html(
 
                 // Clicking anywhere on the select control (text, label, or container) opens the dropdown
                 targetDoc.addEventListener('click', function(e) {
-                    const selectControl = e.target.closest('div[data-baseweb="select"]');
+                    if (e.target && (e.target.type === 'password' || e.target.closest('div[data-testid="stTextInput"]'))) {
+                        return;
+                    }
+                    const selectControl = e.target.closest('div[data-testid="stSelectbox"] div[data-baseweb="select"]');
                     if (selectControl && !e.target.closest('ul[role="listbox"]') && !e.target.closest('li[role="option"]')) {
                         const arrow = selectControl.querySelector('svg');
                         const input = selectControl.querySelector('input');
@@ -1076,10 +1092,11 @@ components.html(
                     }
                 }, true);
 
-                // Set readonly and make full box clickable on all selectbox input elements
+                // Set readonly and make full box clickable ONLY on selectbox input elements (strictly excluding password & text inputs)
                 function applyReadOnly() {
-                    const inputs = targetDoc.querySelectorAll('div[data-baseweb="select"] input, div[data-testid="stSelectbox"] input');
+                    const inputs = targetDoc.querySelectorAll('div[data-testid="stSelectbox"] input');
                     inputs.forEach(inp => {
+                        if (inp.type === 'password' || inp.closest('div[data-testid="stTextInput"]')) return;
                         inp.setAttribute('readonly', 'readonly');
                         inp.setAttribute('inputmode', 'none');
                         inp.setAttribute('autocomplete', 'off');
