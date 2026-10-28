@@ -26,6 +26,16 @@ import streamlit.components.v1 as components
 # Ensure repository root is on sys.path
 sys.path.insert(0, os.path.abspath("."))
 
+from src.ui.auth import require_auth
+from src.data.hidden_manager import (
+    get_hidden_pf_set,
+    get_hidden_machines_df,
+    hide_machine,
+    hide_machines_batch,
+    restore_machine,
+    restore_machines_batch,
+)
+
 # Page configuration
 st.set_page_config(
     page_title="Coripet RVM Location Predictor",
@@ -929,6 +939,72 @@ st.markdown(
         user-select: none !important;
         -webkit-user-select: none !important;
     }
+
+    /* Dropdown Popover and Menu Item Full Visibility: Prevent truncating option labels & counts */
+    div[data-baseweb="popover"],
+    div[data-baseweb="menu"],
+    ul[data-baseweb="menu"] {
+        min-width: max-content !important;
+        max-width: 520px !important;
+    }
+    li[data-baseweb="menu-item"] {
+        white-space: nowrap !important;
+        overflow: visible !important;
+        font-size: 0.88rem !important;
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+    }
+    li[data-baseweb="menu-item"] * {
+        white-space: nowrap !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+    }
+    /* Ensure action buttons in filter rows don't truncate text */
+    button[kind="secondary"], button[kind="primary"] {
+        white-space: nowrap !important;
+    }
+    /* Premium Sidebar Wizard Action Buttons (Step 1, Step 2, Step 3) */
+    section[data-testid="stSidebar"] button[kind="primary"] {
+        background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        font-size: 0.90rem !important;
+        letter-spacing: 0.1px !important;
+        border: 1px solid rgba(255, 255, 255, 0.20) !important;
+        border-radius: 8px !important;
+        padding: 10px 14px !important;
+        min-height: 44px !important;
+        height: auto !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        box-shadow: 0 4px 14px rgba(22, 163, 74, 0.30) !important;
+        transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+    }
+    section[data-testid="stSidebar"] button[kind="primary"]:hover {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important;
+        box-shadow: 0 6px 18px rgba(34, 197, 94, 0.45) !important;
+        transform: translateY(-1px) !important;
+        color: #ffffff !important;
+    }
+    section[data-testid="stSidebar"] button[kind="primary"]:active {
+        transform: translateY(0px) !important;
+        box-shadow: 0 2px 8px rgba(22, 163, 74, 0.30) !important;
+    }
+    /* Hide Streamlit Deploy Button */
+    .stDeployButton,
+    [data-testid="stDeployButton"],
+    header [data-testid="stDeployButton"],
+    header button[title="Deploy"],
+    button[kind="header"]:has([data-testid="stIconMaterial"]) {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -1683,358 +1759,414 @@ def render_machine_directory(
         force_refresh=force_refresh
     )
 
-    total_count = len(df_ranked)
-    unique_comuni = df_ranked["Comune"].nunique()
-    unique_regioni = df_ranked["Regione"].nunique()
-    unique_filiere = df_ranked["ResolvedFiliera"].nunique()
+    # Query persistent DB for hidden machines strictly separated for this status (SPL or POT)
+    hidden_pfs = get_hidden_pf_set(status_label)
 
-    # Tier counts & Stats
-    n_super = int((df_ranked["VolumeTier"] == "SUPER PRENDENTE").sum())
-    n_alto = int((df_ranked["VolumeTier"] == "ALTO PRENDENTE").sum())
-    n_medio = int((df_ranked["VolumeTier"] == "MEDIO PRENDENTE").sum())
-    n_basso = int((df_ranked["VolumeTier"] == "BASSO PRENDENTE").sum())
-    avg_bottles = float(df_ranked["PredictedBottlesDay"].mean()) if not df_ranked.empty else 0.0
-    top_site = df_ranked.iloc[0] if not df_ranked.empty else None
-    top_store_name = top_site["ResolvedStoreName"] if top_site is not None else "N/A"
-    top_bottles_val = top_site["PredictedBottlesDay"] if top_site is not None else 0.0
+    # Partition dataset into Active and Hidden
+    df_active = df_ranked[~df_ranked["PuntoFisico"].astype(str).str.strip().isin(hidden_pfs)].copy().reset_index(drop=True)
+    df_active["Rank"] = df_active.index + 1
 
-    # Source badge styling (Adaptive)
-    if data_source == "Live Coripet API":
-        source_badge = '<span class="badge-source-live">🟢 Live API: macchine.coripet.it</span>'
-    else:
-        source_badge = '<span class="badge-source-backup">📁 Local Backup File</span>'
+    # For hidden sites, pull from DB and merge with current batch predictions if available
+    db_hidden_df = get_hidden_machines_df(status_label)
+    df_hidden_from_ranked = df_ranked[df_ranked["PuntoFisico"].astype(str).str.strip().isin(hidden_pfs)].copy()
 
-    date_label = f" • Current Date: <strong style='color: inherit;'>{current_date_str}</strong>" if current_date_str else ""
-
-    if "dt_fine_sop" in df_ranked.columns:
-        c_now = pd.Timestamp.now()
-        n_5m = int((df_ranked["dt_fine_sop"].notna() & (df_ranked["dt_fine_sop"] >= (c_now - pd.DateOffset(months=5)))).sum())
-        n_12m = int((df_ranked["dt_fine_sop"].notna() & (df_ranked["dt_fine_sop"] >= (c_now - pd.DateOffset(months=12)))).sum())
-        n_24m = int((df_ranked["dt_fine_sop"].notna() & (df_ranked["dt_fine_sop"] >= (c_now - pd.DateOffset(months=24)))).sum())
-        n_all = len(df_ranked)
-    else:
-        n_5m, n_12m, n_24m, n_all = 0, 0, 0, len(df_ranked)
-
-    timeframe_options = [
-        f"⏱️ Last 5 Months ({n_5m} sites)",
-        f"📅 Last 12 Months ({n_12m} sites)",
-        f"🗓️ Last 24 Months ({n_24m} sites)",
-        f"🌐 All Sites ({n_all} sites)",
-    ]
-
-    tf_key = f"timeframe_filter_{status_label}"
-    default_opt = timeframe_options[0] if n_5m > 0 else timeframe_options[-1]
-    if tf_key in st.session_state:
-        cur_val = str(st.session_state[tf_key])
-        if cur_val not in timeframe_options:
-            matched = next((opt for opt in timeframe_options if opt.split("(")[0].strip() == cur_val.split("(")[0].strip()), None)
-            if matched:
-                st.session_state[tf_key] = matched
+    # Combine into a unified hidden dataframe
+    if not db_hidden_df.empty and not df_hidden_from_ranked.empty:
+        # Prefer latest batch predictions
+        combined_pfs = set(db_hidden_df["punto_fisico"].astype(str).str.strip()).union(set(df_hidden_from_ranked["PuntoFisico"].astype(str).str.strip()))
+        hidden_rows = []
+        for pf in combined_pfs:
+            match_ranked = df_hidden_from_ranked[df_hidden_from_ranked["PuntoFisico"].astype(str).str.strip() == pf]
+            if not match_ranked.empty:
+                hidden_rows.append(match_ranked.iloc[0].to_dict())
             else:
-                st.session_state[tf_key] = default_opt
+                match_db = db_hidden_df[db_hidden_df["punto_fisico"].astype(str).str.strip() == pf].iloc[0]
+                hidden_rows.append({
+                    "PuntoFisico": match_db["punto_fisico"],
+                    "ResolvedStoreName": match_db["store_name"],
+                    "Indirizzo": match_db["address"],
+                    "Cap": match_db["cap"],
+                    "Comune": match_db["comune"],
+                    "Provincia": match_db["provincia"],
+                    "Regione": match_db["regione"],
+                    "ResolvedMachine": match_db["machine_type"],
+                    "PredictedBottlesDay": float(match_db.get("predicted_bottles", 0.0)),
+                    "PredictedBottlesMonth": int(match_db.get("predicted_month", 0)),
+                    "VolumeTier": match_db.get("volume_tier", "MEDIO PRENDENTE"),
+                    "VolumeTierColor": "#1e88e5",
+                    "VolumeTierBadge": "badge-tier-medio",
+                    "RewardType": match_db.get("reward_type", "Standard Loyalty"),
+                    "DataFineSopralluogoFormatted": match_db.get("dt_fine_sop", "N/A"),
+                    "hidden_at": match_db.get("hidden_at", "N/A"),
+                    "ResolvedFiliera": "Official Coripet",
+                })
+        df_hidden_display = pd.DataFrame(hidden_rows)
+    elif not df_hidden_from_ranked.empty:
+        df_hidden_display = df_hidden_from_ranked.copy()
+    elif not db_hidden_df.empty:
+        renamed_db = db_hidden_df.rename(columns={
+            "punto_fisico": "PuntoFisico",
+            "store_name": "ResolvedStoreName",
+            "address": "Indirizzo",
+            "cap": "Cap",
+            "comune": "Comune",
+            "provincia": "Provincia",
+            "regione": "Regione",
+            "machine_type": "ResolvedMachine",
+            "predicted_bottles": "PredictedBottlesDay",
+            "predicted_month": "PredictedBottlesMonth",
+            "volume_tier": "VolumeTier",
+            "reward_type": "RewardType",
+            "dt_fine_sop": "DataFineSopralluogoFormatted",
+        })
+        renamed_db["VolumeTierColor"] = "#1e88e5"
+        renamed_db["VolumeTierBadge"] = "badge-tier-medio"
+        renamed_db["ResolvedFiliera"] = "Official Coripet"
+        df_hidden_display = renamed_db
     else:
-        st.session_state[tf_key] = default_opt
+        df_hidden_display = pd.DataFrame()
 
-    current_timeframe = st.session_state.get(tf_key, default_opt)
+    total_active_count = len(df_active)
+    total_hidden_count = len(df_hidden_display)
 
-    # Metrics header banner (Adaptive Theme)
-    st.markdown(
-        f"""
-        <div class="directory-banner">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
-                <div>
-                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                        <h3 style="margin: 0; color: inherit; font-size: 1.3rem; font-weight: 700; letter-spacing: -0.3px;">
-                            📋 {status_label} Machines Registry & AI Ranking <span style="opacity: 0.65; font-size: 1.05rem; font-weight: 500;">({total_count:,} Inspected Sites)</span>
-                        </h3>
-                        {source_badge}
-                        <span class="badge-stat-blue" style="padding: 4px 10px; font-size: 0.78rem;">🏬 PUNTOVENDITA Only</span>
-                        <span style="background: rgba(14, 165, 233, 0.15); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.35); padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 800;">{current_timeframe}</span>
-                        <span style="background: rgba(34, 197, 94, 0.15); color: #16a34a; border: 1px solid rgba(34, 197, 94, 0.35); padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 800;">🥇 Ranked by Highest b/d</span>
-                    </div>
-                    <p style="margin: 6px 0 0 0; color: inherit; opacity: 0.75; font-size: 0.85rem;">
-                        Live retail store records matched with official Sopralluoghi site inspections and ranked by AI projected 365-day collection volume (highest yield at the top). Auto-inferred with Nielsen census scale and default contract reward schemes{date_label}.
-                    </p>
-                </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                    <span class="badge-tier-super" style="font-size: 0.76rem; padding: 4px 10px;">🟣 Super: {n_super}</span>
-                    <span class="badge-tier-alto" style="font-size: 0.76rem; padding: 4px 10px;">🟢 Alto: {n_alto}</span>
-                    <span class="badge-tier-medio" style="font-size: 0.76rem; padding: 4px 10px;">🔵 Medio: {n_medio}</span>
-                    <span class="badge-tier-basso" style="font-size: 0.76rem; padding: 4px 10px;">🔴 Basso: {n_basso}</span>
-                    <span class="badge-stat-blue" style="font-size: 0.76rem; padding: 4px 10px;">📈 Network Avg: {avg_bottles:.1f} b/d</span>
-                    <span class="badge-rank-1" style="font-size: 0.76rem; padding: 4px 10px;">🏆 Top: {top_store_name} ({top_bottles_val:.1f} b/d)</span>
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # Filter Reset Callback
-    def reset_filters_callback():
-        st.session_state[f"search_{status_label}"] = ""
-        st.session_state[tf_key] = default_opt
-        st.session_state[f"tier_filter_{status_label}"] = "All Volume Tiers"
-        st.session_state[f"region_filter_{status_label}"] = "All Regions"
-        st.session_state[f"sort_order_{status_label}"] = "🥇 Highest Volume (Default)"
-        st.toast(f"↺ Filters reset for {status_label} machines!")
-
-    # Search & filters bar
-    c_search, c_time, c_tier, c_reg, c_sort, c_reset, c_ref = st.columns([1.8, 1.3, 1.1, 1.0, 1.1, 0.65, 0.65])
-    with c_search:
-        search_query = st.text_input(
-            f"🔍 Search {status_label} Machines",
-            placeholder="Search by store name, ID (e.g. PF...), address, or city...",
-            key=f"search_{status_label}",
-        ).strip().lower()
-
-    with c_time:
-        def_idx = 0
-        if tf_key in st.session_state and st.session_state[tf_key] in timeframe_options:
-            def_idx = timeframe_options.index(st.session_state[tf_key])
-        selected_timeframe = st.selectbox(
-            "Survey Recency",
-            options=timeframe_options,
-            index=def_idx,
-            key=tf_key,
-            help="Filter machines by their site inspection (DataFineSopralluogo) completion date"
+    # Sub-Navigation: Switch between Active Directory and Hidden Machines
+    nav_view_key = f"view_mode_{status_label}"
+    opt_active = f"🟢 Active {status_label} Machines ({total_active_count:,})"
+    opt_hidden = f"🚫 Hidden {status_label} Machines ({total_hidden_count:,})"
+    
+    col_nav1, col_nav2 = st.columns([4, 6])
+    with col_nav1:
+        current_subview = st.radio(
+            "Directory View",
+            options=[opt_active, opt_hidden],
+            horizontal=True,
+            key=nav_view_key,
+            label_visibility="collapsed"
         )
-
-    with c_tier:
-        tier_filter_options = [
-            "All Volume Tiers",
-            "SUPER PRENDENTE (>2,000 b/d)",
-            "ALTO PRENDENTE (1,000-2,000 b/d)",
-            "MEDIO PRENDENTE (300-1,000 b/d)",
-            "BASSO PRENDENTE (<300 b/d)",
-        ]
-        selected_tier = st.selectbox(
-            "Volume Tier",
-            options=tier_filter_options,
-            index=0,
-            key=f"tier_filter_{status_label}",
-        )
-
-    all_regions = ["All Regions"] + sorted([r for r in df_ranked["Regione"].unique() if r and r != "nan"])
-    with c_reg:
-        selected_region = st.selectbox(
-            "Region Filter",
-            options=all_regions,
-            index=0,
-            key=f"region_filter_{status_label}",
-        )
-
-    with c_sort:
-        sort_options = [
-            "🥇 Highest Volume (Default)",
-            "🔻 Lowest Volume",
-            "🔤 Store Name (A-Z)",
-            "🏙️ Municipality (A-Z)",
-        ]
-        selected_sort = st.selectbox(
-            "Sort Order",
-            options=sort_options,
-            index=0,
-            key=f"sort_order_{status_label}",
-        )
-
-    with c_reset:
-        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-        st.button(
-            "↺ Reset",
-            key=f"btn_reset_{status_label}",
-            help=f"Reset all filters and search query for {status_label} machines back to default",
-            on_click=reset_filters_callback
-        )
-
-    with c_ref:
-        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-        if st.button("🔄 Refresh", key=f"btn_refresh_{status_label}", help="Clear cache, re-fetch live data from Coripet API, and re-run all predictions"):
-            fetch_raw_coripet_machines.clear()
-            fetch_raw_coripet_sopralluoghi.clear()
-            get_machines_by_status.clear()
-            st.session_state[f"force_refresh_{status_label}"] = True
-            st.toast(f"🔄 Re-fetching live {status_label} machines and re-running AI predictions...")
-            st.rerun()
-
-    # Apply filtering
-    filtered_df = df_ranked.copy()
-
-    # 1. Apply survey timeframe recency filter
-    if "dt_fine_sop" in filtered_df.columns:
-        if "5 Months" in selected_timeframe:
-            cutoff_dt = pd.Timestamp.now() - pd.DateOffset(months=5)
-            filtered_df = filtered_df[filtered_df["dt_fine_sop"].notna() & (filtered_df["dt_fine_sop"] >= cutoff_dt)]
-        elif "12 Months" in selected_timeframe:
-            cutoff_dt = pd.Timestamp.now() - pd.DateOffset(months=12)
-            filtered_df = filtered_df[filtered_df["dt_fine_sop"].notna() & (filtered_df["dt_fine_sop"] >= cutoff_dt)]
-        elif "24 Months" in selected_timeframe:
-            cutoff_dt = pd.Timestamp.now() - pd.DateOffset(months=24)
-            filtered_df = filtered_df[filtered_df["dt_fine_sop"].notna() & (filtered_df["dt_fine_sop"] >= cutoff_dt)]
-        # For "🌐 All Sites", show all!
-
-    if search_query:
-        mask = (
-            filtered_df["PuntoFisico"].astype(str).str.lower().str.contains(search_query, na=False)
-            | filtered_df["ResolvedStoreName"].astype(str).str.lower().str.contains(search_query, na=False)
-            | filtered_df["Indirizzo"].astype(str).str.lower().str.contains(search_query, na=False)
-            | filtered_df["Comune"].astype(str).str.lower().str.contains(search_query, na=False)
-            | filtered_df["Cap"].astype(str).str.lower().str.contains(search_query, na=False)
-            | filtered_df["ResolvedFiliera"].astype(str).str.lower().str.contains(search_query, na=False)
-        )
-        filtered_df = filtered_df[mask]
-
-    if selected_tier != "All Volume Tiers":
-        tier_key = selected_tier.split(" ")[0].strip()
-        filtered_df = filtered_df[filtered_df["VolumeTier"].str.contains(tier_key, na=False)]
-
-    if selected_region != "All Regions":
-        filtered_df = filtered_df[filtered_df["Regione"] == selected_region]
-
-    # Apply custom sort
-    if selected_sort == "🔻 Lowest Volume":
-        filtered_df = filtered_df.sort_values(by="PredictedBottlesDay", ascending=True)
-    elif selected_sort == "🔤 Store Name (A-Z)":
-        filtered_df = filtered_df.sort_values(by="ResolvedStoreName", ascending=True)
-    elif selected_sort == "🏙️ Municipality (A-Z)":
-        filtered_df = filtered_df.sort_values(by="Comune", ascending=True)
-    else:
-        # Default: highest volume descending
-        filtered_df = filtered_df.sort_values(by="PredictedBottlesDay", ascending=False)
-
-    # Re-assign sequential ranks 1..N based on active filtered view
-    filtered_df = filtered_df.reset_index(drop=True)
-    filtered_df["Rank"] = filtered_df.index + 1
-
-    n_filtered = len(filtered_df)
-    if n_filtered == 0:
-        st.info(f"ℹ️ No {status_label} machines matched the selected criteria (**{selected_timeframe}**).")
-        st.button("↺ Reset All Filters", key=f"btn_reset_empty_{status_label}", on_click=reset_filters_callback)
-        return
-
-    # Pagination setup
-    PER_PAGE = 20
-    total_pages = max(1, (n_filtered + PER_PAGE - 1) // PER_PAGE)
-
-    col_stat, col_page = st.columns([2, 1])
-    with col_stat:
+    with col_nav2:
         st.markdown(
-            f"""<div style="color: inherit; opacity: 0.75; font-size: 0.88rem; padding: 6px 0;">
-                Showing <strong style="color: inherit; opacity: 1.0;">{n_filtered:,}</strong> of <strong style="color: inherit; opacity: 1.0;">{total_count:,}</strong> machines &bull; Ranked by <strong style="color: #22c55e;">Bottles per Day</strong> &bull; Click <strong style="color: #ef4444;">Results 📊</strong> to view full executive verdict
+            f"""<div style="font-size: 0.80rem; color: inherit; opacity: 0.70; text-align: right; padding-top: 6px;">
+                Storage: <strong style="color: #3b82f6;">hidden_{status_label.lower()}_machines</strong> &bull; Changes persist across all API re-syncs & restarts
             </div>""",
             unsafe_allow_html=True
         )
-    with col_page:
-        page_num = st.selectbox(
-            "Select Page",
-            options=list(range(1, total_pages + 1)),
-            index=0,
-            key=f"page_sel_{status_label}",
-            label_visibility="collapsed",
+
+    st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
+
+    # =========================================================================
+    # VIEW 1: ACTIVE MACHINES (Excludes all hidden records)
+    # =========================================================================
+    if current_subview.startswith("🟢"):
+        # Stats based strictly on active machines
+        n_super = int((df_active["VolumeTier"] == "SUPER PRENDENTE").sum()) if not df_active.empty else 0
+        n_alto = int((df_active["VolumeTier"] == "ALTO PRENDENTE").sum()) if not df_active.empty else 0
+        n_medio = int((df_active["VolumeTier"] == "MEDIO PRENDENTE").sum()) if not df_active.empty else 0
+        n_basso = int((df_active["VolumeTier"] == "BASSO PRENDENTE").sum()) if not df_active.empty else 0
+        avg_bottles = float(df_active["PredictedBottlesDay"].mean()) if not df_active.empty else 0.0
+        top_site = df_active.iloc[0] if not df_active.empty else None
+        top_store_name = top_site["ResolvedStoreName"] if top_site is not None else "N/A"
+        top_bottles_val = top_site["PredictedBottlesDay"] if top_site is not None else 0.0
+
+        source_badge = '<span class="badge-source-live">🟢 Live API: macchine.coripet.it</span>' if data_source == "Live Coripet API" else '<span class="badge-source-backup">📁 Local Backup File</span>'
+        date_label = f" • Current Date: <strong style='color: inherit;'>{current_date_str}</strong>" if current_date_str else ""
+
+        if "dt_fine_sop" in df_active.columns:
+            c_now = pd.Timestamp.now()
+            n_5m = int((df_active["dt_fine_sop"].notna() & (df_active["dt_fine_sop"] >= (c_now - pd.DateOffset(months=5)))).sum())
+            n_12m = int((df_active["dt_fine_sop"].notna() & (df_active["dt_fine_sop"] >= (c_now - pd.DateOffset(months=12)))).sum())
+            n_24m = int((df_active["dt_fine_sop"].notna() & (df_active["dt_fine_sop"] >= (c_now - pd.DateOffset(months=24)))).sum())
+            n_all = len(df_active)
+        else:
+            n_5m, n_12m, n_24m, n_all = 0, 0, 0, len(df_active)
+
+        timeframe_options = [
+            f"⏱️ Last 5 Months ({n_5m} sites)",
+            f"📅 Last 12 Months ({n_12m} sites)",
+            f"🗓️ Last 24 Months ({n_24m} sites)",
+            f"🌐 All Sites ({n_all} sites)",
+        ]
+
+        tf_key = f"timeframe_filter_{status_label}"
+        default_opt = timeframe_options[0] if n_5m > 0 else timeframe_options[-1]
+        if tf_key in st.session_state:
+            cur_val = str(st.session_state[tf_key])
+            if cur_val not in timeframe_options:
+                matched = next((opt for opt in timeframe_options if opt.split("(")[0].strip() == cur_val.split("(")[0].strip()), None)
+                st.session_state[tf_key] = matched if matched else default_opt
+        else:
+            st.session_state[tf_key] = default_opt
+
+        current_timeframe = st.session_state.get(tf_key, default_opt)
+
+        # Metrics header banner
+        st.markdown(
+            f"""
+            <div class="directory-banner">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <h3 style="margin: 0; color: inherit; font-size: 1.3rem; font-weight: 700; letter-spacing: -0.3px;">
+                                📋 {status_label} Active Registry & AI Ranking <span style="opacity: 0.65; font-size: 1.05rem; font-weight: 500;">({total_active_count:,} Active Sites)</span>
+                            </h3>
+                            {source_badge}
+                            <span class="badge-stat-blue" style="padding: 4px 10px; font-size: 0.78rem;">🏬 PUNTOVENDITA Only</span>
+                            <span style="background: rgba(14, 165, 233, 0.15); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.35); padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 800;">{current_timeframe}</span>
+                            <span style="background: rgba(34, 197, 94, 0.15); color: #16a34a; border: 1px solid rgba(34, 197, 94, 0.35); padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 800;">🥇 Ranked by Highest b/d</span>
+                        </div>
+                        <p style="margin: 6px 0 0 0; color: inherit; opacity: 0.75; font-size: 0.85rem;">
+                            Showing non-hidden active stores. Select checkboxes to hide machines permanently in database{date_label}.
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                        <span class="badge-tier-super" style="font-size: 0.76rem; padding: 4px 10px;">🟣 Super: {n_super}</span>
+                        <span class="badge-tier-alto" style="font-size: 0.76rem; padding: 4px 10px;">🟢 Alto: {n_alto}</span>
+                        <span class="badge-tier-medio" style="font-size: 0.76rem; padding: 4px 10px;">🔵 Medio: {n_medio}</span>
+                        <span class="badge-tier-basso" style="font-size: 0.76rem; padding: 4px 10px;">🔴 Basso: {n_basso}</span>
+                        <span class="badge-stat-blue" style="font-size: 0.76rem; padding: 4px 10px;">📈 Active Avg: {avg_bottles:.1f} b/d</span>
+                        <span class="badge-rank-1" style="font-size: 0.76rem; padding: 4px 10px;">🏆 Top: {top_store_name} ({top_bottles_val:.1f} b/d)</span>
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
-    start_idx = (page_num - 1) * PER_PAGE
-    end_idx = min(start_idx + PER_PAGE, n_filtered)
-    page_df = filtered_df.iloc[start_idx:end_idx]
+        def reset_filters_callback():
+            st.session_state[f"search_{status_label}"] = ""
+            st.session_state[tf_key] = default_opt
+            st.session_state[f"tier_filter_{status_label}"] = "All Volume Tiers"
+            st.session_state[f"region_filter_{status_label}"] = "All Regions"
+            st.session_state[f"sort_order_{status_label}"] = "🥇 Highest Volume (Default)"
+            st.toast(f"↺ Filters reset for {status_label} machines!")
 
-    # Table Header (Adaptive Theme)
-    th_col1, th_col2, th_col3, th_col4, th_col5 = st.columns([3.2, 2.6, 2.0, 2.3, 1.2])
-    with th_col1:
-        st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>RANK & STORE</strong>", unsafe_allow_html=True)
-    with th_col2:
-        st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>LOCATION & MUNICIPALITY</strong>", unsafe_allow_html=True)
-    with th_col3:
-        st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>HARDWARE & SCALE</strong>", unsafe_allow_html=True)
-    with th_col4:
-        st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>AI PREDICTED YIELD</strong>", unsafe_allow_html=True)
-    with th_col5:
-        st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>ACTION</strong>", unsafe_allow_html=True)
+        # Clean 2-Row Filter & Action Layout: Full Visibility, No Truncation
+        # Row 1: Search & Direct Actions
+        c_search, c_reset, c_ref = st.columns([5.8, 2.1, 2.1])
+        with c_search:
+            search_query = st.text_input(
+                f"🔍 Search {status_label} Machines",
+                placeholder="Search by store name, ID (e.g. PF...), address, or city...",
+                key=f"search_{status_label}",
+            ).strip().lower()
 
-    st.markdown("<div style='border-bottom: 1px solid rgba(128, 128, 128, 0.20); margin-bottom: 14px;'></div>", unsafe_allow_html=True)
-
-    # Machine Items List
-    for row_idx, row in page_df.iterrows():
-        pf_code = str(row["PuntoFisico"]).strip()
-        store = row["ResolvedStoreName"]
-        addr = row["Indirizzo"]
-        cap_val = row["Cap"]
-        comune_val = row["Comune"]
-        prov_val = row["Provincia"]
-        reg_val = row["Regione"]
-        mach_model = row["ResolvedMachine"]
-        filiera_val = row["ResolvedFiliera"]
-        rank_val = int(row.get("Rank", row_idx + 1))
-        b_day = float(row.get("PredictedBottlesDay", 0.0))
-        m_day = int(row.get("PredictedBottlesMonth", 0))
-        tier_label = str(row.get("VolumeTier", "MEDIO PRENDENTE"))
-        tier_color = str(row.get("VolumeTierColor", "#1e88e5"))
-        tier_badge = str(row.get("VolumeTierBadge", "badge-tier-medio"))
-        n_sqm = float(row.get("NielsenSqm", 0.0))
-        n_casse = float(row.get("NielsenCasse", 0.0))
-        n_fmt = str(row.get("NielsenFormat", "SUP"))
-        rew_type = str(row.get("RewardType", "Standard Loyalty"))
-        REWARD_TYPE_EN_MAP = {
-            "Emissione Buono sconto": "Direct Grocery Voucher",
-            "Conversione a punti fedeltà": "Loyalty Points Conversion",
-            "Omaggio": "Free Gift / Cash Reward",
-        }
-        rew_type_clean = REWARD_TYPE_EN_MAP.get(rew_type, rew_type)
-        rew_mult = float(row.get("RewardMultiplier", 1.0))
-
-        if rank_val == 1:
-            rank_chip = '<span class="badge-rank-1">#1 🏆</span>'
-        elif rank_val == 2:
-            rank_chip = '<span class="badge-rank-2">#2 🥈</span>'
-        elif rank_val == 3:
-            rank_chip = '<span class="badge-rank-3">#3 🥉</span>'
-        else:
-            rank_chip = f'<span class="badge-rank-other">#{rank_val}</span>'
-
-        st_val = str(row.get("Stato", status_label)).strip()
-        if st_val == "SPL":
-            status_chip = f'<span class="badge-pf-spl">SPL</span>'
-        elif st_val == "POT":
-            status_chip = f'<span class="badge-pf-pot">POT</span>'
-        elif st_val and st_val != "nan":
-            status_chip = f'<span class="badge-stat-blue" style="font-size: 0.72rem; padding: 2px 7px;">{st_val}</span>'
-        else:
-            status_chip = ""
-
-        scale_str = f"📐 {n_sqm:,.0f} m² • {n_casse:.0f} casse ({n_fmt})" if n_sqm > 0 else f"📐 {n_fmt} Format"
-        sop_date_str = str(row.get("DataFineSopralluogoFormatted", "")).strip()
-        sop_status_str = str(row.get("StatoSopralluogoClean", "")).strip()
-
-        # Color-coded sleek inspection status badge
-        sop_status_lower = sop_status_str.lower()
-        if "definitivo" in sop_status_lower or "completato" in sop_status_lower:
-            sop_status_badge = f'<span style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.35); padding: 2px 7px; border-radius: 5px; font-size: 0.72rem; font-weight: 700;">✅ {sop_status_str}</span>'
-        elif "in corso" in sop_status_lower:
-            sop_status_badge = f'<span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); padding: 2px 7px; border-radius: 5px; font-size: 0.72rem; font-weight: 700;">⏳ {sop_status_str}</span>'
-        elif "riaperto" in sop_status_lower:
-            sop_status_badge = f'<span style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); padding: 2px 7px; border-radius: 5px; font-size: 0.72rem; font-weight: 700;">🔄 {sop_status_str}</span>'
-        elif sop_status_str and sop_status_str != "nan":
-            sop_status_badge = f'<span style="background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.35); padding: 2px 7px; border-radius: 5px; font-size: 0.72rem; font-weight: 700;">📋 {sop_status_str}</span>'
-        else:
-            sop_status_badge = ""
-
-        # Elegant single-line inspection date indicator (shows date or Null on all machines)
-        if sop_date_str == "Null" or not sop_date_str or sop_date_str.lower() in ["nan", "none", "", "n/d", "data n/d"]:
-            sop_date_line = (
-                f'<div style="margin-top: 5px; font-size: 0.74rem; color: #94a3b8; display: flex; align-items: center; gap: 5px; white-space: nowrap;">'
-                f'<span>🗓️ Inspection Date:</span>'
-                f'<span style="font-weight: 600; color: #94a3b8; opacity: 0.75; background: rgba(255, 255, 255, 0.04); padding: 1px 6px; border-radius: 4px; border: 1px dashed rgba(255, 255, 255, 0.18);">Null</span>'
-                f'</div>'
-            )
-        else:
-            sop_date_line = (
-                f'<div style="margin-top: 5px; font-size: 0.74rem; color: #94a3b8; display: flex; align-items: center; gap: 5px; white-space: nowrap;">'
-                f'<span>🗓️ Inspection Date:</span>'
-                f'<span style="font-weight: 600; color: #e2e8f0; background: rgba(255, 255, 255, 0.06); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1);">{sop_date_str}</span>'
-                f'</div>'
+        with c_reset:
+            st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+            st.button(
+                "↺ Reset Filters",
+                key=f"btn_reset_{status_label}",
+                use_container_width=True,
+                help=f"Reset all filters for {status_label} machines back to default",
+                on_click=reset_filters_callback
             )
 
-        with st.container():
-            c1, c2, c3, c4, c5 = st.columns([3.4, 2.5, 1.9, 2.2, 1.2])
+        with c_ref:
+            st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+            if st.button("🔄 Server Refresh", key=f"btn_refresh_{status_label}", type="secondary", use_container_width=True, help="Clear cache and re-fetch live data from Coripet API"):
+                fetch_raw_coripet_machines.clear()
+                fetch_raw_coripet_sopralluoghi.clear()
+                get_machines_by_status.clear()
+                st.session_state[f"force_refresh_{status_label}"] = True
+                st.toast(f"🔄 Re-fetching live {status_label} machines...")
+                st.rerun()
+
+        # Row 2: Spacious Columns for Dropdown Filters (Survey Recency, Tier, Region, Sort)
+        c_time, c_tier, c_reg, c_sort = st.columns([2.6, 2.5, 2.4, 2.5])
+        with c_time:
+            def_idx = 0
+            if tf_key in st.session_state and st.session_state[tf_key] in timeframe_options:
+                def_idx = timeframe_options.index(st.session_state[tf_key])
+            selected_timeframe = st.selectbox(
+                "Survey Recency",
+                options=timeframe_options,
+                index=def_idx,
+                key=tf_key,
+                help="Filter machines by site inspection completion date"
+            )
+
+        with c_tier:
+            tier_filter_options = [
+                "All Volume Tiers",
+                "SUPER PRENDENTE (>2,000 b/d)",
+                "ALTO PRENDENTE (1,000-2,000 b/d)",
+                "MEDIO PRENDENTE (300-1,000 b/d)",
+                "BASSO PRENDENTE (<300 b/d)",
+            ]
+            selected_tier = st.selectbox(
+                "Volume Tier",
+                options=tier_filter_options,
+                index=0,
+                key=f"tier_filter_{status_label}",
+            )
+
+        all_regions = ["All Regions"] + sorted([r for r in df_active["Regione"].unique() if r and str(r) != "nan"])
+        with c_reg:
+            selected_region = st.selectbox(
+                "Region Filter",
+                options=all_regions,
+                index=0,
+                key=f"region_filter_{status_label}",
+            )
+
+        with c_sort:
+            sort_options = [
+                "🥇 Highest Volume (Default)",
+                "🔻 Lowest Volume",
+                "🔤 Store Name (A-Z)",
+                "🏙️ Municipality (A-Z)",
+            ]
+            selected_sort = st.selectbox(
+                "Sort Order",
+                options=sort_options,
+                index=0,
+                key=f"sort_order_{status_label}",
+            )
+
+        # Apply filtering
+        filtered_df = df_active.copy()
+
+        if "dt_fine_sop" in filtered_df.columns:
+            if "5 Months" in selected_timeframe:
+                cutoff_dt = pd.Timestamp.now() - pd.DateOffset(months=5)
+                filtered_df = filtered_df[filtered_df["dt_fine_sop"].notna() & (filtered_df["dt_fine_sop"] >= cutoff_dt)]
+            elif "12 Months" in selected_timeframe:
+                cutoff_dt = pd.Timestamp.now() - pd.DateOffset(months=12)
+                filtered_df = filtered_df[filtered_df["dt_fine_sop"].notna() & (filtered_df["dt_fine_sop"] >= cutoff_dt)]
+            elif "24 Months" in selected_timeframe:
+                cutoff_dt = pd.Timestamp.now() - pd.DateOffset(months=24)
+                filtered_df = filtered_df[filtered_df["dt_fine_sop"].notna() & (filtered_df["dt_fine_sop"] >= cutoff_dt)]
+
+        if search_query:
+            mask = (
+                filtered_df["PuntoFisico"].astype(str).str.lower().str.contains(search_query, na=False)
+                | filtered_df["ResolvedStoreName"].astype(str).str.lower().str.contains(search_query, na=False)
+                | filtered_df["Indirizzo"].astype(str).str.lower().str.contains(search_query, na=False)
+                | filtered_df["Comune"].astype(str).str.lower().str.contains(search_query, na=False)
+                | filtered_df["Cap"].astype(str).str.lower().str.contains(search_query, na=False)
+                | filtered_df["ResolvedFiliera"].astype(str).str.lower().str.contains(search_query, na=False)
+            )
+            filtered_df = filtered_df[mask]
+
+        if selected_tier != "All Volume Tiers":
+            tier_key = selected_tier.split(" ")[0].strip()
+            filtered_df = filtered_df[filtered_df["VolumeTier"].str.contains(tier_key, na=False)]
+
+        if selected_region != "All Regions":
+            filtered_df = filtered_df[filtered_df["Regione"] == selected_region]
+
+        if selected_sort == "🔻 Lowest Volume":
+            filtered_df = filtered_df.sort_values(by="PredictedBottlesDay", ascending=True)
+        elif selected_sort == "🔤 Store Name (A-Z)":
+            filtered_df = filtered_df.sort_values(by="ResolvedStoreName", ascending=True)
+        elif selected_sort == "🏙️ Municipality (A-Z)":
+            filtered_df = filtered_df.sort_values(by="Comune", ascending=True)
+        else:
+            filtered_df = filtered_df.sort_values(by="PredictedBottlesDay", ascending=False)
+
+        filtered_df = filtered_df.reset_index(drop=True)
+        filtered_df["Rank"] = filtered_df.index + 1
+
+        n_filtered = len(filtered_df)
+        if n_filtered == 0:
+            st.info(f"ℹ️ No active {status_label} machines matched the selected criteria.")
+            st.button("↺ Reset All Filters", key=f"btn_reset_empty_{status_label}", on_click=reset_filters_callback)
+            return
+
+        # Pagination setup
+        PER_PAGE = 20
+        total_pages = max(1, (n_filtered + PER_PAGE - 1) // PER_PAGE)
+
+        col_stat, col_bulk, col_page = st.columns([1.8, 1.2, 1.0])
+        with col_stat:
+            st.markdown(
+                f"""<div style="color: inherit; opacity: 0.75; font-size: 0.88rem; padding: 6px 0;">
+                    Showing <strong style="color: inherit; opacity: 1.0;">{n_filtered:,}</strong> of <strong style="color: inherit; opacity: 1.0;">{total_active_count:,}</strong> active &bull; Click <strong style="color: #ef4444;">🚫 Hide</strong> to exclude
+                </div>""",
+                unsafe_allow_html=True
+            )
+
+        with col_page:
+            page_num = st.selectbox(
+                "Select Page",
+                options=list(range(1, total_pages + 1)),
+                index=0,
+                key=f"page_sel_{status_label}",
+                label_visibility="collapsed",
+            )
+
+        start_idx = (page_num - 1) * PER_PAGE
+        end_idx = min(start_idx + PER_PAGE, n_filtered)
+        page_df = filtered_df.iloc[start_idx:end_idx]
+
+        # Multi-select bulk hide handler
+        page_pfs = [str(r["PuntoFisico"]).strip() for _, r in page_df.iterrows()]
+        selected_pfs_active = [pf for pf in page_pfs if st.session_state.get(f"chk_act_{status_label}_{pf}", False)]
+
+        with col_bulk:
+            if selected_pfs_active:
+                if st.button(f"🚫 Hide Selected ({len(selected_pfs_active)})", key=f"btn_bulk_hide_{status_label}", type="primary", use_container_width=True):
+                    rows_to_hide = [row.to_dict() for _, row in page_df.iterrows() if str(row["PuntoFisico"]).strip() in selected_pfs_active]
+                    hide_machines_batch(status_label, rows_to_hide)
+                    for pf in selected_pfs_active:
+                        st.session_state[f"chk_act_{status_label}_{pf}"] = False
+                    st.toast(f"🚫 {len(selected_pfs_active)} machine(s) hidden and saved to hidden_{status_label.lower()}_machines!")
+                    st.rerun()
+
+        # Table Header
+        th_col0, th_col1, th_col2, th_col3, th_col4, th_col5 = st.columns([0.45, 3.1, 2.5, 2.0, 2.1, 1.75])
+        with th_col0:
+            st.markdown("<strong style='font-size: 0.75rem; opacity: 0.7;'>☑️</strong>", unsafe_allow_html=True)
+        with th_col1:
+            st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>RANK & STORE</strong>", unsafe_allow_html=True)
+        with th_col2:
+            st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>LOCATION & MUNICIPALITY</strong>", unsafe_allow_html=True)
+        with th_col3:
+            st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>HARDWARE & SCALE</strong>", unsafe_allow_html=True)
+        with th_col4:
+            st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>AI PREDICTED YIELD</strong>", unsafe_allow_html=True)
+        with th_col5:
+            st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>ACTIONS</strong>", unsafe_allow_html=True)
+
+        st.markdown("<div style='border-bottom: 1px solid rgba(128, 128, 128, 0.20); margin-bottom: 14px;'></div>", unsafe_allow_html=True)
+
+        # Active Machines Row Rendering
+        for row_idx, row in page_df.iterrows():
+            pf_code = str(row["PuntoFisico"]).strip()
+            store = row["ResolvedStoreName"]
+            addr = row["Indirizzo"]
+            cap_val = row["Cap"]
+            comune_val = row["Comune"]
+            prov_val = row["Provincia"]
+            reg_val = row["Regione"]
+            mach_model = row["ResolvedMachine"]
+            filiera_val = row["ResolvedFiliera"]
+            rank_val = int(row.get("Rank", row_idx + 1))
+            b_day = float(row.get("PredictedBottlesDay", 0.0))
+            m_day = int(row.get("PredictedBottlesMonth", 0))
+            tier_label = str(row.get("VolumeTier", "MEDIO PRENDENTE"))
+            tier_color = str(row.get("VolumeTierColor", "#1e88e5"))
+            tier_badge = str(row.get("VolumeTierBadge", "badge-tier-medio"))
+            n_sqm = float(row.get("NielsenSqm", 0.0))
+            n_casse = float(row.get("NielsenCasse", 0.0))
+            n_fmt = str(row.get("NielsenFormat", "SUP"))
+            rew_type = str(row.get("RewardType", "Standard Loyalty"))
+            rew_mult = float(row.get("RewardMultiplier", 1.0))
+
+            rank_chip = f'<span class="badge-rank-{rank_val}">#{rank_val}</span>' if rank_val <= 3 else f'<span class="badge-rank-other">#{rank_val}</span>'
+            status_chip = f'<span class="badge-pf-spl">SPL</span>' if status_label == "SPL" else f'<span class="badge-pf-pot">POT</span>'
+            
+            sop_status = str(row.get("StatoSopralluogoClean", row.get("StatoSopralluogo", "Definitivo")))
+            sop_status_badge = '<span class="badge-sop-def">✅ Definitivo</span>' if sop_status.lower() == "definitivo" else f'<span class="badge-stat-blue" style="font-size: 0.70rem; padding: 2px 7px;">📋 {sop_status}</span>'
+            sop_date_str = str(row.get("DataFineSopralluogoFormatted", ""))
+            sop_date_line = f'<div style="font-size: 0.72rem; color: inherit; opacity: 0.75; margin-top: 3px;">📅 Survey: <strong style="color: inherit; opacity: 1.0;">{sop_date_str}</strong></div>' if sop_date_str and sop_date_str != "Null" and sop_date_str != "nan" else '<div style="font-size: 0.72rem; color: #94a3b8; margin-top: 3px;">📅 Survey: <em>Pending</em></div>'
+
+            scale_parts = [n_fmt]
+            if n_sqm > 0: scale_parts.append(f"{int(round(n_sqm)):,} m²")
+            if n_casse > 0: scale_parts.append(f"{int(round(n_casse))} tills")
+            scale_str = " • ".join(scale_parts)
+
+            c0, c1, c2, c3, c4, c5 = st.columns([0.45, 3.1, 2.5, 2.0, 2.1, 1.75])
+            with c0:
+                st.checkbox("", key=f"chk_act_{status_label}_{pf_code}", label_visibility="collapsed")
             with c1:
                 st.markdown(
                     f"""
@@ -2084,16 +2216,13 @@ def render_machine_directory(
                         <div style="margin-top: 3px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
                             <span class="{tier_badge}">{tier_label}</span>
                         </div>
-                        <div style="font-size: 0.70rem; color: inherit; opacity: 0.75; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            🎟️ {rew_type_clean} ({rew_mult:.2f}x)
-                        </div>
                     </div>
                     """,
                     unsafe_allow_html=True,
                 )
             with c5:
                 btn_key = f"btn_res_{status_label}_{pf_code}_{row_idx}"
-                if st.button("Results 📊", key=btn_key, type="primary", use_container_width=True, help=f"Open full prospective forecast dashboard for {store} ({pf_code})"):
+                if st.button("Results 📊", key=btn_key, type="primary", use_container_width=True, help=f"Open prospective forecast dashboard for {store}"):
                     clean_addr_val = addr if addr and addr.lower() != "nan" else "Piazza del Comune 1"
                     full_p_res = results_map.get(pf_code, {}).get("FullResult")
                     st.session_state["pending_load_machine"] = {
@@ -2116,10 +2245,184 @@ def render_machine_directory(
                     st.session_state["pending_nav_tab"] = "🎯 Prospective Predictor"
                     st.rerun()
 
+                btn_hide_key = f"btn_hide_{status_label}_{pf_code}_{row_idx}"
+                if st.button("🚫 Hide", key=btn_hide_key, use_container_width=True, help=f"Permanently hide {store} ({pf_code}) from {status_label} list"):
+                    hide_machine(status_label, row.to_dict())
+                    st.toast(f"🚫 {store} ({pf_code}) hidden and saved to hidden_{status_label.lower()}_machines!")
+                    st.rerun()
+
+            st.markdown("<div style='border-bottom: 1px solid rgba(128, 128, 128, 0.15); margin: 8px 0 10px 0;'></div>", unsafe_allow_html=True)
+
+    # =========================================================================
+    # VIEW 2: HIDDEN MACHINES (Stores currently excluded in database)
+    # =========================================================================
+    else:
+        st.markdown(
+            f"""
+            <div class="directory-banner" style="border-left: 4px solid #ef4444;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+                    <div>
+                        <h3 style="margin: 0; color: inherit; font-size: 1.25rem; font-weight: 700;">
+                            🚫 Hidden {status_label} Machines Registry <span style="opacity: 0.65; font-size: 1.0rem; font-weight: 500;">({total_hidden_count:,} Excluded Sites)</span>
+                        </h3>
+                        <p style="margin: 6px 0 0 0; color: inherit; opacity: 0.75; font-size: 0.85rem;">
+                            These machines are permanently hidden from the active {status_label} directory and stored in <code>hidden_{status_label.lower()}_machines</code>. They will remain excluded across all server refreshes and API pulls until restored.
+                        </p>
+                    </div>
+                    <div>
+                        <span style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); padding: 5px 12px; border-radius: 6px; font-size: 0.80rem; font-weight: 800;">
+                            🔒 Dedicated Table: hidden_{status_label.lower()}_machines
+                        </span>
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        if df_hidden_display.empty:
+            st.info(f"✨ There are currently no hidden machines in the **{status_label}** directory. All inspected {status_label} machines are active.")
+            return
+
+        c_h_search, c_h_bulk, c_h_all = st.columns([2.5, 1.3, 1.2])
+        with c_h_search:
+            search_h_query = st.text_input(
+                f"🔍 Search Hidden {status_label} Sites",
+                placeholder="Search by store name, ID, address, or city...",
+                key=f"search_h_{status_label}",
+            ).strip().lower()
+
+        filtered_h_df = df_hidden_display.copy()
+        if search_h_query:
+            mask_h = (
+                filtered_h_df["PuntoFisico"].astype(str).str.lower().str.contains(search_h_query, na=False)
+                | filtered_h_df["ResolvedStoreName"].astype(str).str.lower().str.contains(search_h_query, na=False)
+                | filtered_h_df["Indirizzo"].astype(str).str.lower().str.contains(search_h_query, na=False)
+                | filtered_h_df["Comune"].astype(str).str.lower().str.contains(search_h_query, na=False)
+            )
+            filtered_h_df = filtered_h_df[mask_h]
+
+        h_pfs = [str(r["PuntoFisico"]).strip() for _, r in filtered_h_df.iterrows()]
+        selected_h_pfs = [pf for pf in h_pfs if st.session_state.get(f"chk_hid_{status_label}_{pf}", False)]
+
+        with c_h_bulk:
+            st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+            if selected_h_pfs:
+                if st.button(f"↩️ Restore Selected ({len(selected_h_pfs)})", key=f"btn_bulk_rest_{status_label}", type="primary", use_container_width=True):
+                    restore_machines_batch(status_label, selected_h_pfs)
+                    for pf in selected_h_pfs:
+                        st.session_state[f"chk_hid_{status_label}_{pf}"] = False
+                    st.toast(f"✅ {len(selected_h_pfs)} machines restored to active {status_label} directory!")
+                    st.rerun()
+
+        with c_h_all:
+            st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+            if st.button(f"↩️ Restore All ({len(filtered_h_df)})", key=f"btn_all_rest_{status_label}", use_container_width=True):
+                restore_machines_batch(status_label, h_pfs)
+                for pf in h_pfs:
+                    st.session_state[f"chk_hid_{status_label}_{pf}"] = False
+                st.toast(f"✅ All {len(h_pfs)} machines restored to active {status_label} directory!")
+                st.rerun()
+
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+
+        # Hidden Table Header
+        h_col0, h_col1, h_col2, h_col3, h_col4, h_col5 = st.columns([0.45, 3.1, 2.5, 2.0, 2.1, 1.75])
+        with h_col0:
+            st.markdown("<strong style='font-size: 0.75rem; opacity: 0.7;'>☑️</strong>", unsafe_allow_html=True)
+        with h_col1:
+            st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>STORE & ID</strong>", unsafe_allow_html=True)
+        with h_col2:
+            st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>LOCATION & MUNICIPALITY</strong>", unsafe_allow_html=True)
+        with h_col3:
+            st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>HARDWARE & SCALE</strong>", unsafe_allow_html=True)
+        with h_col4:
+            st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>AI YIELD & HIDDEN TIMESTAMP</strong>", unsafe_allow_html=True)
+        with h_col5:
+            st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: inherit; opacity: 0.68; font-weight: 700; text-transform: uppercase;'>ACTION</strong>", unsafe_allow_html=True)
+
+        st.markdown("<div style='border-bottom: 1px solid rgba(128, 128, 128, 0.20); margin-bottom: 14px;'></div>", unsafe_allow_html=True)
+
+        for h_idx, h_row in filtered_h_df.iterrows():
+            pf_code = str(h_row["PuntoFisico"]).strip()
+            store = h_row["ResolvedStoreName"]
+            addr = h_row.get("Indirizzo", "")
+            cap_val = h_row.get("Cap", "")
+            comune_val = h_row.get("Comune", "")
+            prov_val = h_row.get("Provincia", "")
+            reg_val = h_row.get("Regione", "")
+            mach_model = h_row.get("ResolvedMachine", "DAINT_A-bis")
+            filiera_val = h_row.get("ResolvedFiliera", "Coripet")
+            b_day = float(h_row.get("PredictedBottlesDay", 0.0))
+            m_day = int(h_row.get("PredictedBottlesMonth", 0))
+            tier_label = str(h_row.get("VolumeTier", "MEDIO PRENDENTE"))
+            tier_badge = str(h_row.get("VolumeTierBadge", "badge-tier-medio"))
+            hidden_at_str = str(h_row.get("hidden_at", "N/A"))
+
+            hc0, hc1, hc2, hc3, hc4, hc5 = st.columns([0.45, 3.1, 2.5, 2.0, 2.1, 1.75])
+            with hc0:
+                st.checkbox("", key=f"chk_hid_{status_label}_{pf_code}", label_visibility="collapsed")
+            with hc1:
+                st.markdown(
+                    f"""
+                    <div style="line-height: 1.35; margin-bottom: 6px;">
+                        <span style="font-weight: 700; color: inherit; font-size: 0.98rem; letter-spacing: -0.2px;">{store}</span>
+                    </div>
+                    <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                        <span class="badge-pf-id">🆔 {pf_code}</span>
+                        <span style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); padding: 2px 7px; border-radius: 4px; font-size: 0.70rem; font-weight: 700;">🚫 HIDDEN</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with hc2:
+                prov_str = f"({prov_val})" if prov_val else ""
+                st.markdown(
+                    f"""
+                    <div style="font-size: 0.88rem; line-height: 1.4;">
+                        <div style="color: inherit; font-weight: 600;">📍 {addr}</div>
+                        <div style="color: inherit; opacity: 0.75; font-size: 0.80rem; margin-top: 2px;">📮 {cap_val} <strong style="color: inherit; opacity: 1.0;">{comune_val}</strong> {prov_str}, <span>{reg_val}</span></div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with hc3:
+                st.markdown(
+                    f"""
+                    <div style="font-size: 0.84rem; line-height: 1.4;">
+                        <div style="font-weight: 700; color: inherit;">⚙️ {mach_model}</div>
+                        <div style="color: inherit; opacity: 0.75; font-size: 0.77rem; margin-top: 3px;">🏢 {filiera_val}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with hc4:
+                yield_txt = f"{b_day:.1f} b/d (~{m_day:,} b/mo)" if b_day > 0 else "Pre-sync estimate"
+                st.markdown(
+                    f"""
+                    <div style="line-height: 1.3;">
+                        <div style="font-size: 0.88rem; font-weight: 700; color: #64748b;">{yield_txt}</div>
+                        <div style="font-size: 0.72rem; color: #ef4444; margin-top: 3px; font-weight: 600;">
+                            🕒 Hidden: {hidden_at_str}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with hc5:
+                btn_rest_key = f"btn_rest_{status_label}_{pf_code}_{h_idx}"
+                if st.button("↩️ Restore", key=btn_rest_key, type="primary", use_container_width=True, help=f"Restore {store} ({pf_code}) back to active {status_label} list"):
+                    restore_machine(status_label, pf_code)
+                    st.toast(f"✅ {store} ({pf_code}) restored to active {status_label} list!")
+                    st.rerun()
+
             st.markdown("<div style='border-bottom: 1px solid rgba(128, 128, 128, 0.15); margin: 8px 0 10px 0;'></div>", unsafe_allow_html=True)
 
 
 def main():
+    if not require_auth():
+        return
+
     st.markdown('<div class="main-header">♻️ Coripet RVM Prospective Location Predictor</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="sub-header">Certified Machine Learning Decision Support System for Reverse Vending Machine Network Expansion</div>',
@@ -2140,6 +2443,9 @@ def main():
     if "pending_load_machine" in st.session_state:
         load_data = st.session_state.pop("pending_load_machine")
         st.session_state["input_store_name"] = load_data["store_name"]
+        st.session_state["store_dropdown_select"] = load_data["store_name"]
+        st.session_state["custom_store_input"] = load_data["store_name"]
+        st.session_state["is_custom_store_mode"] = False
         st.session_state["input_address"] = load_data["address"]
         st.session_state["input_cap"] = load_data["cap"]
         st.session_state["input_comune"] = load_data["comune"]
@@ -2269,10 +2575,15 @@ def main():
 
         # Store Name Strategy: Search Previous Records or Custom Option
         known_stores_list, known_stores_details = get_known_stores_directory()
-        dropdown_options = known_stores_list
+        dropdown_options = list(known_stores_list)
 
         cur_store_val = str(st.session_state.get("input_store_name", "")).strip()
         is_custom_mode = st.session_state.get("is_custom_store_mode", False)
+
+        # Ensure cur_store_val is included in dropdown_options so it is displayed and selected
+        if cur_store_val and cur_store_val not in dropdown_options:
+            dropdown_options = [cur_store_val] + dropdown_options
+            st.session_state["store_dropdown_select"] = cur_store_val
 
         # Clear legacy prompt from session state if present
         if st.session_state.get("store_dropdown_select") not in dropdown_options:
@@ -2339,12 +2650,14 @@ def main():
                 st.caption("🔒 *Dropdown list is blocked. Type custom store name above.*")
         else:
             if not chosen_dropdown:
-                store_name = ""
-                st.session_state["input_store_name"] = ""
+                store_name = cur_store_val
+                st.session_state["input_store_name"] = cur_store_val
+                if cur_store_val:
+                    st.caption(f"📍 *Store / Insegna selected:* **{cur_store_val}**")
             else:
                 store_name = chosen_dropdown
                 st.session_state["input_store_name"] = chosen_dropdown
-                st.caption(f"📍 *Insegna selected:* **{store_name}**")
+                st.caption(f"📍 *Store / Insegna selected:* **{store_name}**")
 
         if s_err:
             st.error("⚠️ Store Name / Insegna is required")
@@ -2382,7 +2695,7 @@ def main():
         # Machine is removed as an input; all 4 certified models are evaluated in the results split matrix
         machine_type = "DAINT_G"
 
-        btn_detect = st.button("🔍 Step 1: Detect Location & Nielsen Scale", type="primary", use_container_width=True)
+        btn_detect = st.button("🔍 Step 1: Detect Location & Scale", type="primary", use_container_width=True, help="Verify Italian administrative geography and resolve Nielsen census scale")
         if btn_detect:
             clean_s = str(store_name).strip()
             clean_a = str(address).strip()
@@ -2554,7 +2867,7 @@ def main():
                 with c_casse:
                     chosen_casse = st.number_input("Checkouts", min_value=1.0, max_value=100.0, value=cur_casse, step=1.0, help="Total active cash registers / checkout lanes")
                     
-            btn_step2 = st.button("➡️ Step 2: Confirm Scale & Fetch Rewards", type="primary", use_container_width=True)
+            btn_step2 = st.button("➡️ Step 2: Confirm Scale & Rewards", type="primary", use_container_width=True, help="Confirm sales area, tills, and resolve commercial promotional rewards")
             if btn_step2:
                 with st.spinner("Fetching commercial rewards and promotional contracts..."):
                     rew_info = predictor.rewards_engine.resolve_reward(store_name=store_name, comune=comune.strip() if comune else None)
@@ -2643,7 +2956,7 @@ def main():
                     chosen_go_live_year = st.selectbox("Go-Live Year", options=[2026, 2027, 2028], index=0)
                 chosen_rampup = st.checkbox("Include 3-Month Adoption Ramp-Up", value=True, help="Models realistic Month 1-3 customer discovery and Coripet app onboarding.")
 
-            btn_predict = st.button("🚀 Step 3: Run Full Prediction Analysis", type="primary", use_container_width=True)
+            btn_predict = st.button("🚀 Step 3: Run Prediction Analysis", type="primary", use_container_width=True, help="Execute multi-task neural network and stacking ensemble")
             if btn_predict:
                 try:
                     with st.spinner("Executing end-to-end multi-layer evaluation pipeline..."):
@@ -2890,7 +3203,7 @@ def render_prediction_dashboard(
         default_rew_lbl = reward_choice_labels[0]
     default_rew_idx = reward_choice_labels.index(default_rew_lbl)
 
-    col_sim_mach, col_sim_rew = st.columns([1, 1])
+    col_sim_mach, col_sim_rew, col_sim_rst = st.columns([1.15, 1.35, 0.45])
     with col_sim_mach:
         mach_choice_labels = [
             f"{m['icon']} {m['name']} ({m['cap']:,} bottles)"
@@ -2917,6 +3230,18 @@ def render_prediction_dashboard(
             key="top_sim_reward",
             help="Directly switch promotional reward policy. Footfall elasticity and monthly volumes update immediately.",
         )
+
+    with col_sim_rst:
+        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+        if st.button("↺ Reset Filters", key="btn_reset_simulation_filters", use_container_width=True, help="Reset active machine model and commercial reward scheme back to defaults"):
+            st.session_state.pop("top_sim_machine_label", None)
+            st.session_state.pop("top_sim_reward", None)
+            st.session_state.pop("top_sim_machine", None)
+            if "selected_store_pf" in st.session_state:
+                orig_m = st.session_state.get("input_machine_type", "DAINT_G")
+                st.session_state["pending_input_machine_type"] = orig_m
+            st.toast("↺ Simulation filters reset to defaults!")
+            st.rerun()
 
     selected_rew_obj = reward_choice_map[top_rew_lbl]
     chosen_reward_param = selected_rew_obj["param"]
@@ -3090,9 +3415,6 @@ def render_prediction_dashboard(
             f'<td style="padding: 7px 6px; font-size: 0.74rem; color: #94a3b8; text-align: center; white-space: nowrap;">'
             f'{m["servicing"]}'
             f'</td>'
-            f'<td style="padding: 7px 8px; text-align: center; white-space: nowrap;">'
-            f'{active_chip}'
-            f'</td>'
             f'</tr>'
         )
         table_rows_list.append(row_html)
@@ -3138,7 +3460,6 @@ def render_prediction_dashboard(
         '<th style="padding: 6px 6px; text-align: center; white-space: nowrap;">Util.</th>'
         '<th style="padding: 6px 6px; text-align: center; white-space: nowrap;">Sizing Verdict</th>'
         '<th style="padding: 6px 6px; text-align: center; white-space: nowrap;">Service</th>'
-        '<th style="padding: 6px 8px; text-align: center; white-space: nowrap;">Status</th>'
         '</tr>'
         '</thead>'
         f'<tbody>{table_rows_html}</tbody>'
