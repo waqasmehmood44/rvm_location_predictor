@@ -34,7 +34,14 @@ from src.data.hidden_manager import (
     hide_machines_batch,
     restore_machine,
     restore_machines_batch,
+    init_hidden_tables,
 )
+
+# Auto-initialize hidden tables in database if missing
+try:
+    init_hidden_tables()
+except Exception:
+    pass
 
 # Page configuration
 st.set_page_config(
