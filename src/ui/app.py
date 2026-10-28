@@ -1012,6 +1012,21 @@ st.markdown(
         opacity: 0 !important;
         pointer-events: none !important;
     }
+
+    /* Enforce strictly non-editable dropdowns across all selectboxes */
+    div[data-testid="stSelectbox"] input,
+    div[data-baseweb="select"] input,
+    div[role="combobox"] input,
+    input[aria-autocomplete="list"] {
+        caret-color: transparent !important;
+        pointer-events: none !important;
+        user-select: none !important;
+        cursor: pointer !important;
+    }
+    div[data-testid="stSelectbox"],
+    div[data-baseweb="select"] {
+        cursor: pointer !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
