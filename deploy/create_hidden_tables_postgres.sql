@@ -38,3 +38,4 @@ CREATE TABLE IF NOT EXISTS hidden_pot_machines (
     dt_fine_sop VARCHAR(32),
     hidden_at VARCHAR(32)
 );
+

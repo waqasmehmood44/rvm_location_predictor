@@ -1254,18 +1254,32 @@ def fetch_raw_coripet_machines() -> Tuple[pd.DataFrame, str]:
     except Exception as ex:
         pass
 
-    # 1. Fallback to PostgreSQL database if DATABASE_URL is configured
-    pg_url = os.getenv("DATABASE_URL", "").strip()
-    if pg_url and (pg_url.startswith("postgresql") or pg_url.startswith("postgres")):
+    # 1. Fallback to Database if DATABASE_URL or DB credentials configured (PostgreSQL, MariaDB, MySQL)
+    db_url = os.getenv("DATABASE_URL", "").strip()
+    db_user = os.getenv("DB_USER", "").strip()
+    if db_url or db_user:
         try:
-            if pg_url.startswith("postgresql://") and "+" not in pg_url.split("://")[0]:
-                pg_url = pg_url.replace("postgresql://", "postgresql+psycopg2://", 1)
-            elif pg_url.startswith("postgres://"):
-                pg_url = pg_url.replace("postgres://", "postgresql+psycopg2://", 1)
             from sqlalchemy import create_engine
-            pg_engine = create_engine(pg_url, pool_pre_ping=True)
-            df_pg = pd.read_sql("SELECT * FROM raw_storico_punto_fisico", pg_engine)
-            if not df_pg.empty:
+            if db_user and not db_url:
+                db_pass = os.getenv("DB_PASSWORD", "").strip()
+                db_host = os.getenv("DB_HOST", "localhost").strip()
+                db_port = os.getenv("DB_PORT", "3306").strip()
+                db_name = os.getenv("DB_NAME", "coripet_rvm").strip()
+                target_url = f"mysql+pymysql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
+            else:
+                target_url = db_url
+                if target_url.startswith("postgresql://") and "+" not in target_url.split("://")[0]:
+                    target_url = target_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+                elif target_url.startswith("postgres://"):
+                    target_url = target_url.replace("postgres://", "postgresql+psycopg2://", 1)
+                elif target_url.startswith("mysql://") and "+" not in target_url.split("://")[0]:
+                    target_url = target_url.replace("mysql://", "mysql+pymysql://", 1)
+                elif target_url.startswith("mariadb://"):
+                    target_url = target_url.replace("mariadb://", "mysql+pymysql://", 1)
+
+            engine = create_engine(target_url, pool_pre_ping=True)
+            df_db = pd.read_sql("SELECT * FROM raw_storico_punto_fisico", engine)
+            if not df_db.empty:
                 col_map = {c.lower(): c for c in [
                     "PuntoFisico", "DataInizioRange", "DataFineRange", "TipologiaPuntoFisico",
                     "NascondiAPP", "Indirizzo", "Cap", "Comune", "Provincia", "Regione", "Nazione",
@@ -1275,24 +1289,13 @@ def fetch_raw_coripet_machines() -> Tuple[pd.DataFrame, str]:
                     "TipoMacchina", "Fornitore", "DataInstallazione", "DataPrimaAttivazione",
                     "start_dt", "end_dt", "Macchina_clean", "CodiceMacchinaProd_clean"
                 ]}
-                df_pg.rename(columns=col_map, inplace=True)
-                return df_pg, "PostgreSQL Database"
+                df_db.rename(columns=col_map, inplace=True)
+                source_lbl = "MariaDB Database" if "mysql" in target_url else "PostgreSQL Database"
+                return df_db, source_lbl
         except Exception:
             pass
 
-    # 2. Fallback to local SQLite database if available
-    db_path = Path("data/coripet_rvm.db")
-    if db_path.exists():
-        try:
-            import sqlite3
-            with sqlite3.connect(str(db_path)) as conn:
-                df_db = pd.read_sql("SELECT * FROM raw_storico_punto_fisico", conn)
-                if not df_db.empty:
-                    return df_db, "Local SQLite Database"
-        except Exception:
-            pass
-
-    # 3. Fallback to local CSV if database is unavailable
+    # 2. Fallback to local CSV if database is unavailable
     path = Path("data/raw/CaricaViewStoricoPuntoFisico.csv")
     if path.exists():
         df_csv = pd.read_csv(path, sep=";", dtype=str)

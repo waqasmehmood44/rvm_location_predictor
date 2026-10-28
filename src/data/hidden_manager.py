@@ -1,70 +1,72 @@
 """
 Database manager for hiding and restoring SPL and POT machines.
-Maintains completely separate tables:
-  - hidden_spl_machines
-  - hidden_pot_machines
-Supports PostgreSQL, MariaDB/MySQL (Plesk), and local SQLite fallback.
+Strictly uses production databases: MariaDB / MySQL (Plesk) and PostgreSQL.
+SQLite has been completely removed.
 """
 
 import os
-import sqlite3
-import time
 from datetime import datetime
-from pathlib import Path
-from typing import Set, Dict, Any, List
+from typing import Set, Dict, Any, List, Tuple
+from urllib.parse import urlparse
 import pandas as pd
 from dotenv import load_dotenv
+from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT_DIR / ".env")
 
-SQLITE_PATH = ROOT_DIR / "data" / "coripet_rvm.db"
 
-_DB_ENGINE = None
-_DB_LAST_CHECK = 0
-
-
-def _get_connection():
+def _get_connection() -> Tuple[Any, str]:
     """
-    Returns (connection, engine_type) where engine_type is 'mysql', 'postgres', or 'sqlite'.
-    Strictly prioritizes production databases (PostgreSQL or MariaDB/MySQL from DATABASE_URL).
+    Connects strictly to production database (MariaDB/MySQL or PostgreSQL).
+    No SQLite fallback.
+    Returns (connection_object, 'mysql' | 'postgres').
     """
     db_url = os.getenv("DATABASE_URL", "").strip()
 
-    # 1. MariaDB / MySQL (Plesk Production)
+    # 1. MariaDB / MySQL via URL (Plesk Standard)
     if db_url and any(db_url.startswith(prefix) for prefix in ["mysql://", "mysql+pymysql://", "mariadb://"]):
-        try:
-            import pymysql
-            from urllib.parse import urlparse
-            clean_url = db_url.replace("mysql+pymysql://", "mysql://").replace("mariadb://", "mysql://")
-            parsed = urlparse(clean_url)
-            conn = pymysql.connect(
-                host=parsed.hostname or "localhost",
-                port=parsed.port or 3306,
-                user=parsed.username or "root",
-                password=parsed.password or "",
-                database=parsed.path.lstrip("/"),
-                charset="utf8mb4",
-                autocommit=True
-            )
-            return conn, "mysql"
-        except Exception as ex:
-            print(f"[hidden_manager] MySQL connection error: {ex}")
+        import pymysql
+        clean_url = db_url.replace("mysql+pymysql://", "mysql://").replace("mariadb://", "mysql://")
+        parsed = urlparse(clean_url)
+        conn = pymysql.connect(
+            host=parsed.hostname or "localhost",
+            port=parsed.port or 3306,
+            user=parsed.username or "waqas",
+            password=parsed.password or "",
+            database=parsed.path.lstrip("/") or "coripet_rvm",
+            charset="utf8mb4",
+            autocommit=True
+        )
+        return conn, "mysql"
 
-    # 2. PostgreSQL (Production / Local)
+    # 2. PostgreSQL via URL
     if db_url and any(db_url.startswith(prefix) for prefix in ["postgres://", "postgresql://", "postgresql+psycopg2://"]):
-        try:
-            import psycopg2
-            clean_url = db_url.replace("postgresql+psycopg2://", "postgresql://")
-            conn = psycopg2.connect(clean_url, connect_timeout=3)
-            return conn, "postgres"
-        except Exception as ex:
-            print(f"[hidden_manager] PostgreSQL connection error: {ex}")
+        import psycopg2
+        clean_url = db_url.replace("postgresql+psycopg2://", "postgresql://")
+        conn = psycopg2.connect(clean_url, connect_timeout=5)
+        return conn, "postgres"
 
-    # 3. SQLite Fallback
-    SQLITE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(SQLITE_PATH))
-    return conn, "sqlite"
+    # 3. Direct Environment Variables (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME)
+    db_user = os.getenv("DB_USER", "").strip()
+    if db_user:
+        import pymysql
+        conn = pymysql.connect(
+            host=os.getenv("DB_HOST", "localhost").strip(),
+            port=int(os.getenv("DB_PORT", "3306")),
+            user=db_user,
+            password=os.getenv("DB_PASSWORD", "").strip(),
+            database=os.getenv("DB_NAME", "coripet_rvm").strip(),
+            charset="utf8mb4",
+            autocommit=True
+        )
+        return conn, "mysql"
+
+    # No SQLite fallback - explicitly report missing configuration
+    raise ConnectionError(
+        "No production database configured! Please set DATABASE_URL in .env "
+        "(e.g. DATABASE_URL=mysql+pymysql://waqas:<password>@localhost:3306/coripet_rvm)"
+    )
 
 
 def _get_table_name(status_label: str) -> str:
@@ -76,7 +78,7 @@ def _get_table_name(status_label: str) -> str:
 
 
 def init_hidden_tables():
-    """Initializes both hidden_spl_machines and hidden_pot_machines tables."""
+    """Initializes both hidden_spl_machines and hidden_pot_machines tables in MariaDB or PostgreSQL."""
     conn, engine_type = _get_connection()
     try:
         cur = conn.cursor()
@@ -129,19 +131,22 @@ def init_hidden_tables():
 def get_hidden_pf_set(status_label: str) -> Set[str]:
     """Returns set of PuntoFisico strings currently hidden for SPL or POT."""
     table_name = _get_table_name(status_label)
-    conn, engine_type = _get_connection()
+    try:
+        conn, engine_type = _get_connection()
+    except Exception as ex:
+        print(f"[hidden_manager] Database connection error: {ex}")
+        return set()
+
     try:
         cur = conn.cursor()
-        if engine_type == "sqlite":
-            chk = cur.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,)
-            ).fetchone()
-            if not chk:
-                init_hidden_tables()
-        cur.execute(f"SELECT punto_fisico FROM {table_name}")
+        if engine_type == "mysql":
+            cur.execute(f"SELECT `punto_fisico` FROM `{table_name}`")
+        else:
+            cur.execute(f"SELECT punto_fisico FROM {table_name}")
         rows = cur.fetchall()
         return {str(r[0]).strip() for r in rows if r and r[0]}
-    except Exception:
+    except Exception as ex:
+        print(f"[hidden_manager] Error querying {table_name}: {ex}")
         try:
             init_hidden_tables()
         except Exception:
@@ -154,12 +159,19 @@ def get_hidden_pf_set(status_label: str) -> Set[str]:
 def get_hidden_machines_df(status_label: str) -> pd.DataFrame:
     """Fetches full DataFrame of hidden machines for the given status."""
     table_name = _get_table_name(status_label)
-    conn, engine_type = _get_connection()
     try:
-        query = f"SELECT * FROM {table_name} ORDER BY hidden_at DESC"
+        conn, engine_type = _get_connection()
+    except Exception as ex:
+        print(f"[hidden_manager] Database connection error: {ex}")
+        return pd.DataFrame()
+
+    try:
+        quote = "`" if engine_type == "mysql" else ""
+        query = f"SELECT * FROM {quote}{table_name}{quote} ORDER BY hidden_at DESC"
         df = pd.read_sql(query, conn)
         return df
-    except Exception:
+    except Exception as ex:
+        print(f"[hidden_manager] Error reading {table_name}: {ex}")
         try:
             init_hidden_tables()
         except Exception:
@@ -180,7 +192,6 @@ def hide_machines_batch(status_label: str, rows_list: List[Dict[str, Any]]) -> b
         return False
 
     table_name = _get_table_name(status_label)
-    init_hidden_tables()
     conn, engine_type = _get_connection()
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -204,18 +215,7 @@ def hide_machines_batch(status_label: str, rows_list: List[Dict[str, Any]]) -> b
             reward = str(r.get("RewardType", r.get("reward_type", "Standard Loyalty")))
             dt_sop = str(r.get("DataFineSopralluogoFormatted", r.get("dt_fine_sop", "")))
 
-            if engine_type == "sqlite":
-                cur.execute(f"""
-                    INSERT OR REPLACE INTO {table_name} (
-                        punto_fisico, store_name, address, cap, comune, provincia, regione,
-                        machine_type, predicted_bottles, predicted_month, volume_tier,
-                        reward_type, dt_fine_sop, hidden_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    pf, store_name, addr, cap_val, comune, prov, reg,
-                    mach, b_day, b_mo, tier, reward, dt_sop, now_str
-                ))
-            elif engine_type == "mysql":
+            if engine_type == "mysql":
                 cur.execute(f"""
                     INSERT INTO `{table_name}` (
                         `punto_fisico`, `store_name`, `address`, `cap`, `comune`, `provincia`, `regione`,
@@ -269,8 +269,8 @@ def hide_machines_batch(status_label: str, rows_list: List[Dict[str, Any]]) -> b
             conn.commit()
         return True
     except Exception as ex:
-        print(f"Error hiding machines in {table_name}: {ex}")
-        return False
+        print(f"[hidden_manager] Error hiding machines in {table_name}: {ex}")
+        raise ex
     finally:
         conn.close()
 
@@ -293,10 +293,7 @@ def restore_machines_batch(status_label: str, pf_list: List[str]) -> bool:
         if not clean_pfs:
             return False
 
-        if engine_type == "sqlite":
-            placeholders = ",".join(["?"] * len(clean_pfs))
-            cur.execute(f"DELETE FROM {table_name} WHERE punto_fisico IN ({placeholders})", clean_pfs)
-        elif engine_type == "mysql":
+        if engine_type == "mysql":
             placeholders = ",".join(["%s"] * len(clean_pfs))
             cur.execute(f"DELETE FROM `{table_name}` WHERE `punto_fisico` IN ({placeholders})", clean_pfs)
         else:
@@ -306,7 +303,7 @@ def restore_machines_batch(status_label: str, pf_list: List[str]) -> bool:
             conn.commit()
         return True
     except Exception as ex:
-        print(f"Error restoring machines from {table_name}: {ex}")
-        return False
+        print(f"[hidden_manager] Error restoring machines from {table_name}: {ex}")
+        raise ex
     finally:
         conn.close()
