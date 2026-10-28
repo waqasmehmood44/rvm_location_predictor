@@ -2,7 +2,8 @@
 Administrative Authentication Module for Coripet RVM Predictor.
 Implements timing-attack resistant credentials validation,
 session state management, protected administrative gating,
-and persistent authenticated sessions across browser refreshes via HMAC-signed tokens.
+and persistent authenticated sessions across browser refreshes
+via dual-layer HMAC-signed tokens and browser localStorage.
 """
 
 import os
@@ -12,6 +13,7 @@ import hashlib
 from typing import Optional
 from pathlib import Path
 import streamlit as st
+import streamlit.components.v1 as components
 from dotenv import load_dotenv
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -21,6 +23,7 @@ load_dotenv(ROOT_DIR / ".env")
 DEFAULT_ADMIN_USER = os.getenv("ADMIN_USERNAME", "admin").strip()
 DEFAULT_ADMIN_PASS = os.getenv("ADMIN_PASSWORD", "CoripetAdmin2026*").strip()
 AUTH_SALT = os.getenv("AUTH_SALT", "coripet_auth_token_salt_2026")
+AUTH_ENABLED = os.getenv("AUTH_ENABLED", "true").strip().lower() not in ("0", "false", "no", "off")
 
 
 def check_credentials(username: str, password: str) -> bool:
@@ -50,10 +53,11 @@ def generate_auth_token(username: str) -> str:
     return f"{payload}:{sig}"
 
 
-def verify_auth_token(token: str, max_age_days: int = 30) -> Optional[str]:
+def verify_auth_token(token: str, max_age_days: int = 60) -> Optional[str]:
     """
     Verifies the HMAC signature and timestamp of an authentication token.
     Returns the authenticated username if valid, otherwise None.
+    Default validity: 60 days.
     """
     if not token or ":" not in token:
         return None
@@ -66,7 +70,7 @@ def verify_auth_token(token: str, max_age_days: int = 30) -> Optional[str]:
     except ValueError:
         return None
 
-    # Expiry verification (default 30 days)
+    # Expiry verification
     if time.time() - timestamp > max_age_days * 86400:
         return None
 
@@ -121,9 +125,69 @@ def _clear_auth_param():
         pass
 
 
+def _js_persist_token(token: str):
+    """Saves auth token to browser localStorage and updates URL query parameters."""
+    html_code = f"""
+    <script>
+        (function() {{
+            try {{
+                window.parent.localStorage.setItem('coripet_auth_token', '{token}');
+                const curUrl = new URL(window.parent.location.href);
+                if (curUrl.searchParams.get('auth') !== '{token}') {{
+                    curUrl.searchParams.set('auth', '{token}');
+                    window.parent.history.replaceState(null, '', curUrl.toString());
+                }}
+            }} catch (e) {{}}
+        }})();
+    </script>
+    """
+    components.html(html_code, height=0, width=0)
+
+
+def _js_clear_token():
+    """Removes auth token from browser localStorage and cleans URL."""
+    html_code = """
+    <script>
+        (function() {
+            try {
+                window.parent.localStorage.removeItem('coripet_auth_token');
+                const curUrl = new URL(window.parent.location.href);
+                if (curUrl.searchParams.has('auth')) {
+                    curUrl.searchParams.delete('auth');
+                    window.parent.history.replaceState(null, '', curUrl.toString());
+                }
+            } catch (e) {}
+        })();
+    </script>
+    """
+    components.html(html_code, height=0, width=0)
+
+
+def _js_auto_restore_token():
+    """Checks browser localStorage for stored token on refresh and immediately restores session."""
+    html_code = """
+    <script>
+        (function() {
+            try {
+                const token = window.parent.localStorage.getItem('coripet_auth_token');
+                if (token && token.length > 20) {
+                    const curUrl = new URL(window.parent.location.href);
+                    if (curUrl.searchParams.get('auth') !== token) {
+                        curUrl.searchParams.set('auth', token);
+                        window.parent.location.replace(curUrl.toString());
+                    }
+                }
+            } catch (e) {}
+        })();
+    </script>
+    """
+    components.html(html_code, height=0, width=0)
+
+
 def logout():
-    """Clears authentication session state, URL token, and forces a fresh rerun."""
+    """Clears authentication session state, URL token, localStorage, and forces a fresh rerun."""
     _clear_auth_param()
+    _js_clear_token()
     st.session_state["is_authenticated"] = False
     st.session_state.pop("authenticated_user", None)
     st.rerun()
@@ -155,11 +219,13 @@ def render_sidebar_user_badge():
 def require_auth() -> bool:
     """
     Complete security gate for the application.
-    If authenticated via session state or valid signed URL token,
-    renders user badge in the sidebar and returns True without prompting for login.
-    If unauthenticated, hides all internal components, renders the login portal,
-    and returns False.
+    If authenticated via session state, valid query param, or browser localStorage,
+    renders user badge in the sidebar and returns True.
+    If unauthenticated, triggers client-side storage restore or renders the login portal.
     """
+    if not AUTH_ENABLED:
+        return True
+
     # 1. Fast check: active session state in current memory
     if st.session_state.get("is_authenticated", False):
         render_sidebar_user_badge()
@@ -172,13 +238,18 @@ def require_auth() -> bool:
         if valid_user:
             st.session_state["is_authenticated"] = True
             st.session_state["authenticated_user"] = valid_user
+            _js_persist_token(token)
             render_sidebar_user_badge()
             return True
         else:
-            # Token expired or tampered -> clean up
+            # Token invalid or expired -> clean up
             _clear_auth_param()
+            _js_clear_token()
 
-    # 3. Unauthenticated: Render Login Screen
+    # 3. Client-side localStorage check for page refreshes
+    _js_auto_restore_token()
+
+    # 4. Unauthenticated: Render Login Screen
     st.markdown(
         """
         <style>
@@ -204,7 +275,6 @@ def require_auth() -> bool:
         unsafe_allow_html=True
     )
 
-    # Centered Login Card
     col_l, col_center, col_r = st.columns([1.5, 3.0, 1.5])
     with col_center:
         st.markdown(
@@ -253,9 +323,9 @@ def require_auth() -> bool:
                 if check_credentials(user_input, pass_input):
                     st.session_state["is_authenticated"] = True
                     st.session_state["authenticated_user"] = user_input
-                    # Set persistent signed token in URL query parameter
                     token = generate_auth_token(user_input)
                     _set_auth_param(token)
+                    _js_persist_token(token)
                     st.toast("✅ Authentication successful. Welcome to Coripet Predictor!", icon="🔓")
                     st.rerun()
                 else:
