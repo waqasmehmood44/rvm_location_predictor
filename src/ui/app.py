@@ -1013,18 +1013,19 @@ st.markdown(
         pointer-events: none !important;
     }
 
-    /* Enforce strictly non-editable dropdowns across all selectboxes */
+    /* Enforce strictly non-editable, full-box clickable dropdowns */
+    div[data-testid="stSelectbox"],
+    div[data-baseweb="select"],
+    div[data-baseweb="select"] * {
+        cursor: pointer !important;
+    }
     div[data-testid="stSelectbox"] input,
     div[data-baseweb="select"] input,
     div[role="combobox"] input,
     input[aria-autocomplete="list"] {
         caret-color: transparent !important;
-        pointer-events: none !important;
+        pointer-events: auto !important;
         user-select: none !important;
-        cursor: pointer !important;
-    }
-    div[data-testid="stSelectbox"],
-    div[data-baseweb="select"] {
         cursor: pointer !important;
     }
     </style>
@@ -1058,14 +1059,31 @@ components.html(
                     }, true);
                 });
 
-                // Set readonly and pointer-events on all selectbox input elements
+                // Clicking anywhere on the select control (text, label, or container) opens the dropdown
+                targetDoc.addEventListener('click', function(e) {
+                    const selectControl = e.target.closest('div[data-baseweb="select"]');
+                    if (selectControl && !e.target.closest('ul[role="listbox"]') && !e.target.closest('li[role="option"]')) {
+                        const arrow = selectControl.querySelector('svg');
+                        const input = selectControl.querySelector('input');
+                        if (e.target !== arrow && e.target !== input && (!arrow || !arrow.contains(e.target))) {
+                            if (arrow) {
+                                arrow.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                            } else if (input) {
+                                input.focus();
+                                input.click();
+                            }
+                        }
+                    }
+                }, true);
+
+                // Set readonly and make full box clickable on all selectbox input elements
                 function applyReadOnly() {
-                    const inputs = targetDoc.querySelectorAll('div[data-baseweb="select"] input');
+                    const inputs = targetDoc.querySelectorAll('div[data-baseweb="select"] input, div[data-testid="stSelectbox"] input');
                     inputs.forEach(inp => {
                         inp.setAttribute('readonly', 'readonly');
                         inp.setAttribute('inputmode', 'none');
                         inp.setAttribute('autocomplete', 'off');
-                        inp.style.pointerEvents = 'none';
+                        inp.style.pointerEvents = 'auto';
                         inp.style.caretColor = 'transparent';
                         inp.style.cursor = 'pointer';
                         inp.style.userSelect = 'none';
