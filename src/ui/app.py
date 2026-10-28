@@ -2089,7 +2089,7 @@ def render_machine_directory(
         with col_stat:
             st.markdown(
                 f"""<div style="color: inherit; opacity: 0.75; font-size: 0.88rem; padding: 6px 0;">
-                    Showing <strong style="color: inherit; opacity: 1.0;">{n_filtered:,}</strong> of <strong style="color: inherit; opacity: 1.0;">{total_active_count:,}</strong> active &bull; Click <strong style="color: #ef4444;">🚫 Hide</strong> to exclude
+                    Showing <strong style="color: inherit; opacity: 1.0;">{n_filtered:,}</strong> of <strong style="color: inherit; opacity: 1.0;">{total_active_count:,}</strong> active &bull; Select checkboxes to hide machines
                 </div>""",
                 unsafe_allow_html=True
             )
@@ -2255,11 +2255,7 @@ def render_machine_directory(
                     st.session_state["pending_nav_tab"] = "🎯 Prospective Predictor"
                     st.rerun()
 
-                btn_hide_key = f"btn_hide_{status_label}_{pf_code}_{row_idx}"
-                if st.button("🚫 Hide", key=btn_hide_key, use_container_width=True, help=f"Permanently hide {store} ({pf_code}) from {status_label} list"):
-                    hide_machine(status_label, row.to_dict())
-                    st.toast(f"🚫 {store} ({pf_code}) hidden and saved to hidden_{status_label.lower()}_machines!")
-                    st.rerun()
+
 
             st.markdown("<div style='border-bottom: 1px solid rgba(128, 128, 128, 0.15); margin: 8px 0 10px 0;'></div>", unsafe_allow_html=True)
 
