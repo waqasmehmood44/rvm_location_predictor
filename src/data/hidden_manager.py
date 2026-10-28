@@ -3,7 +3,7 @@ Database manager for hiding and restoring SPL and POT machines.
 Maintains completely separate tables:
   - hidden_spl_machines
   - hidden_pot_machines
-Supports SQLite (data/coripet_rvm.db) and PostgreSQL seamlessly.
+Supports PostgreSQL, MariaDB/MySQL (Plesk), and local SQLite fallback.
 """
 
 import os
@@ -20,48 +20,48 @@ load_dotenv(ROOT_DIR / ".env")
 
 SQLITE_PATH = ROOT_DIR / "data" / "coripet_rvm.db"
 
-# Cache reachability of Postgres to avoid connection timeout lags
-_PG_AVAILABLE = None
-_PG_LAST_CHECK = 0
-
-
-def _is_pg_available() -> bool:
-    global _PG_AVAILABLE, _PG_LAST_CHECK
-    now = time.time()
-    if _PG_AVAILABLE is not None and (now - _PG_LAST_CHECK) < 300:
-        return _PG_AVAILABLE
-
-    pg_url = os.getenv("DATABASE_URL", "").strip()
-    if not pg_url or not pg_url.startswith("postgres"):
-        _PG_AVAILABLE = False
-        _PG_LAST_CHECK = now
-        return False
-
-    clean_url = pg_url.replace("postgresql+psycopg2://", "postgresql://")
-    try:
-        import psycopg2
-        conn = psycopg2.connect(clean_url, connect_timeout=1)
-        conn.close()
-        _PG_AVAILABLE = True
-    except Exception:
-        _PG_AVAILABLE = False
-
-    _PG_LAST_CHECK = now
-    return _PG_AVAILABLE
+_DB_ENGINE = None
+_DB_LAST_CHECK = 0
 
 
 def _get_connection():
-    """Returns a SQLite connection or PostgreSQL connection if configured and reachable."""
-    if _is_pg_available():
-        pg_url = os.getenv("DATABASE_URL", "").strip().replace("postgresql+psycopg2://", "postgresql://")
+    """
+    Returns (connection, engine_type) where engine_type is 'mysql', 'postgres', or 'sqlite'.
+    Strictly prioritizes production databases (PostgreSQL or MariaDB/MySQL from DATABASE_URL).
+    """
+    db_url = os.getenv("DATABASE_URL", "").strip()
+
+    # 1. MariaDB / MySQL (Plesk Production)
+    if db_url and any(db_url.startswith(prefix) for prefix in ["mysql://", "mysql+pymysql://", "mariadb://"]):
+        try:
+            import pymysql
+            from urllib.parse import urlparse
+            clean_url = db_url.replace("mysql+pymysql://", "mysql://").replace("mariadb://", "mysql://")
+            parsed = urlparse(clean_url)
+            conn = pymysql.connect(
+                host=parsed.hostname or "localhost",
+                port=parsed.port or 3306,
+                user=parsed.username or "root",
+                password=parsed.password or "",
+                database=parsed.path.lstrip("/"),
+                charset="utf8mb4",
+                autocommit=True
+            )
+            return conn, "mysql"
+        except Exception as ex:
+            print(f"[hidden_manager] MySQL connection error: {ex}")
+
+    # 2. PostgreSQL (Production / Local)
+    if db_url and any(db_url.startswith(prefix) for prefix in ["postgres://", "postgresql://", "postgresql+psycopg2://"]):
         try:
             import psycopg2
-            conn = psycopg2.connect(pg_url)
+            clean_url = db_url.replace("postgresql+psycopg2://", "postgresql://")
+            conn = psycopg2.connect(clean_url, connect_timeout=3)
             return conn, "postgres"
-        except Exception:
-            pass
+        except Exception as ex:
+            print(f"[hidden_manager] PostgreSQL connection error: {ex}")
 
-    # Default to SQLite
+    # 3. SQLite Fallback
     SQLITE_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(SQLITE_PATH))
     return conn, "sqlite"
@@ -81,25 +81,47 @@ def init_hidden_tables():
     try:
         cur = conn.cursor()
         for tbl in ["hidden_spl_machines", "hidden_pot_machines"]:
-            cur.execute(f"""
-                CREATE TABLE IF NOT EXISTS {tbl} (
-                    punto_fisico VARCHAR(64) PRIMARY KEY,
-                    store_name TEXT,
-                    address TEXT,
-                    cap VARCHAR(16),
-                    comune VARCHAR(128),
-                    provincia VARCHAR(16),
-                    regione VARCHAR(64),
-                    machine_type VARCHAR(64),
-                    predicted_bottles REAL DEFAULT 0.0,
-                    predicted_month INTEGER DEFAULT 0,
-                    volume_tier VARCHAR(64),
-                    reward_type VARCHAR(128),
-                    dt_fine_sop VARCHAR(32),
-                    hidden_at VARCHAR(32)
-                );
-            """)
-        conn.commit()
+            if engine_type == "mysql":
+                cur.execute(f"""
+                    CREATE TABLE IF NOT EXISTS `{tbl}` (
+                        `punto_fisico` VARCHAR(64) NOT NULL,
+                        `store_name` TEXT DEFAULT NULL,
+                        `address` TEXT DEFAULT NULL,
+                        `cap` VARCHAR(16) DEFAULT NULL,
+                        `comune` VARCHAR(128) DEFAULT NULL,
+                        `provincia` VARCHAR(16) DEFAULT NULL,
+                        `regione` VARCHAR(64) DEFAULT NULL,
+                        `machine_type` VARCHAR(64) DEFAULT NULL,
+                        `predicted_bottles` FLOAT DEFAULT 0.0,
+                        `predicted_month` INT DEFAULT 0,
+                        `volume_tier` VARCHAR(64) DEFAULT NULL,
+                        `reward_type` VARCHAR(128) DEFAULT NULL,
+                        `dt_fine_sop` VARCHAR(32) DEFAULT NULL,
+                        `hidden_at` VARCHAR(32) DEFAULT NULL,
+                        PRIMARY KEY (`punto_fisico`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                """)
+            else:
+                cur.execute(f"""
+                    CREATE TABLE IF NOT EXISTS {tbl} (
+                        punto_fisico VARCHAR(64) PRIMARY KEY,
+                        store_name TEXT,
+                        address TEXT,
+                        cap VARCHAR(16),
+                        comune VARCHAR(128),
+                        provincia VARCHAR(16),
+                        regione VARCHAR(64),
+                        machine_type VARCHAR(64),
+                        predicted_bottles REAL DEFAULT 0.0,
+                        predicted_month INTEGER DEFAULT 0,
+                        volume_tier VARCHAR(64),
+                        reward_type VARCHAR(128),
+                        dt_fine_sop VARCHAR(32),
+                        hidden_at VARCHAR(32)
+                    );
+                """)
+        if hasattr(conn, "commit"):
+            conn.commit()
     finally:
         conn.close()
 
@@ -120,7 +142,10 @@ def get_hidden_pf_set(status_label: str) -> Set[str]:
         rows = cur.fetchall()
         return {str(r[0]).strip() for r in rows if r and r[0]}
     except Exception:
-        init_hidden_tables()
+        try:
+            init_hidden_tables()
+        except Exception:
+            pass
         return set()
     finally:
         conn.close()
@@ -131,11 +156,14 @@ def get_hidden_machines_df(status_label: str) -> pd.DataFrame:
     table_name = _get_table_name(status_label)
     conn, engine_type = _get_connection()
     try:
-        init_hidden_tables()
         query = f"SELECT * FROM {table_name} ORDER BY hidden_at DESC"
         df = pd.read_sql(query, conn)
         return df
     except Exception:
+        try:
+            init_hidden_tables()
+        except Exception:
+            pass
         return pd.DataFrame()
     finally:
         conn.close()
@@ -187,6 +215,31 @@ def hide_machines_batch(status_label: str, rows_list: List[Dict[str, Any]]) -> b
                     pf, store_name, addr, cap_val, comune, prov, reg,
                     mach, b_day, b_mo, tier, reward, dt_sop, now_str
                 ))
+            elif engine_type == "mysql":
+                cur.execute(f"""
+                    INSERT INTO `{table_name}` (
+                        `punto_fisico`, `store_name`, `address`, `cap`, `comune`, `provincia`, `regione`,
+                        `machine_type`, `predicted_bottles`, `predicted_month`, `volume_tier`,
+                        `reward_type`, `dt_fine_sop`, `hidden_at`
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        `store_name` = VALUES(`store_name`),
+                        `address` = VALUES(`address`),
+                        `cap` = VALUES(`cap`),
+                        `comune` = VALUES(`comune`),
+                        `provincia` = VALUES(`provincia`),
+                        `regione` = VALUES(`regione`),
+                        `machine_type` = VALUES(`machine_type`),
+                        `predicted_bottles` = VALUES(`predicted_bottles`),
+                        `predicted_month` = VALUES(`predicted_month`),
+                        `volume_tier` = VALUES(`volume_tier`),
+                        `reward_type` = VALUES(`reward_type`),
+                        `dt_fine_sop` = VALUES(`dt_fine_sop`),
+                        `hidden_at` = VALUES(`hidden_at`);
+                """, (
+                    pf, store_name, addr, cap_val, comune, prov, reg,
+                    mach, b_day, b_mo, tier, reward, dt_sop, now_str
+                ))
             else:
                 cur.execute(f"""
                     INSERT INTO {table_name} (
@@ -212,7 +265,8 @@ def hide_machines_batch(status_label: str, rows_list: List[Dict[str, Any]]) -> b
                     pf, store_name, addr, cap_val, comune, prov, reg,
                     mach, b_day, b_mo, tier, reward, dt_sop, now_str
                 ))
-        conn.commit()
+        if hasattr(conn, "commit"):
+            conn.commit()
         return True
     except Exception as ex:
         print(f"Error hiding machines in {table_name}: {ex}")
@@ -242,10 +296,14 @@ def restore_machines_batch(status_label: str, pf_list: List[str]) -> bool:
         if engine_type == "sqlite":
             placeholders = ",".join(["?"] * len(clean_pfs))
             cur.execute(f"DELETE FROM {table_name} WHERE punto_fisico IN ({placeholders})", clean_pfs)
+        elif engine_type == "mysql":
+            placeholders = ",".join(["%s"] * len(clean_pfs))
+            cur.execute(f"DELETE FROM `{table_name}` WHERE `punto_fisico` IN ({placeholders})", clean_pfs)
         else:
             placeholders = ",".join(["%s"] * len(clean_pfs))
             cur.execute(f"DELETE FROM {table_name} WHERE punto_fisico IN ({placeholders})", clean_pfs)
-        conn.commit()
+        if hasattr(conn, "commit"):
+            conn.commit()
         return True
     except Exception as ex:
         print(f"Error restoring machines from {table_name}: {ex}")
