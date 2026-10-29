@@ -2217,7 +2217,7 @@ def render_machine_directory(
                     st.rerun()
 
         # Table Header
-        th_col0, th_col1, th_col2, th_col3, th_col4, th_col5 = st.columns([0.4, 3.4, 3.2, 1.7, 1.9, 1.4])
+        th_col0, th_col1, th_col2, th_col3, th_col4, th_col5 = st.columns([0.4, 3.3, 2.9, 1.6, 2.4, 1.4])
         with th_col0:
             st.markdown("<strong style='font-size: 0.75rem; opacity: 0.7;'>☑️</strong>", unsafe_allow_html=True)
         with th_col1:
@@ -2286,7 +2286,7 @@ def render_machine_directory(
             if n_casse > 0: scale_parts.append(f"{int(round(n_casse))} tills")
             scale_str = " • ".join(scale_parts)
 
-            c0, c1, c2, c3, c4, c5 = st.columns([0.4, 3.4, 3.2, 1.7, 1.9, 1.4])
+            c0, c1, c2, c3, c4, c5 = st.columns([0.4, 3.3, 2.9, 1.6, 2.4, 1.4])
             with c0:
                 st.checkbox("", key=f"chk_act_{status_label}_{pf_code}", label_visibility="collapsed")
             with c1:
@@ -2339,13 +2339,14 @@ def render_machine_directory(
             with c4:
                 st.markdown(
                     f"""
-                    <div style="line-height: 1.3;">
-                        <div style="display: flex; align-items: baseline; gap: 5px;">
-                            <span style="font-size: 1.12rem; font-weight: 800; color: {tier_color}; letter-spacing: -0.3px;">{b_day:.1f} b/d</span>
-                            <span style="font-size: 0.74rem; color: inherit; opacity: 0.70; font-weight: 500;">(~{m_day:,} b/mo)</span>
+                    <div style="line-height: 1.35;">
+                        <div style="display: flex; align-items: baseline; gap: 4px; white-space: nowrap;">
+                            <span style="font-size: 1.22rem; font-weight: 800; color: {tier_color}; letter-spacing: -0.3px;">{b_day:,.1f}</span>
+                            <span style="font-size: 0.82rem; font-weight: 700; color: {tier_color};">b/d</span>
+                            <span style="font-size: 0.74rem; color: #94a3b8; font-weight: 500; margin-left: 5px;">(~{m_day:,} b/mo)</span>
                         </div>
-                        <div style="margin-top: 3px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
-                            <span class="{tier_badge}">{tier_label}</span>
+                        <div style="margin-top: 5px;">
+                            <span class="{tier_badge}" style="font-size: 0.70rem; padding: 2.5px 8px; border-radius: 4px; font-weight: 700; letter-spacing: 0.3px; white-space: nowrap; display: inline-block;">{tier_label}</span>
                         </div>
                     </div>
                     """,
@@ -2454,7 +2455,7 @@ def render_machine_directory(
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
         # Hidden Table Header
-        h_col0, h_col1, h_col2, h_col3, h_col4, h_col5 = st.columns([0.4, 3.4, 3.2, 1.7, 1.9, 1.4])
+        h_col0, h_col1, h_col2, h_col3, h_col4, h_col5 = st.columns([0.4, 3.3, 2.9, 1.6, 2.4, 1.4])
         with h_col0:
             st.markdown("<strong style='font-size: 0.75rem; opacity: 0.7;'>☑️</strong>", unsafe_allow_html=True)
         with h_col1:
@@ -2486,7 +2487,7 @@ def render_machine_directory(
             tier_badge = str(h_row.get("VolumeTierBadge", "badge-tier-medio"))
             hidden_at_str = str(h_row.get("hidden_at", "N/A"))
 
-            hc0, hc1, hc2, hc3, hc4, hc5 = st.columns([0.4, 3.4, 3.2, 1.7, 1.9, 1.4])
+            hc0, hc1, hc2, hc3, hc4, hc5 = st.columns([0.4, 3.3, 2.9, 1.6, 2.4, 1.4])
             with hc0:
                 st.checkbox("", key=f"chk_hid_{status_label}_{pf_code}", label_visibility="collapsed")
             with hc1:
@@ -2533,12 +2534,12 @@ def render_machine_directory(
                     unsafe_allow_html=True,
                 )
             with hc4:
-                yield_txt = f"{b_day:.1f} b/d (~{m_day:,} b/mo)" if b_day > 0 else "Pre-sync estimate"
+                yield_txt = f"{b_day:,.1f} b/d (~{m_day:,} b/mo)" if b_day > 0 else "Pre-sync estimate"
                 st.markdown(
                     f"""
-                    <div style="line-height: 1.3;">
-                        <div style="font-size: 0.88rem; font-weight: 700; color: #64748b;">{yield_txt}</div>
-                        <div style="font-size: 0.72rem; color: #ef4444; margin-top: 3px; font-weight: 600;">
+                    <div style="line-height: 1.35;">
+                        <div style="font-size: 0.88rem; font-weight: 700; color: #64748b; white-space: nowrap;">{yield_txt}</div>
+                        <div style="font-size: 0.72rem; color: #ef4444; margin-top: 3px; font-weight: 600; white-space: nowrap;">
                             🕒 Hidden: {hidden_at_str}
                         </div>
                     </div>
