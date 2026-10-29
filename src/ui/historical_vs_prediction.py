@@ -200,6 +200,73 @@ def load_all_machine_options() -> List[Dict[str, str]]:
     return []
 
 
+@st.cache_resource
+def get_shared_predictor():
+    """Cached singleton instance of the AI production location predictor."""
+    try:
+        from src.model.predict import RVMNewLocationPredictor
+        return RVMNewLocationPredictor()
+    except Exception:
+        return None
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def get_spatial_network_machine_meta(pf_or_macchina: str) -> Dict[str, str]:
+    try:
+        df_p = ROOT_DIR / "data" / "processed" / "coripet_rvm_spatial_network.parquet"
+        if df_p.exists():
+            df = pd.read_parquet(df_p, columns=["PF", "CLIENTE", "Indirizzo", "Cap", "Comune", "TipoMacchina"])
+            match = df[df["PF"] == pf_or_macchina]
+            if not match.empty:
+                r = match.iloc[0]
+                return {
+                    "store_name": str(r.get("CLIENTE", "")),
+                    "address": str(r.get("Indirizzo", "")),
+                    "cap": str(r.get("Cap", "")),
+                    "comune": str(r.get("Comune", "")),
+                    "machine_type": str(r.get("TipoMacchina", "DAINT_G"))
+                }
+    except Exception:
+        pass
+    return {}
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def predict_machine_forecast(store_name: str, address: str, cap: str, comune: str, machine_type: str, pf: Optional[str] = None) -> Dict[str, Any]:
+    """Generates real-time AI model prospective forecast tailored strictly to the specified physical machine & store."""
+    predictor = get_shared_predictor()
+    if not predictor:
+        return {}
+    try:
+        # Check spatial network registry for exact enriched address and CAP
+        if pf:
+            meta = get_spatial_network_machine_meta(pf)
+            if meta:
+                if meta.get("address"): address = meta["address"]
+                if meta.get("cap"): cap = meta["cap"]
+                if meta.get("comune"): comune = meta["comune"]
+                if meta.get("store_name") and (not store_name or store_name == "Store"): store_name = meta["store_name"]
+                if meta.get("machine_type") and (not machine_type or machine_type == "RVM"): machine_type = meta["machine_type"]
+
+        clean_com = str(comune).strip() if (comune and str(comune).strip()) else None
+        clean_addr = str(address).strip() if (address and str(address).strip()) else ""
+        if not clean_addr or (clean_com and clean_addr.lower() == clean_com.lower()):
+            clean_addr = f"Via Roma, {clean_com}" if clean_com else "Via Roma"
+        clean_cap = str(cap).strip() if (cap and str(cap).strip()) else "00100"
+        clean_mach = str(machine_type).strip() if (machine_type and str(machine_type).strip()) else "DAINT_G"
+        clean_name = str(store_name).strip() if (store_name and str(store_name).strip()) else "Store"
+
+        return predictor.predict_new_location(
+            store_name=clean_name,
+            address=clean_addr,
+            cap=clean_cap,
+            comune=clean_com,
+            machine_type=clean_mach
+        )
+    except Exception:
+        return {}
+
+
 @st.cache_data(ttl=300, show_spinner=False)
 def fetch_machine_historical_profile(machine_id: str) -> Optional[Dict[str, Any]]:
     """
@@ -731,6 +798,43 @@ def render_fleet_benchmark_submodule(
     if not hist:
         st.error(f"No historical daily collection records found in database for machine ID `{selected_mach}`.")
         return
+
+    # Synchronize AI Model Forecast strictly to the selected physical machine
+    if selected_rec or hist:
+        s_ban = (selected_rec.get("banner") if selected_rec else None) or hist.get("banner", "Store")
+        s_addr = (selected_rec.get("indirizzo") if selected_rec else None) or hist.get("indirizzo") or hist.get("comune", "Italia")
+        s_cap = (selected_rec.get("cap") if selected_rec else None) or hist.get("cap", "00100")
+        s_com = (selected_rec.get("comune") if selected_rec else None) or hist.get("comune", "")
+        s_mod = (selected_rec.get("model") if selected_rec else None) or hist.get("model", "DAINT_G")
+
+        s_pf = (selected_rec.get("pf") if selected_rec else None) or hist.get("pf") or selected_mach
+        with st.spinner(f"Computing real-time AI Model Forecast for {s_ban} ({s_com})..."):
+            mach_res = predict_machine_forecast(s_ban, s_addr, s_cap, s_com, s_mod, pf=s_pf)
+
+        if mach_res:
+            res = mach_res
+            real = res.get("realized_forecast", {})
+            preds = res.get("predictions", {})
+            prob = res.get("probability_analysis", {})
+            p_daily = float(real.get("underwritten_daily_bottles", real.get("realized_daily_bottles", preds.get("expected_daily_bottiglie", 0.0))))
+            p_monthly = float(real.get("underwritten_monthly_bottles", preds.get("expected_monthly_bottiglie", p_daily * 30.4)))
+            p_annual = int(round(p_daily * 365))
+            p_visits = float(real.get("underwritten_daily_presenze", real.get("realized_daily_presenze", preds.get("expected_daily_presenze", 0.0))))
+            p_bpu = round(p_daily / max(1.0, p_visits), 1)
+            p10_d_val = float(prob.get("downside_floor_p10_daily", p_daily * 0.82))
+            p90_d_val = float(prob.get("upside_peak_p90_daily", p_daily * 1.25))
+
+            pred_summary = {
+                "pred_daily": p_daily,
+                "pred_monthly": p_monthly,
+                "pred_annual": p_annual,
+                "pred_visits": p_visits,
+                "pred_bpu": p_bpu,
+                "p10_d": p10_d_val,
+                "p90_d": p90_d_val,
+                "pred_mach": s_mod,
+                "pred_reward": res.get("commercial_rewards", {}).get("reward_type", "Standard Policy")
+            }
 
     pred_daily = pred_summary["pred_daily"]
     pred_monthly = pred_summary["pred_monthly"]
