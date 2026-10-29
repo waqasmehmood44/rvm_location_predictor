@@ -1041,11 +1041,267 @@ def render_fleet_benchmark_submodule(
         st.plotly_chart(fig_future, use_container_width=True, theme=None, config={"displayModeBar": False, "responsive": True}, key=f"plotly_future_daily_{'peer' if is_prospective_site else 'active'}")
 
 
+@st.cache_data(ttl=300, show_spinner=False)
+def load_performance_drop_fleet() -> pd.DataFrame:
+    """
+    Loads machine-level performance telemetry across the fleet.
+    Computes historical baseline vs recent 30-day performance to pinpoint machines with significant drops.
+    """
+    csv_path = ROOT_DIR / "data" / "reports" / "defected_and_outlier_machines.csv"
+    if csv_path.exists():
+        try:
+            df = pd.read_csv(csv_path)
+            if not df.empty and "Median_Bottles_Daily" in df.columns and "Recent_30d_Median" in df.columns:
+                df = df.copy()
+                df["Median_Bottles_Daily"] = df["Median_Bottles_Daily"].fillna(0.0).astype(float)
+                df["Recent_30d_Median"] = df["Recent_30d_Median"].fillna(0.0).astype(float)
+                df["drop_pct"] = np.where(
+                    df["Median_Bottles_Daily"] > 0,
+                    ((df["Recent_30d_Median"] - df["Median_Bottles_Daily"]) / df["Median_Bottles_Daily"]) * 100.0,
+                    0.0
+                )
+                df["vol_lost"] = df["Median_Bottles_Daily"] - df["Recent_30d_Median"]
+                return df
+        except Exception:
+            pass
+
+    try:
+        engine = get_db_engine()
+        query = """
+            SELECT 
+                pf as PF,
+                MAX(cliente) as Store_Banner,
+                MAX(comune) as Comune,
+                MAX(regione) as Regione,
+                MAX(tipomacchina) as TipoMacchina,
+                COUNT(*) as Operational_Days,
+                AVG(bottiglie) as Median_Bottles_Daily,
+                AVG(CASE WHEN giorno_dt >= DATE('now', '-30 days') THEN bottiglie END) as Recent_30d_Median
+            FROM master_daily_rvm
+            GROUP BY pf
+            HAVING COUNT(*) >= 30;
+        """
+        with engine.connect() as conn:
+            df = pd.read_sql(query, conn)
+        df["Median_Bottles_Daily"] = df["Median_Bottles_Daily"].fillna(0.0).astype(float)
+        df["Recent_30d_Median"] = df["Recent_30d_Median"].fillna(0.0).astype(float)
+        df["drop_pct"] = np.where(
+            df["Median_Bottles_Daily"] > 0,
+            ((df["Recent_30d_Median"] - df["Median_Bottles_Daily"]) / df["Median_Bottles_Daily"]) * 100.0,
+            0.0
+        )
+        df["vol_lost"] = df["Median_Bottles_Daily"] - df["Recent_30d_Median"]
+        df["Anomaly_Classification"] = np.where(df["drop_pct"] <= -50.0, "DEFECTIVE_OFFLINE", "PERFORMANCE_DROP")
+        df["Recommended_Action"] = "Field Inspection Required: Significant operational volume drop detected."
+        return df
+    except Exception:
+        return pd.DataFrame()
+
+
+def render_performance_drops_section(all_machines: List[Dict[str, str]], active_mach_current: Optional[str] = None) -> Optional[str]:
+    """
+    Renders fleet-wide performance drop monitor table:
+    Pinpoints all machines that were performing well before (>= 250 b/d) and whose performance has dropped.
+    Returns the selected machine ID if user chooses one to inspect.
+    """
+    st.markdown(
+        """
+        <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.90) 0%, rgba(15, 23, 42, 0.95) 100%); 
+                    border: 1px solid rgba(239, 68, 68, 0.35); border-left: 5px solid #ef4444; 
+                    padding: 16px 20px; border-radius: 10px; margin-bottom: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.25);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <h3 style="color: #f8fafc; margin: 0; font-size: 1.28rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                        <span>📉 Fleet Performance Drops Monitor</span>
+                    </h3>
+                    <p style="color: #94a3b8; font-size: 0.84rem; margin: 4px 0 0 0;">
+                        Audits all machines across the active Coripet network that <b>historically performed well (≥ 250 b/d baseline)</b>, but recently suffered <b>sharp volume drops (≥ 20% decline)</b>.
+                    </p>
+                </div>
+                <span style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); padding: 5px 12px; border-radius: 6px; font-weight: 800; font-size: 0.80rem;">
+                    FLEET UNDERPERFORMANCE AUDIT
+                </span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    df_fleet = load_performance_drop_fleet()
+    if df_fleet.empty:
+        st.info("No historical fleet audit telemetry available.")
+        return None
+
+    # Filter controls
+    c_f1, c_f2, c_f3 = st.columns([2, 1.5, 1.5])
+    with c_f1:
+        search_kw = st.text_input("🔍 Search Store / Comune / PF Code", "", placeholder="e.g. RetailPRO, Piccolo, Asti, MC...", key="drop_search_kw")
+    with c_f2:
+        sev_choice = st.selectbox(
+            "Drop Severity",
+            options=["All Significant Drops (≥ 20%)", "Critical Collapse (≥ 50% drop)", "Severe Decline (30%–50% drop)", "Moderate Decline (20%–30% drop)"],
+            index=0,
+            key="drop_sev_choice"
+        )
+    with c_f3:
+        min_baseline = st.slider(
+            "Min Past Baseline (b/d)",
+            min_value=150,
+            max_value=800,
+            value=250,
+            step=50,
+            key="drop_min_base"
+        )
+
+    # Apply filters
+    mask = (df_fleet["Median_Bottles_Daily"] >= min_baseline)
+    if "≥ 50%" in sev_choice:
+        mask = mask & (df_fleet["drop_pct"] <= -50.0)
+    elif "30%–50%" in sev_choice:
+        mask = mask & (df_fleet["drop_pct"] > -50.0) & (df_fleet["drop_pct"] <= -30.0)
+    elif "20%–30%" in sev_choice:
+        mask = mask & (df_fleet["drop_pct"] > -30.0) & (df_fleet["drop_pct"] <= -20.0)
+    else:
+        mask = mask & (df_fleet["drop_pct"] <= -20.0)
+
+    if search_kw.strip():
+        kw = search_kw.strip().lower()
+        kw_mask = (
+            df_fleet["PF"].astype(str).str.lower().str.contains(kw) |
+            df_fleet["Store_Banner"].astype(str).str.lower().str.contains(kw) |
+            df_fleet["Comune"].astype(str).str.lower().str.contains(kw) |
+            df_fleet["Regione"].astype(str).str.lower().str.contains(kw)
+        )
+        mask = mask & kw_mask
+
+    filtered_df = df_fleet[mask].sort_values("drop_pct", ascending=True).reset_index(drop=True)
+
+    # Executive KPI Metric Cards
+    total_dropped = len(filtered_df)
+    crit_count = int((filtered_df["drop_pct"] <= -50.0).sum())
+    sev_count = int(((filtered_df["drop_pct"] > -50.0) & (filtered_df["drop_pct"] <= -30.0)).sum())
+    tot_vol_lost = int(round(filtered_df["vol_lost"].sum()))
+
+    c_m1, c_m2, c_m3, c_m4 = st.columns(4)
+    card_style = "background: rgba(30, 41, 59, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px; height: 100%; box-sizing: border-box;"
+    with c_m1:
+        st.markdown(
+            f"""<div style="{card_style} border-top: 3px solid #ef4444;">
+                <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Machines with Drop</span>
+                <div style="font-size: 1.55rem; font-weight: 800; color: #f87171; margin: 6px 0 2px 0;">{total_dropped:,} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">units</span></div>
+                <div style="font-size: 0.73rem; color: #64748b;">Baseline ≥ {min_baseline} b/d</div>
+            </div>""", unsafe_allow_html=True
+        )
+    with c_m2:
+        st.markdown(
+            f"""<div style="{card_style} border-top: 3px solid #dc2626;">
+                <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Critical Collapse (≥50%)</span>
+                <div style="font-size: 1.55rem; font-weight: 800; color: #dc2626; margin: 6px 0 2px 0;">{crit_count:,} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">units</span></div>
+                <div style="font-size: 0.73rem; color: #64748b;">Severe or complete stall</div>
+            </div>""", unsafe_allow_html=True
+        )
+    with c_m3:
+        st.markdown(
+            f"""<div style="{card_style} border-top: 3px solid #f59e0b;">
+                <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Severe Decline (30–50%)</span>
+                <div style="font-size: 1.55rem; font-weight: 800; color: #fbbf24; margin: 6px 0 2px 0;">{sev_count:,} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">units</span></div>
+                <div style="font-size: 0.73rem; color: #64748b;">Significant volume loss</div>
+            </div>""", unsafe_allow_html=True
+        )
+    with c_m4:
+        st.markdown(
+            f"""<div style="{card_style} border-top: 3px solid #38bdf8;">
+                <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Daily Volume Lost</span>
+                <div style="font-size: 1.55rem; font-weight: 800; color: #38bdf8; margin: 6px 0 2px 0;">-{tot_vol_lost:,} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">b/d</span></div>
+                <div style="font-size: 0.73rem; color: #64748b;">Total network deficit</div>
+            </div>""", unsafe_allow_html=True
+        )
+
+    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+
+    if filtered_df.empty:
+        st.info("No machines match the selected filter criteria.")
+        return None
+
+    # Format table for display
+    display_df = pd.DataFrame({
+        "PF Code": filtered_df["PF"],
+        "Store Name / Banner": filtered_df["Store_Banner"],
+        "Comune": filtered_df["Comune"],
+        "Regione": filtered_df["Regione"],
+        "Model": filtered_df["TipoMacchina"],
+        "Past Baseline": filtered_df["Median_Bottles_Daily"].apply(lambda v: f"{v:.0f} b/d"),
+        "Recent 30-Day": filtered_df["Recent_30d_Median"].apply(lambda v: f"{v:.0f} b/d"),
+        "Performance Drop": filtered_df["drop_pct"].apply(lambda p: f"🔻 {p:.1f}%" if p <= -50 else f"⚠️ {p:.1f}%"),
+        "Daily Volume Lost": filtered_df["vol_lost"].apply(lambda l: f"-{l:.0f} b/d"),
+        "Operational Action": filtered_df.get("Recommended_Action", pd.Series(["Field check advised"] * len(filtered_df)))
+    })
+
+    st.dataframe(
+        display_df,
+        use_container_width=True,
+        hide_index=True,
+        height=320
+    )
+
+    st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <h4 style="margin: 0; color: #f8fafc; font-size: 1.05rem; font-weight: 700;">
+                🔍 Deep-Dive Machine Telemetry & Comparative AI Forecast
+            </h4>
+            <span style="color: #94a3b8; font-size: 0.76rem;">Select any machine below to inspect its ground-truth 2-year intake curve and variance notes</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # Build options list prioritizing dropped machines
+    drop_pfs = filtered_df["PF"].tolist()
+    drop_labels = []
+    for _, r in filtered_df.iterrows():
+        lbl = f"🔻 {r['PF']} - {r['Store_Banner']} ({r['Comune']}) [Drop: {r['drop_pct']:.1f}% | -{r['vol_lost']:.0f} b/d]"
+        drop_labels.append((r["PF"], lbl))
+
+    # Add other machines from all_machines
+    other_labels = []
+    for m in all_machines:
+        m_id = m.get("pf") or m.get("macchina")
+        if m_id and m_id not in drop_pfs:
+            other_labels.append((m["macchina"], m["label"]))
+
+    combined_choices = [lbl for _, lbl in drop_labels] + [lbl for _, lbl in other_labels]
+    label_to_id = {lbl: mid for mid, lbl in drop_labels}
+    label_to_id.update({lbl: mid for mid, lbl in other_labels})
+
+    # Default selection: if user previously selected a machine, retain it; otherwise select top dropped machine
+    sel_idx = 0
+    cur_sel = active_mach_current or st.session_state.get("selected_machine") or st.session_state.get("selected_store_pf")
+    if cur_sel:
+        for idx, (mid, lbl) in enumerate(drop_labels + other_labels):
+            if mid == cur_sel:
+                sel_idx = idx
+                break
+
+    chosen_label = st.selectbox(
+        "Select Machine to Inspect Ground-Truth Telemetry vs Forecast:",
+        options=combined_choices,
+        index=sel_idx if sel_idx < len(combined_choices) else 0,
+        key="perf_drop_machine_selector"
+    )
+
+    selected_mid = label_to_id.get(chosen_label)
+    return selected_mid
+
+
 def render_historical_vs_prediction_section(
     res: Optional[Dict[str, Any]] = None,
     default_pf: Optional[str] = None,
     store_status: Optional[str] = None,
-    force_comparative_view: bool = False
+    force_comparative_view: bool = False,
+    *args,
+    **kwargs
 ):
     """
     Renders dark-mode adaptive analytics:
@@ -1299,6 +1555,11 @@ def render_historical_vs_prediction_section(
             """,
             unsafe_allow_html=True
         )
+
+    if force_comparative_view:
+        chosen_drop_mid = render_performance_drops_section(all_machines, active_mach_current=active_mach)
+        if chosen_drop_mid:
+            active_mach = chosen_drop_mid
 
     render_fleet_benchmark_submodule(
         res=res,

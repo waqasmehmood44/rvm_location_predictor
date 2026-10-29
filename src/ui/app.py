@@ -3115,11 +3115,11 @@ def main():
     # Navigation Views: Prospective Predictor, Historical Actuals, SPL, POT, Outliers
     # -------------------------------------------------------------
     TAB_MAIN = "🎯 Prospective Predictor"
-    TAB_HISTORICAL = "⚖️ Historical vs. Forecast"
     TAB_SPL = "📋 SPL Machines"
     TAB_POT = "💡 POT Machines"
     TAB_OUTLIERS = "🔍 Outlier & Defect Simulator"
-    NAV_TABS = [TAB_MAIN, TAB_HISTORICAL, TAB_SPL, TAB_POT, TAB_OUTLIERS]
+    TAB_HISTORICAL = "📉 Performance Drops & Telemetry"
+    NAV_TABS = [TAB_MAIN, TAB_SPL, TAB_POT, TAB_OUTLIERS, TAB_HISTORICAL]
 
     if "pending_nav_tab" in st.session_state:
         st.session_state["active_nav_tab"] = st.session_state.pop("pending_nav_tab")
@@ -3189,18 +3189,6 @@ def main():
                 machine_type=machine_type,
             )
 
-    elif active_tab == TAB_HISTORICAL:
-        res = st.session_state.get("prediction_result")
-        sel_pf = st.session_state.get("selected_store_pf")
-        sel_st = st.session_state.get("selected_store_status")
-        from src.ui.historical_vs_prediction import render_historical_vs_prediction_section
-        render_historical_vs_prediction_section(
-            res=res,
-            default_pf=sel_pf,
-            store_status=sel_st,
-            force_comparative_view=True
-        )
-
     elif active_tab == TAB_SPL:
         with st.spinner("📡 Fetching live SPL machines from Coripet API..."):
             df_spl, src_spl, dt_spl = get_machines_by_status("SPL", current_only=True)
@@ -3214,6 +3202,20 @@ def main():
     elif active_tab == TAB_OUTLIERS:
         from src.ui.outlier_dashboard import render_outlier_and_defect_dashboard
         render_outlier_and_defect_dashboard()
+
+    elif active_tab == TAB_HISTORICAL:
+        res = st.session_state.get("prediction_result")
+        sel_pf = st.session_state.get("selected_store_pf")
+        sel_st = st.session_state.get("selected_store_status")
+        import importlib
+        import src.ui.historical_vs_prediction as hvp
+        importlib.reload(hvp)
+        hvp.render_historical_vs_prediction_section(
+            res=res,
+            default_pf=sel_pf,
+            store_status=sel_st,
+            force_comparative_view=True
+        )
 
 
 def render_prediction_dashboard(
