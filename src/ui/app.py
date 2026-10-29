@@ -1891,14 +1891,16 @@ def render_machine_directory(
         source_badge = '<span class="badge-source-live">🟢 Live API: macchine.coripet.it</span>' if data_source == "Live Coripet API" else '<span class="badge-source-backup">📁 Local Backup File</span>'
         date_label = f" • Current Date: <strong style='color: inherit;'>{current_date_str}</strong>" if current_date_str else ""
 
-        if "dt_fine_sop" in df_active.columns:
-            c_now = pd.Timestamp.now()
-            n_5m = int((df_active["dt_fine_sop"].notna() & (df_active["dt_fine_sop"] >= (c_now - pd.DateOffset(months=5)))).sum())
-            n_12m = int((df_active["dt_fine_sop"].notna() & (df_active["dt_fine_sop"] >= (c_now - pd.DateOffset(months=12)))).sum())
-            n_24m = int((df_active["dt_fine_sop"].notna() & (df_active["dt_fine_sop"] >= (c_now - pd.DateOffset(months=24)))).sum())
-            n_all = len(df_active)
-        else:
-            n_5m, n_12m, n_24m, n_all = 0, 0, 0, len(df_active)
+        # Survey / Registration Recency calculation: prioritizes inspection date (dt_fine_sop), falls back to activation date (dt_inizio)
+        s_sop = df_active["dt_fine_sop"] if "dt_fine_sop" in df_active.columns else pd.Series(pd.NaT, index=df_active.index)
+        s_ini = df_active["dt_inizio"] if "dt_inizio" in df_active.columns else pd.Series(pd.NaT, index=df_active.index)
+        s_rec = s_sop.fillna(s_ini)
+        c_now = pd.Timestamp.now()
+
+        n_5m = int((s_rec.notna() & (s_rec >= (c_now - pd.DateOffset(months=5)))).sum())
+        n_12m = int((s_rec.notna() & (s_rec >= (c_now - pd.DateOffset(months=12)))).sum())
+        n_24m = int((s_rec.notna() & (s_rec >= (c_now - pd.DateOffset(months=24)))).sum())
+        n_all = len(df_active)
 
         timeframe_options = [
             f"⏱️ Last 5 Months ({n_5m} sites)",
@@ -1908,7 +1910,7 @@ def render_machine_directory(
         ]
 
         tf_key = f"timeframe_filter_{status_label}"
-        default_opt = timeframe_options[0] if n_5m > 0 else timeframe_options[-1]
+        default_opt = timeframe_options[0]  # Show Last 5 Months by default
         if tf_key in st.session_state:
             cur_val = str(st.session_state[tf_key])
             if cur_val not in timeframe_options:
@@ -2045,16 +2047,21 @@ def render_machine_directory(
         # Apply filtering
         filtered_df = df_active.copy()
 
-        if "dt_fine_sop" in filtered_df.columns:
-            if "5 Months" in selected_timeframe:
-                cutoff_dt = pd.Timestamp.now() - pd.DateOffset(months=5)
-                filtered_df = filtered_df[filtered_df["dt_fine_sop"].notna() & (filtered_df["dt_fine_sop"] >= cutoff_dt)]
-            elif "12 Months" in selected_timeframe:
-                cutoff_dt = pd.Timestamp.now() - pd.DateOffset(months=12)
-                filtered_df = filtered_df[filtered_df["dt_fine_sop"].notna() & (filtered_df["dt_fine_sop"] >= cutoff_dt)]
-            elif "24 Months" in selected_timeframe:
-                cutoff_dt = pd.Timestamp.now() - pd.DateOffset(months=24)
-                filtered_df = filtered_df[filtered_df["dt_fine_sop"].notna() & (filtered_df["dt_fine_sop"] >= cutoff_dt)]
+        # Apply timeframe filter on recency (dt_fine_sop with fallback to dt_inizio)
+        s_sop_f = filtered_df["dt_fine_sop"] if "dt_fine_sop" in filtered_df.columns else pd.Series(pd.NaT, index=filtered_df.index)
+        s_ini_f = filtered_df["dt_inizio"] if "dt_inizio" in filtered_df.columns else pd.Series(pd.NaT, index=filtered_df.index)
+        s_rec_f = s_sop_f.fillna(s_ini_f)
+        c_now = pd.Timestamp.now()
+
+        if "5 Months" in selected_timeframe:
+            cutoff_dt = c_now - pd.DateOffset(months=5)
+            filtered_df = filtered_df[s_rec_f.notna() & (s_rec_f >= cutoff_dt)]
+        elif "12 Months" in selected_timeframe:
+            cutoff_dt = c_now - pd.DateOffset(months=12)
+            filtered_df = filtered_df[s_rec_f.notna() & (s_rec_f >= cutoff_dt)]
+        elif "24 Months" in selected_timeframe:
+            cutoff_dt = c_now - pd.DateOffset(months=24)
+            filtered_df = filtered_df[s_rec_f.notna() & (s_rec_f >= cutoff_dt)]
 
         if search_query:
             mask = (
