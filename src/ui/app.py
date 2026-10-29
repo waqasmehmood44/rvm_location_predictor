@@ -2217,7 +2217,7 @@ def render_machine_directory(
                     st.rerun()
 
         # Table Header
-        th_col0, th_col1, th_col2, th_col3, th_col4, th_col5 = st.columns([0.45, 3.1, 2.5, 2.0, 2.1, 1.75])
+        th_col0, th_col1, th_col2, th_col3, th_col4, th_col5 = st.columns([0.4, 3.4, 3.2, 1.7, 1.9, 1.4])
         with th_col0:
             st.markdown("<strong style='font-size: 0.75rem; opacity: 0.7;'>☑️</strong>", unsafe_allow_html=True)
         with th_col1:
@@ -2286,7 +2286,7 @@ def render_machine_directory(
             if n_casse > 0: scale_parts.append(f"{int(round(n_casse))} tills")
             scale_str = " • ".join(scale_parts)
 
-            c0, c1, c2, c3, c4, c5 = st.columns([0.45, 3.1, 2.5, 2.0, 2.1, 1.75])
+            c0, c1, c2, c3, c4, c5 = st.columns([0.4, 3.4, 3.2, 1.7, 1.9, 1.4])
             with c0:
                 st.checkbox("", key=f"chk_act_{status_label}_{pf_code}", label_visibility="collapsed")
             with c1:
@@ -2310,9 +2310,18 @@ def render_machine_directory(
                 prov_str = f"({prov_val})" if prov_val else ""
                 st.markdown(
                     f"""
-                    <div style="font-size: 0.88rem; line-height: 1.4;">
-                        <div style="color: inherit; font-weight: 600;">📍 {addr}</div>
-                        <div style="color: inherit; opacity: 0.75; font-size: 0.80rem; margin-top: 2px;">📮 {cap_val} <strong style="color: inherit; opacity: 1.0;">{comune_val}</strong> {prov_str}, <span>{reg_val}</span></div>
+                    <div style="line-height: 1.45;">
+                        <div style="color: inherit; font-weight: 700; font-size: 0.92rem; display: flex; align-items: baseline; gap: 5px;">
+                            <span style="color: #38bdf8; font-size: 0.85rem;">📍</span>
+                            <span>{addr}</span>
+                        </div>
+                        <div style="margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                            <strong style="color: inherit; font-size: 0.82rem; font-weight: 700;">{comune_val}</strong>
+                            <span style="color: #94a3b8; font-size: 0.78rem; font-weight: 600;">{prov_str}</span>
+                            <span style="background: rgba(255, 255, 255, 0.06); color: #cbd5e1; border: 1px solid rgba(255, 255, 255, 0.12); padding: 1px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;">{cap_val}</span>
+                            <span style="color: #64748b; font-size: 0.75rem;">•</span>
+                            <span style="color: #94a3b8; font-size: 0.78rem;">{reg_val}</span>
+                        </div>
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -2445,7 +2454,7 @@ def render_machine_directory(
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
         # Hidden Table Header
-        h_col0, h_col1, h_col2, h_col3, h_col4, h_col5 = st.columns([0.45, 3.1, 2.5, 2.0, 2.1, 1.75])
+        h_col0, h_col1, h_col2, h_col3, h_col4, h_col5 = st.columns([0.4, 3.4, 3.2, 1.7, 1.9, 1.4])
         with h_col0:
             st.markdown("<strong style='font-size: 0.75rem; opacity: 0.7;'>☑️</strong>", unsafe_allow_html=True)
         with h_col1:
@@ -2477,7 +2486,7 @@ def render_machine_directory(
             tier_badge = str(h_row.get("VolumeTierBadge", "badge-tier-medio"))
             hidden_at_str = str(h_row.get("hidden_at", "N/A"))
 
-            hc0, hc1, hc2, hc3, hc4, hc5 = st.columns([0.45, 3.1, 2.5, 2.0, 2.1, 1.75])
+            hc0, hc1, hc2, hc3, hc4, hc5 = st.columns([0.4, 3.4, 3.2, 1.7, 1.9, 1.4])
             with hc0:
                 st.checkbox("", key=f"chk_hid_{status_label}_{pf_code}", label_visibility="collapsed")
             with hc1:
@@ -2497,9 +2506,18 @@ def render_machine_directory(
                 prov_str = f"({prov_val})" if prov_val else ""
                 st.markdown(
                     f"""
-                    <div style="font-size: 0.88rem; line-height: 1.4;">
-                        <div style="color: inherit; font-weight: 600;">📍 {addr}</div>
-                        <div style="color: inherit; opacity: 0.75; font-size: 0.80rem; margin-top: 2px;">📮 {cap_val} <strong style="color: inherit; opacity: 1.0;">{comune_val}</strong> {prov_str}, <span>{reg_val}</span></div>
+                    <div style="line-height: 1.45;">
+                        <div style="color: inherit; font-weight: 700; font-size: 0.92rem; display: flex; align-items: baseline; gap: 5px;">
+                            <span style="color: #38bdf8; font-size: 0.85rem;">📍</span>
+                            <span>{addr}</span>
+                        </div>
+                        <div style="margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                            <strong style="color: inherit; font-size: 0.82rem; font-weight: 700;">{comune_val}</strong>
+                            <span style="color: #94a3b8; font-size: 0.78rem; font-weight: 600;">{prov_str}</span>
+                            <span style="background: rgba(255, 255, 255, 0.06); color: #cbd5e1; border: 1px solid rgba(255, 255, 255, 0.12); padding: 1px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;">{cap_val}</span>
+                            <span style="color: #64748b; font-size: 0.75rem;">•</span>
+                            <span style="color: #94a3b8; font-size: 0.78rem;">{reg_val}</span>
+                        </div>
                     </div>
                     """,
                     unsafe_allow_html=True,
