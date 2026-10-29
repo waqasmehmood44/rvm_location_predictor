@@ -290,7 +290,7 @@ def render_outlier_and_defect_dashboard():
 
     total_fleet = len(audit_df)
     counts = audit_df["Anomaly_Classification"].value_counts()
-    n_outliers = int((audit_df["Anomaly_Classification"] != "HEALTHY_NORMAL").sum())
+    n_outliers = int((audit_df["Anomaly_Classification"].isin(["DEFECTIVE_OFFLINE", "VOLATILITY_SWING", "EXTREME_SPIKE_EVENT", "CHRONIC_UNDERPERFORMER", "SUPER_HUB_OUTLIER", "SENSOR_DRIFT_TRICKLE", "SCHEDULE_ANOMALY"])).sum())
     n_healthy = int(counts.get("HEALTHY_NORMAL", 0))
     n_defective = int(counts.get("DEFECTIVE_OFFLINE", 0))
     n_spikes = int(counts.get("EXTREME_SPIKE_EVENT", 0))
@@ -322,10 +322,7 @@ def render_outlier_and_defect_dashboard():
                 <span style="font-size: 0.78rem; font-weight: 700; color: #9a3412; text-transform: uppercase;">Volatility Swings</span>
                 <div style="font-size: 1.5rem; font-weight: 800; color: #c2410c;">{n_swings:,}</div>
             </div>
-            <div style="background: #fefce8; border: 1px solid #fef08a; border-left: 4px solid #ca8a04; padding: 12px; border-radius: 8px;">
-                <span style="font-size: 0.78rem; font-weight: 700; color: #854d0e; text-transform: uppercase;">Capacity Jams</span>
-                <div style="font-size: 1.5rem; font-weight: 800; color: #b45309;">{n_choke:,}</div>
-            </div>
+
             <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #16a34a; padding: 12px; border-radius: 8px;">
                 <span style="font-size: 0.78rem; font-weight: 700; color: #166534; text-transform: uppercase;">Super-Hubs (>3k)</span>
                 <div style="font-size: 1.5rem; font-weight: 800; color: #15803d;">{n_hub:,}</div>
@@ -342,8 +339,8 @@ def render_outlier_and_defect_dashboard():
         {
             "id": "ALL_OUTLIERS",
             "label": f"🚨 All Actionable Outlier Stores ({n_outliers:,} Stores)",
-            "desc": "Separates all 7 actionable anomaly regimes, excluding healthy stores",
-            "regimes": ["DEFECTIVE_OFFLINE", "CAPACITY_BOTTLENECK", "VOLATILITY_SWING", "EXTREME_SPIKE_EVENT", "CHRONIC_UNDERPERFORMER", "SUPER_HUB_OUTLIER", "SENSOR_DRIFT_TRICKLE", "SCHEDULE_ANOMALY"]
+            "desc": "Separates all actionable anomaly regimes, excluding healthy stores",
+            "regimes": ["DEFECTIVE_OFFLINE", "VOLATILITY_SWING", "EXTREME_SPIKE_EVENT", "CHRONIC_UNDERPERFORMER", "SUPER_HUB_OUTLIER", "SENSOR_DRIFT_TRICKLE", "SCHEDULE_ANOMALY"]
         },
         {
             "id": "DEFECTIVE_OFFLINE",
@@ -352,44 +349,38 @@ def render_outlier_and_defect_dashboard():
             "regimes": ["DEFECTIVE_OFFLINE"]
         },
         {
-            "id": "CAPACITY_BOTTLENECK",
-            "label": f"🛑 Rule 2: Capacity Bottleneck / Bin Full ({n_choke:,} Stores)",
-            "desc": "Normal footfall visits (≥75%), but collection collapsed (<15/visit & <60% baseline)",
-            "regimes": ["CAPACITY_BOTTLENECK"]
-        },
-        {
             "id": "VOLATILITY_SWING",
-            "label": f"📉 Rule 3: Volatility Swing ({n_swings:,} Stores)",
+            "label": f"📉 Rule 2: Volatility Swing ({n_swings:,} Stores)",
             "desc": "Rollercoaster swing (400-850 baseline surges to 1.5x [1000+] then collapses to <400 with CV > 0.85)",
             "regimes": ["VOLATILITY_SWING"]
         },
         {
             "id": "EXTREME_SPIKE_EVENT",
-            "label": f"⚡ Rule 4: Extreme Bulk Volume Spike ({n_spikes:,} Stores)",
+            "label": f"⚡ Rule 3: Extreme Bulk Volume Spike ({n_spikes:,} Stores)",
             "desc": "Single-day collection > 7,500 bottles (99.8th percentile) or Z-score > 4.5",
             "regimes": ["EXTREME_SPIKE_EVENT"]
         },
         {
             "id": "CHRONIC_UNDERPERFORMER",
-            "label": f"🐢 Rule 5: Chronic Underperformer ({n_under:,} Stores)",
+            "label": f"🐢 Rule 4: Chronic Underperformer ({n_under:,} Stores)",
             "desc": "High demographic/store potential, but persistent volume < 250 b/d (gap ≥ 400 vs forecast)",
             "regimes": ["CHRONIC_UNDERPERFORMER"]
         },
         {
             "id": "SUPER_HUB_OUTLIER",
-            "label": f"🌟 Rule 6: Super-Hub Outlier ({n_hub:,} Stores)",
+            "label": f"🌟 Rule 5: Super-Hub Outlier ({n_hub:,} Stores)",
             "desc": "Consistently massive volume collecting > 3,000 bottles/day (Priority for 2nd machine)",
             "regimes": ["SUPER_HUB_OUTLIER"]
         },
         {
             "id": "SENSOR_DRIFT_TRICKLE",
-            "label": f"👻 Rule 7: Sensor Drift / Ghost Trickle ({n_trickle:,} Stores)",
+            "label": f"👻 Rule 6: Sensor Drift / Ghost Trickle ({n_trickle:,} Stores)",
             "desc": "Machine logs 1-5 ghost bottles daily with 0 users (dirty optical lenses)",
             "regimes": ["SENSOR_DRIFT_TRICKLE"]
         },
         {
             "id": "HEALTHY_NORMAL",
-            "label": f"✅ Rule 8: Healthy & Normal Stores ({n_healthy:,} Stores)",
+            "label": f"✅ Rule 7: Healthy & Normal Stores ({n_healthy:,} Stores)",
             "desc": "Operates within standard parametric distribution (Non-outliers)",
             "regimes": ["HEALTHY_NORMAL"]
         },
