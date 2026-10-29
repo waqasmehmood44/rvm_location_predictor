@@ -1014,28 +1014,78 @@ st.markdown(
         user-select: none !important;
         -webkit-user-select: none !important;
     }
+
+    /* Store Name / Insegna in Sidebar: Strictly editable, searchable with text cursor */
+    section[data-testid="stSidebar"] div[data-testid="stSelectbox"]:has(input[placeholder*="Insegna"]) input,
+    section[data-testid="stSidebar"] div[data-testid="stSelectbox"]:has(input[aria-label*="Insegna"]) input,
+    section[data-testid="stSidebar"] div[data-testid="stSelectbox"]:has(input[placeholder*="Store Name"]) input,
+    section[data-testid="stSidebar"] div[data-testid="stSelectbox"]:has(input[aria-label*="Store Name"]) input,
+    div[data-testid="stSelectbox"]:has(input[placeholder*="Insegna"]) input,
+    div[data-testid="stSelectbox"]:has(input[placeholder*="Store Name"]) input {
+        caret-color: #3b82f6 !important;
+        cursor: text !important;
+        user-select: auto !important;
+        -webkit-user-select: auto !important;
+        pointer-events: auto !important;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stSelectbox"]:has(input[placeholder*="Insegna"]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has(input[placeholder*="Insegna"]) div[data-baseweb="select"],
+    div[data-testid="stSelectbox"]:has(input[placeholder*="Store Name"]) div[data-baseweb="select"] {
+        cursor: text !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 # Enforce strictly non-editable, full-box clickable behavior on all dropdown filters
+# while keeping Store Name / Insegna search selectbox fully editable and searchable
 components.html(
     """
     <script>
     (function() {
+        function isStoreSearchSelect(inp) {
+            if (!inp) return false;
+            const ph = (inp.getAttribute('placeholder') || '').toLowerCase();
+            const aria = (inp.getAttribute('aria-label') || '').toLowerCase();
+            const parentBox = inp.closest('div[data-testid="stSelectbox"]');
+            const parentText = parentBox ? parentBox.textContent.toLowerCase() : '';
+            return (
+                ph.includes('store name') ||
+                ph.includes('insegna') ||
+                aria.includes('store name') ||
+                aria.includes('insegna') ||
+                parentText.includes('store name') ||
+                parentText.includes('insegna')
+            );
+        }
+
         function protectSelectFilters() {
             try {
                 const doc = window.parent && window.parent.document ? window.parent.document : document;
                 if (!doc) return;
 
-                // Make all selectbox dropdown filter inputs readonly
+                // Make all selectbox dropdown filter inputs readonly EXCEPT Store Name search
                 const selectInputs = doc.querySelectorAll('div[data-testid="stSelectbox"] input');
                 selectInputs.forEach(inp => {
                     // Strictly exclude login password & text inputs
                     if (inp.type === 'password' || inp.closest('div[data-testid="stTextInput"]') || inp.closest('div[data-baseweb="input"]')) {
                         return;
                     }
+
+                    // Strictly ALLOW Store Name / Insegna selectbox to be editable and typed into
+                    if (isStoreSearchSelect(inp)) {
+                        inp.readOnly = false;
+                        inp.removeAttribute('readonly');
+                        inp.removeAttribute('inputmode');
+                        inp.style.caretColor = '#3b82f6';
+                        inp.style.cursor = 'text';
+                        inp.style.userSelect = 'auto';
+                        inp.style.webkitUserSelect = 'auto';
+                        return;
+                    }
+
+                    // All other filters (SPL, POT, Outliers, etc.) remain strictly non-editable
                     if (!inp.readOnly) {
                         inp.readOnly = true;
                         inp.setAttribute('readonly', 'readonly');
@@ -1046,12 +1096,17 @@ components.html(
                 if (!doc.__selectFilterProtectionActive) {
                     doc.__selectFilterProtectionActive = true;
 
-                    // Block any keyboard typing into dropdown filters
+                    // Block keyboard typing ONLY into dropdown filters, ALLOW Store Name search
                     const blockKeys = ['keydown', 'keypress', 'beforeinput', 'input', 'paste', 'cut'];
                     blockKeys.forEach(evt => {
                         doc.addEventListener(evt, function(e) {
                             const el = e.target;
                             if (el && el.tagName === 'INPUT' && el.closest('div[data-testid="stSelectbox"]')) {
+                                // If user is typing in Store Name / Insegna search selectbox, allow typing!
+                                if (isStoreSearchSelect(el)) {
+                                    return;
+                                }
+
                                 if (e.type === 'keydown' && ['ArrowDown', 'ArrowUp', 'Enter', 'Escape', 'Tab'].includes(e.key)) {
                                     return;
                                 }
@@ -1076,7 +1131,7 @@ components.html(
         }
 
         protectSelectFilters();
-        setInterval(protectSelectFilters, 600);
+        setInterval(protectSelectFilters, 500);
     })();
     </script>
     """,
