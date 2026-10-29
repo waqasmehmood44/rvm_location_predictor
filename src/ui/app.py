@@ -16,6 +16,7 @@ import pickle
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List, Union
 import math
+import unicodedata
 import requests
 import numpy as np
 import pandas as pd
@@ -1582,6 +1583,14 @@ def get_machines_by_status(status_str: str, current_only: bool = True) -> Tuple[
 
 
 @st.cache_data(show_spinner=False)
+def remove_special_italian_chars(text: str) -> str:
+    """Replaces Italian accented letters (à, è, é, ì, ò, ù, etc.) with clean ASCII equivalents (a, e, i, o, u)."""
+    if not text:
+        return ""
+    normalized = unicodedata.normalize("NFKD", str(text))
+    return "".join(c for c in normalized if not unicodedata.combining(c)).strip()
+
+
 def get_known_stores_directory() -> Tuple[List[str], Dict[str, Dict[str, str]]]:
     """
     Extracts unique NomeFiliera / Insegna names strictly from the official Coripet previous database
@@ -1603,14 +1612,15 @@ def get_known_stores_directory() -> Tuple[List[str], Dict[str, Dict[str, str]]]:
                     nome_fil = str(r.get("Filiera", "")).strip()
 
                 if nome_fil and nome_fil.lower() != "nan" and len(nome_fil) > 1:
+                    clean_fil = remove_special_italian_chars(nome_fil)
                     addr = str(r.get("Indirizzo", "")).strip()
                     raw_cap = str(r.get("Cap", "")).strip().split(".")[0]
                     cap = raw_cap.zfill(5) if raw_cap and raw_cap.isdigit() else ""
                     com = str(r.get("Comune", "")).strip()
 
-                    if nome_fil not in store_map:
-                        store_map[nome_fil] = {
-                            "store_name": nome_fil,
+                    if clean_fil not in store_map:
+                        store_map[clean_fil] = {
+                            "store_name": clean_fil,
                             "address": addr if (addr and addr.lower() != "nan") else "",
                             "cap": cap if (cap and cap.lower() != "nan") else "",
                             "comune": com if (com and com.lower() != "nan") else "",
@@ -2783,9 +2793,10 @@ def main():
     # -------------------------------------------------------------
     if "pending_load_machine" in st.session_state:
         load_data = st.session_state.pop("pending_load_machine")
-        st.session_state["input_store_name"] = load_data["store_name"]
-        st.session_state["store_dropdown_select"] = load_data["store_name"]
-        st.session_state["custom_store_input"] = load_data["store_name"]
+        clean_sn = remove_special_italian_chars(load_data["store_name"])
+        st.session_state["input_store_name"] = clean_sn
+        st.session_state["store_dropdown_select"] = clean_sn
+        st.session_state["custom_store_input"] = clean_sn
         st.session_state["is_custom_store_mode"] = False
         st.session_state["input_address"] = load_data["address"]
         st.session_state["input_cap"] = load_data["cap"]
@@ -2918,7 +2929,7 @@ def main():
         known_stores_list, known_stores_details = get_known_stores_directory()
         dropdown_options = list(known_stores_list)
 
-        cur_store_val = str(st.session_state.get("input_store_name", "")).strip()
+        cur_store_val = remove_special_italian_chars(str(st.session_state.get("input_store_name", "")).strip())
         is_custom_mode = st.session_state.get("is_custom_store_mode", False)
 
         # Ensure cur_store_val is included in dropdown_options so it is displayed and selected
