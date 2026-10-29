@@ -755,7 +755,8 @@ def render_fleet_benchmark_submodule(
     mach_to_label: Dict[str, str],
     pf_to_label: Dict[str, str],
     is_prospective_site: bool = False,
-    active_mach: Optional[str] = None
+    active_mach: Optional[str] = None,
+    show_selector: bool = True
 ):
     """Submodule for rendering peer benchmark or active machine comparative telemetry."""
     if active_mach and active_mach in mach_to_label:
@@ -765,39 +766,43 @@ def render_fleet_benchmark_submodule(
     else:
         default_idx = 0
 
-    col_sel, col_mode = st.columns([3, 1])
-    with col_sel:
-        selector_label = "Select Reference Peer Machine to Benchmark (Active Fleet):" if is_prospective_site else "Select Physical Machine to Compare (Past vs Future):"
-        sel_key = f"comp_machine_selector_{'peer' if is_prospective_site else 'active'}"
-        # If active_mach was changed (e.g. from table click), sync session state
-        target_label = None
-        if active_mach:
-            for m in all_machines:
-                if m.get("pf") == active_mach or m.get("macchina") == active_mach:
-                    target_label = m["label"]
-                    break
-        if target_label and target_label in labels_list and st.session_state.get(sel_key) != target_label:
-            st.session_state[sel_key] = target_label
+    if show_selector:
+        col_sel, col_mode = st.columns([3, 1])
+        with col_sel:
+            selector_label = "Select Reference Peer Machine to Benchmark (Active Fleet):" if is_prospective_site else "Select Physical Machine to Compare (Past vs Future):"
+            sel_key = f"comp_machine_selector_{'peer' if is_prospective_site else 'active'}"
+            target_label = None
+            if active_mach:
+                for m in all_machines:
+                    if m.get("pf") == active_mach or m.get("macchina") == active_mach:
+                        target_label = m["label"]
+                        break
+            if target_label and target_label in labels_list and st.session_state.get(sel_key) != target_label:
+                st.session_state[sel_key] = target_label
 
-        current_idx = labels_list.index(target_label) if (target_label and target_label in labels_list) else default_idx
-        chosen_opt = st.selectbox(
-            selector_label,
-            options=labels_list,
-            index=current_idx,
-            key=sel_key,
-            help="Select any active physical machine from PostgreSQL/Power BI to compare its historical telemetry with the prospective model prediction."
-        )
-        selected_rec = next((m for m in all_machines if m["label"] == chosen_opt), all_machines[default_idx] if all_machines else None)
-        selected_mach = selected_rec["macchina"] if selected_rec else active_mach
+            current_idx = labels_list.index(target_label) if (target_label and target_label in labels_list) else default_idx
+            chosen_opt = st.selectbox(
+                selector_label,
+                options=labels_list,
+                index=current_idx,
+                key=sel_key,
+                help="Select any active physical machine from PostgreSQL/Power BI to compare its historical telemetry with the prospective model prediction."
+            )
+            selected_rec = next((m for m in all_machines if m["label"] == chosen_opt), all_machines[default_idx] if all_machines else None)
+            selected_mach = selected_rec["macchina"] if selected_rec else active_mach
 
-    with col_mode:
-        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-        if is_prospective_site:
-            st.info(f"🔍 Peer Benchmark: `{selected_mach}`")
-        elif active_mach and (selected_mach == active_mach or (selected_rec and selected_rec.get("pf") == active_mach)):
-            st.success(f"📍 Physical Machine: `{selected_mach}`")
-        else:
-            st.info(f"⚙️ Physical Machine: `{selected_mach}`")
+        with col_mode:
+            st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+            if is_prospective_site:
+                st.info(f"🔍 Peer Benchmark: `{selected_mach}`")
+            elif active_mach and (selected_mach == active_mach or (selected_rec and selected_rec.get("pf") == active_mach)):
+                st.success(f"📍 Physical Machine: `{selected_mach}`")
+            else:
+                st.info(f"⚙️ Physical Machine: `{selected_mach}`")
+    else:
+        # No dropdown needed: user clicks machine button directly from table
+        selected_rec = next((m for m in all_machines if m.get("pf") == active_mach or m.get("macchina") == active_mach), None)
+        selected_mach = active_mach or (selected_rec["macchina"] if selected_rec else None)
 
     if not selected_mach:
         st.warning("Please select a physical machine to load historical comparison.")
@@ -1216,9 +1221,8 @@ def load_performance_drop_fleet() -> pd.DataFrame:
 
 def render_performance_drops_section(all_machines: List[Dict[str, str]], active_mach_current: Optional[str] = None) -> Optional[str]:
     """
-    Renders fleet-wide performance drop monitor table:
-    Pinpoints all machines that were performing well before (>= 250 b/d) and whose performance has dropped.
-    Returns the selected machine ID if user chooses one to inspect.
+    Renders fleet-wide performance drop monitor table with direct 'Inspect Results 📊' buttons on every row.
+    Clicking any button immediately selects that machine and loads its separate AI prediction & telemetry below on the same screen.
     """
     st.markdown(
         """
@@ -1231,11 +1235,11 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
                         <span>📉 Fleet Performance Drops Monitor</span>
                     </h3>
                     <p style="color: #94a3b8; font-size: 0.84rem; margin: 4px 0 0 0;">
-                        Audits all machines across the active Coripet network that <b>historically performed well (≥ 250 b/d baseline)</b>, but recently suffered <b>sharp volume drops (≥ 20% decline)</b>.
+                        Audits all machines across the active Coripet network that <b>historically performed well (≥ 250 b/d baseline)</b>, but recently suffered <b>sharp volume drops (≥ 20% decline)</b>. Click <b>Inspect 📊</b> on any machine to see its dedicated results below.
                     </p>
                 </div>
                 <span style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); padding: 5px 12px; border-radius: 6px; font-weight: 800; font-size: 0.80rem;">
-                    FLEET UNDERPERFORMANCE AUDIT
+                    FLEET ANOMALY MONITOR
                 </span>
             </div>
         </div>
@@ -1333,106 +1337,102 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
             </div>""", unsafe_allow_html=True
         )
 
-    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
 
     if filtered_df.empty:
         st.info("No machines match the selected filter criteria.")
         return None
 
-    # Format table for display
-    display_df = pd.DataFrame({
-        "PF Code": filtered_df["PF"],
-        "Store Name / Banner": filtered_df["Store_Banner"],
-        "Comune": filtered_df["Comune"],
-        "Regione": filtered_df["Regione"],
-        "Model": filtered_df["TipoMacchina"],
-        "Past Baseline": filtered_df["Median_Bottles_Daily"].apply(lambda v: f"{v:.0f} b/d"),
-        "Recent 30-Day": filtered_df["Recent_30d_Median"].apply(lambda v: f"{v:.0f} b/d"),
-        "Performance Drop": filtered_df["drop_pct"].apply(lambda p: f"🔻 {p:.1f}%" if p <= -50 else f"⚠️ {p:.1f}%"),
-        "Daily Volume Lost": filtered_df["vol_lost"].apply(lambda l: f"-{l:.0f} b/d"),
-        "Operational Action": filtered_df.get("Recommended_Action", pd.Series(["Field check advised"] * len(filtered_df)))
-    })
+    # Resolve active machine under inspection
+    cur_sel = st.session_state.get("selected_telemetry_machine") or active_mach_current
+    if not cur_sel or cur_sel not in filtered_df["PF"].values:
+        cur_sel = str(filtered_df.iloc[0]["PF"]).strip()
+        st.session_state["selected_telemetry_machine"] = cur_sel
 
-    st.caption("👆 **Click on any row in the table below** to immediately generate and inspect that machine's separate AI prediction & telemetry on this same screen:")
+    # Pagination controls
+    page_size = 10
+    total_pages = max(1, (len(filtered_df) + page_size - 1) // page_size)
+    cur_page = st.session_state.get("drop_table_page", 1)
+    if cur_page > total_pages:
+        cur_page = 1
+        st.session_state["drop_table_page"] = 1
 
-    table_event = st.dataframe(
-        display_df,
-        use_container_width=True,
-        hide_index=True,
-        height=320,
-        selection_mode="single-row",
-        on_select="rerun",
-        key="perf_drop_table"
-    )
+    start_idx = (cur_page - 1) * page_size
+    end_idx = min(len(filtered_df), start_idx + page_size)
+    page_rows = filtered_df.iloc[start_idx:end_idx].reset_index(drop=True)
 
-    clicked_pf = None
-    if table_event and hasattr(table_event, "selection") and table_event.selection:
-        sel_rows = getattr(table_event.selection, "rows", [])
-        if sel_rows and len(sel_rows) > 0:
-            sel_r_idx = sel_rows[0]
-            if 0 <= sel_r_idx < len(filtered_df):
-                clicked_pf = str(filtered_df.iloc[sel_r_idx]["PF"]).strip()
-                st.session_state["selected_telemetry_machine"] = clicked_pf
+    # Clean Table Header without Checkboxes
+    st.markdown("<div style='background: rgba(15, 23, 42, 0.75); border-radius: 8px 8px 0 0; padding: 10px 14px; border: 1px solid rgba(255, 255, 255, 0.08); border-bottom: 2px solid rgba(56, 189, 248, 0.4);'>", unsafe_allow_html=True)
+    th0, th1, th2, th3, th4, th5, th6, th7, th8 = st.columns([1.5, 2.2, 1.6, 1.4, 1.1, 1.1, 1.2, 1.2, 1.4])
+    with th0: st.markdown("<strong style='font-size: 0.76rem; color: #94a3b8;'>PF CODE</strong>", unsafe_allow_html=True)
+    with th1: st.markdown("<strong style='font-size: 0.76rem; color: #94a3b8;'>STORE / BANNER</strong>", unsafe_allow_html=True)
+    with th2: st.markdown("<strong style='font-size: 0.76rem; color: #94a3b8;'>MUNICIPALITY</strong>", unsafe_allow_html=True)
+    with th3: st.markdown("<strong style='font-size: 0.76rem; color: #94a3b8;'>MODEL</strong>", unsafe_allow_html=True)
+    with th4: st.markdown("<strong style='font-size: 0.76rem; color: #94a3b8;'>BASELINE</strong>", unsafe_allow_html=True)
+    with th5: st.markdown("<strong style='font-size: 0.76rem; color: #94a3b8;'>RECENT 30D</strong>", unsafe_allow_html=True)
+    with th6: st.markdown("<strong style='font-size: 0.76rem; color: #94a3b8;'>DROP %</strong>", unsafe_allow_html=True)
+    with th7: st.markdown("<strong style='font-size: 0.76rem; color: #94a3b8;'>VOL LOST</strong>", unsafe_allow_html=True)
+    with th8: st.markdown("<strong style='font-size: 0.76rem; color: #94a3b8;'>ACTION</strong>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
-    st.markdown(
-        """
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-            <h4 style="margin: 0; color: #f8fafc; font-size: 1.05rem; font-weight: 700;">
-                🔍 Deep-Dive Machine Telemetry & Comparative AI Forecast
-            </h4>
-            <span style="color: #94a3b8; font-size: 0.76rem;">Click a row above or pick from dropdown to load dedicated AI forecast</span>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    # Render each row with a direct action button
+    for r_idx, r in page_rows.iterrows():
+        pf_val = str(r["PF"]).strip()
+        banner_val = str(r["Store_Banner"])
+        comune_val = str(r["Comune"])
+        reg_val = str(r["Regione"])
+        model_val = str(r["TipoMacchina"])
+        base_val = float(r["Median_Bottles_Daily"])
+        recent_val = float(r["Recent_30d_Median"])
+        drop_val = float(r["drop_pct"])
+        loss_val = float(r["vol_lost"])
 
-    # Build options list prioritizing dropped machines
-    drop_pfs = filtered_df["PF"].tolist()
-    drop_labels = []
-    for _, r in filtered_df.iterrows():
-        lbl = f"🔻 {r['PF']} - {r['Store_Banner']} ({r['Comune']}) [Drop: {r['drop_pct']:.1f}% | -{r['vol_lost']:.0f} b/d]"
-        drop_labels.append((r["PF"], lbl))
+        is_active = (cur_sel == pf_val)
+        row_bg = "background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.45); border-left: 4px solid #38bdf8;" if is_active else "background: rgba(30, 41, 59, 0.45); border: 1px solid rgba(255, 255, 255, 0.05); border-bottom: 1px solid rgba(255, 255, 255, 0.08);"
+        drop_badge = f'<span style="color: #ef4444; font-weight: 800;">🔻 {drop_val:.1f}%</span>' if drop_val <= -50 else f'<span style="color: #f59e0b; font-weight: 700;">⚠️ {drop_val:.1f}%</span>'
 
-    # Add other machines from all_machines
-    other_labels = []
-    for m in all_machines:
-        m_id = m.get("pf") or m.get("macchina")
-        if m_id and m_id not in drop_pfs:
-            other_labels.append((m["macchina"], m["label"]))
+        st.markdown(f"<div style='{row_bg} padding: 8px 14px; margin-top: 3px; border-radius: 6px;'>", unsafe_allow_html=True)
+        rc0, rc1, rc2, rc3, rc4, rc5, rc6, rc7, rc8 = st.columns([1.5, 2.2, 1.6, 1.4, 1.1, 1.1, 1.2, 1.2, 1.4])
+        with rc0:
+            st.markdown(f"<code style='color: {'#38bdf8' if is_active else '#93c5fd'}; font-weight: 700; font-size: 0.82rem;'>{pf_val}</code>", unsafe_allow_html=True)
+        with rc1:
+            st.markdown(f"<strong style='color: #f8fafc; font-size: 0.86rem;'>{banner_val}</strong>", unsafe_allow_html=True)
+        with rc2:
+            st.markdown(f"<span style='color: #cbd5e1; font-size: 0.82rem;'>{comune_val} <small style='color: #64748b;'>({reg_val})</small></span>", unsafe_allow_html=True)
+        with rc3:
+            st.markdown(f"<span style='color: #94a3b8; font-size: 0.80rem;'>{model_val}</span>", unsafe_allow_html=True)
+        with rc4:
+            st.markdown(f"<span style='color: #cbd5e1; font-size: 0.82rem;'>{base_val:.0f} b/d</span>", unsafe_allow_html=True)
+        with rc5:
+            st.markdown(f"<span style='color: {'#ef4444' if recent_val < 50 else '#cbd5e1'}; font-weight: 700; font-size: 0.82rem;'>{recent_val:.0f} b/d</span>", unsafe_allow_html=True)
+        with rc6:
+            st.markdown(f"<span style='font-size: 0.84rem;'>{drop_badge}</span>", unsafe_allow_html=True)
+        with rc7:
+            st.markdown(f"<span style='color: #f87171; font-size: 0.82rem;'>-{loss_val:.0f} b/d</span>", unsafe_allow_html=True)
+        with rc8:
+            btn_lbl = "Viewing 🎯" if is_active else "Inspect 📊"
+            btn_t = "primary" if is_active else "secondary"
+            if st.button(btn_lbl, key=f"btn_insp_row_{pf_val}", type=btn_t, use_container_width=True):
+                st.session_state["selected_telemetry_machine"] = pf_val
+                st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    combined_choices = [lbl for _, lbl in drop_labels] + [lbl for _, lbl in other_labels]
-    label_to_id = {lbl: mid for mid, lbl in drop_labels}
-    label_to_id.update({lbl: mid for mid, lbl in other_labels})
+    # Pagination navigation bar
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+    c_p1, c_p2, c_p3 = st.columns([1.5, 2.5, 1.5])
+    with c_p1:
+        if st.button("⬅️ Previous Page", disabled=(cur_page <= 1), key="btn_prev_drop_p", use_container_width=True):
+            st.session_state["drop_table_page"] = max(1, cur_page - 1)
+            st.rerun()
+    with c_p2:
+        st.markdown(f"<div style='text-align: center; color: #94a3b8; font-size: 0.84rem; padding-top: 6px;'>Page <b>{cur_page}</b> of <b>{total_pages}</b> ({len(filtered_df):,} machines with drop)</div>", unsafe_allow_html=True)
+    with c_p3:
+        if st.button("Next Page ➡️", disabled=(cur_page >= total_pages), key="btn_next_drop_p", use_container_width=True):
+            st.session_state["drop_table_page"] = min(total_pages, cur_page + 1)
+            st.rerun()
 
-    # Resolve active machine: clicked table row takes priority, then session state, then current
-    cur_sel = clicked_pf or st.session_state.get("selected_telemetry_machine") or active_mach_current or st.session_state.get("selected_machine") or st.session_state.get("selected_store_pf")
-
-    # Sync selectbox state when a table row is clicked
-    matching_label = None
-    if cur_sel:
-        for mid, lbl in drop_labels + other_labels:
-            if mid == cur_sel:
-                matching_label = lbl
-                break
-
-    if matching_label and st.session_state.get("perf_drop_machine_selector") != matching_label:
-        st.session_state["perf_drop_machine_selector"] = matching_label
-
-    sel_idx = 0
-    if matching_label and matching_label in combined_choices:
-        sel_idx = combined_choices.index(matching_label)
-
-    chosen_label = st.selectbox(
-        "Active Machine Under Inspection:",
-        options=combined_choices,
-        index=sel_idx,
-        key="perf_drop_machine_selector"
-    )
-
-    selected_mid = label_to_id.get(chosen_label, cur_sel)
-    st.session_state["selected_telemetry_machine"] = selected_mid
-    return selected_mid
+    st.session_state["selected_telemetry_machine"] = cur_sel
+    return cur_sel
 
 
 def render_historical_vs_prediction_section(
@@ -1709,5 +1709,6 @@ def render_historical_vs_prediction_section(
         mach_to_label=mach_to_label,
         pf_to_label=pf_to_label,
         is_prospective_site=False,
-        active_mach=active_mach
+        active_mach=active_mach,
+        show_selector=not force_comparative_view
     )
