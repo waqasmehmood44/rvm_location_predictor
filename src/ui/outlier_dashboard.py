@@ -304,31 +304,28 @@ def render_outlier_and_defect_dashboard():
     # 2. Executive KPI Cards
     # -------------------------------------------------------------
     st.markdown(
-        f"""
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 18px;">
-            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #0f5132; padding: 12px; border-radius: 8px;">
-                <span style="font-size: 0.78rem; font-weight: 700; color: #475569; text-transform: uppercase;">Total Outliers</span>
-                <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a;">{n_outliers:,} <span style="font-size: 0.8rem; font-weight: 500; color: #64748b;">({(n_outliers/max(1, total_fleet)*100):.1f}%)</span></div>
-            </div>
-            <div style="background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #b91c1c; padding: 12px; border-radius: 8px;">
-                <span style="font-size: 0.78rem; font-weight: 700; color: #991b1b; text-transform: uppercase;">Defective / Offline</span>
-                <div style="font-size: 1.5rem; font-weight: 800; color: #b91c1c;">{n_defective:,}</div>
-            </div>
-            <div style="background: #faf5ff; border: 1px solid #e9d5ff; border-left: 4px solid #7e22ce; padding: 12px; border-radius: 8px;">
-                <span style="font-size: 0.78rem; font-weight: 700; color: #6b21a8; text-transform: uppercase;">Extreme Spikes</span>
-                <div style="font-size: 1.5rem; font-weight: 800; color: #7e22ce;">{n_spikes:,}</div>
-            </div>
-            <div style="background: #fff7ed; border: 1px solid #fed7aa; border-left: 4px solid #c2410c; padding: 12px; border-radius: 8px;">
-                <span style="font-size: 0.78rem; font-weight: 700; color: #9a3412; text-transform: uppercase;">Volatility Swings</span>
-                <div style="font-size: 1.5rem; font-weight: 800; color: #c2410c;">{n_swings:,}</div>
-            </div>
-
-            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #16a34a; padding: 12px; border-radius: 8px;">
-                <span style="font-size: 0.78rem; font-weight: 700; color: #166534; text-transform: uppercase;">Super-Hubs (>3k)</span>
-                <div style="font-size: 1.5rem; font-weight: 800; color: #15803d;">{n_hub:,}</div>
-            </div>
-        </div>
-        """,
+        f"""<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 18px;">
+<div style="background: rgba(30, 41, 59, 0.75); border: 1px solid rgba(255, 255, 255, 0.10); border-left: 4px solid #22c55e; padding: 12px; border-radius: 8px;">
+<span style="font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Total Outliers</span>
+<div style="font-size: 1.5rem; font-weight: 800; color: #f8fafc;">{n_outliers:,} <span style="font-size: 0.8rem; font-weight: 500; color: #64748b;">({(n_outliers/max(1, total_fleet)*100):.1f}%)</span></div>
+</div>
+<div style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.28); border-left: 4px solid #ef4444; padding: 12px; border-radius: 8px;">
+<span style="font-size: 0.75rem; font-weight: 700; color: #f87171; text-transform: uppercase;">Defective / Offline</span>
+<div style="font-size: 1.5rem; font-weight: 800; color: #ef4444;">{n_defective:,}</div>
+</div>
+<div style="background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.28); border-left: 4px solid #a855f7; padding: 12px; border-radius: 8px;">
+<span style="font-size: 0.75rem; font-weight: 700; color: #c084fc; text-transform: uppercase;">Extreme Spikes</span>
+<div style="font-size: 1.5rem; font-weight: 800; color: #a855f7;">{n_spikes:,}</div>
+</div>
+<div style="background: rgba(249, 115, 22, 0.12); border: 1px solid rgba(249, 115, 22, 0.28); border-left: 4px solid #f97316; padding: 12px; border-radius: 8px;">
+<span style="font-size: 0.75rem; font-weight: 700; color: #fb923c; text-transform: uppercase;">Volatility Swings</span>
+<div style="font-size: 1.5rem; font-weight: 800; color: #f97316;">{n_swings:,}</div>
+</div>
+<div style="background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.28); border-left: 4px solid #22c55e; padding: 12px; border-radius: 8px;">
+<span style="font-size: 0.75rem; font-weight: 700; color: #4ade80; text-transform: uppercase;">Super-Hubs (>3k)</span>
+<div style="font-size: 1.5rem; font-weight: 800; color: #22c55e;">{n_hub:,}</div>
+</div>
+</div>""",
         unsafe_allow_html=True
     )
 
