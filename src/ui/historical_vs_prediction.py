@@ -1221,8 +1221,9 @@ def load_performance_drop_fleet() -> pd.DataFrame:
 
 def render_performance_drops_section(all_machines: List[Dict[str, str]], active_mach_current: Optional[str] = None) -> Optional[str]:
     """
-    Renders fleet performance drop directory cleanly and specifically tailored to the 'Historical vs. Forecast' tab.
-    Puts Store Banner, Location, Past Baseline, Recent 30D, Performance Drop %, and Daily Volume Lost front and center.
+    Renders fleet performance drop directory cleanly with a sticky ButtonColumn at the end.
+    The button is pinned to the table so it stays accessible when scrolling horizontally/vertically.
+    Clicking the button immediately selects that machine and loads its dedicated prediction & ground truth below.
     """
     df_fleet = load_performance_drop_fleet()
     if df_fleet.empty:
@@ -1267,6 +1268,16 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
     if filtered_df.empty:
         st.info("No machines match the selected filter criteria.")
         return None
+
+    # Handle ButtonColumn click from dataframe if triggered
+    btn_click = st.session_state.get("drop_table_inspect_btn")
+    if btn_click is not None:
+        clicked_idx = getattr(btn_click, "row", None)
+        if clicked_idx is None and isinstance(btn_click, dict):
+            clicked_idx = btn_click.get("row")
+        if clicked_idx is not None and 0 <= clicked_idx < len(filtered_df):
+            chosen_pf = str(filtered_df.iloc[clicked_idx]["PF"]).strip()
+            st.session_state["selected_telemetry_machine"] = chosen_pf
 
     # Executive KPI Metric Cards
     total_dropped = len(filtered_df)
@@ -1346,7 +1357,15 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
     filtered_df["Drop_Severity_Status"] = filtered_df.apply(format_drop_severity, axis=1)
     filtered_df["Root_Cause_Diagnostic"] = filtered_df.apply(summarize_root_cause, axis=1)
 
-    # 3. Clean st.dataframe with Historical vs Recent columns FRONT AND CENTER
+    cur_sel = st.session_state.get("selected_telemetry_machine") or active_mach_current
+    if not cur_sel or cur_sel not in filtered_df["PF"].values:
+        cur_sel = str(filtered_df.iloc[0]["PF"]).strip()
+        st.session_state["selected_telemetry_machine"] = cur_sel
+
+    # Action button label per row
+    filtered_df["Action"] = filtered_df["PF"].apply(lambda pf: "Viewing 🎯" if str(pf).strip() == cur_sel else "Inspect 📊")
+
+    # 3. Clean st.dataframe with sticky pinned ButtonColumn at the end
     display_cols = [
         "Drop_Severity_Status",
         "Store_Banner",
@@ -1358,7 +1377,8 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         "vol_lost",
         "Root_Cause_Diagnostic",
         "TipoMacchina",
-        "PF"
+        "PF",
+        "Action"
     ]
 
     st.dataframe(
@@ -1377,14 +1397,43 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
             "vol_lost": st.column_config.NumberColumn("Vol Lost (b/d)", format="%d"),
             "Root_Cause_Diagnostic": st.column_config.TextColumn("Diagnostic / Cause", width="medium"),
             "TipoMacchina": st.column_config.TextColumn("Hardware Model", width="small"),
-            "PF": st.column_config.TextColumn("Machine ID (PF)", width="small")
+            "PF": st.column_config.TextColumn("Machine ID (PF)", width="small"),
+            "Action": st.column_config.ButtonColumn(
+                "Action",
+                width="small",
+                pinned=True,
+                help="Click Inspect to load this machine's dedicated ground truth and AI forecast below",
+                key="drop_table_inspect_btn"
+            )
         }
     )
 
-    # 4. Machine Selector Dropdown to inspect dedicated prediction and telemetry below
-    st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
+    # 4. Active Inspection Status Bar attached directly below table
+    cur_row = filtered_df[filtered_df["PF"] == cur_sel].iloc[0] if (filtered_df["PF"] == cur_sel).any() else filtered_df.iloc[0]
+    st.markdown(
+        f"""
+        <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.40); border-left: 4px solid #38bdf8; 
+                    padding: 10px 16px; border-radius: 6px; margin: 8px 0 14px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+                <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Actively Inspected Machine</span>
+                <div style="font-size: 0.95rem; font-weight: 700; color: #f8fafc; margin-top: 2px;">
+                    📍 <span style="color: #38bdf8;">{cur_row['Store_Banner']}</span> ({cur_row['Comune']}, {cur_row['Regione']}) 
+                    &bull; ID: <code>{cur_row['PF']}</code> 
+                    &bull; Past: <b style="color: #94a3b8;">{cur_row['Median_Bottles_Daily']:.0f} b/d</b> 
+                    &bull; Recent: <b style="color: #f87171;">{cur_row['Recent_30d_Median']:.0f} b/d</b> 
+                    (<span style="color: #ef4444; font-weight: 800;">{cur_row['drop_pct']:.1f}%</span>)
+                </div>
+            </div>
+            <span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 5px 12px; border-radius: 4px; font-size: 0.76rem; font-weight: 800;">
+                TELEMETRY & AI FORECAST ACTIVE BELOW ⬇️
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # Secondary Dropdown & CSV Download Companion
     c_sel1, c_sel2 = st.columns([3.5, 1.5])
-    
     machine_options = []
     pf_to_row = {}
     for _, r in filtered_df.iterrows():
@@ -1392,7 +1441,6 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         machine_options.append(opt_label)
         pf_to_row[opt_label] = r
 
-    cur_sel = st.session_state.get("selected_telemetry_machine") or active_mach_current
     def_idx = 0
     if cur_sel:
         for idx, opt in enumerate(machine_options):
@@ -1402,7 +1450,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
 
     with c_sel1:
         selected_opt = st.selectbox(
-            "🎯 Select Machine from Audit Table to Compare Historical Ground Truth vs AI Forecast Below:",
+            "Quick Machine Search / Switcher (or click Inspect 📊 on table above):",
             options=machine_options,
             index=def_idx,
             key="drop_inspect_selectbox"
@@ -1418,10 +1466,14 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
             use_container_width=True
         )
 
-    selected_row = pf_to_row[selected_opt]
-    selected_pf = selected_row["PF"]
-    st.session_state["selected_telemetry_machine"] = selected_pf
-    return selected_pf
+    # Sync selection from dropdown if user used dropdown instead of button
+    if selected_opt in pf_to_row:
+        dropdown_pf = pf_to_row[selected_opt]["PF"]
+        if dropdown_pf != cur_sel and btn_click is None:
+            cur_sel = dropdown_pf
+            st.session_state["selected_telemetry_machine"] = cur_sel
+
+    return cur_sel
 
 
 def render_historical_vs_prediction_section(
