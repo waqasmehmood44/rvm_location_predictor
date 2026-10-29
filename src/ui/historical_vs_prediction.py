@@ -563,7 +563,7 @@ def build_future_daily_bottles_figure(
     Strictly shows bottles per day without monthly bars or customer visits.
     """
     profile = res.get("lifecycle_horizon", {}).get("year1_rolling_profile", [])
-    if not profile or len(profile) != 12:
+    if not profile or len(profile) < 12:
         base_d = pred_summary["pred_daily"]
         months_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
         cur_m = pd.Timestamp.now().month

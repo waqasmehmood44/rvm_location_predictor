@@ -1213,12 +1213,14 @@ def render_seasonality_chart(monthly_data: Any, steady_state_benchmark: Optional
                 hover_texts.append(f"<b>{lbl}</b><br>Daily Projection: <b>{v:.1f} b/d</b><br>Monthly Target: <b>{m_tgt:,} b/mo</b><br>Maturity Factor: <b>{mat_pct}</b> ({stage})<br>Context: {ctx}")
                 
                 mat_f = float(item.get("maturity_factor", 1.0))
-                if mat_f < 0.75:
-                    bar_colors.append("#81c784")  # Soft green for discovery month
-                elif mat_f < 0.95:
-                    bar_colors.append("#4caf50")  # Medium green for adoption phase
+                is_ramp = item.get("is_rampup", idx < 3)
+                if is_ramp or mat_f < 0.95:
+                    if mat_f < 0.75:
+                        bar_colors.append("#81c784")  # Soft green for discovery month (M01)
+                    else:
+                        bar_colors.append("#4caf50")  # Medium green for habit/consolidation (M02-M03)
                 else:
-                    bar_colors.append("#2e7d32")  # Deep forest green for mature phase
+                    bar_colors.append("#1b5e20")  # Deep bold forest green for 12 Mature Operational Months (M04-M15)
             elif isinstance(item, (int, float)):
                 x_labels.append(f"M{idx+1}")
                 vals.append(float(item))
@@ -1261,9 +1263,9 @@ def render_seasonality_chart(monthly_data: Any, steady_state_benchmark: Optional
         )
     )
     
-    # Calculate steady-state benchmark from mature months 4 to 12 (excluding initial 3-month ramp-up)
+    # Calculate steady-state benchmark strictly from the next 12 mature months (excluding initial 3-month ramp-up)
     mature_benchmark = None
-    if len(vals) >= 12:
+    if len(vals) > 3:
         mature_benchmark = float(np.mean(vals[3:]))
     elif steady_state_benchmark and steady_state_benchmark > 0:
         mature_benchmark = float(steady_state_benchmark)
@@ -1274,14 +1276,14 @@ def render_seasonality_chart(monthly_data: Any, steady_state_benchmark: Optional
                 x=x_labels,
                 y=[mature_benchmark] * len(x_labels),
                 mode="lines",
-                line=dict(color="#1976d2", width=2, dash="dash"),
-                name=f"Steady-State Capacity ({mature_benchmark:.0f} b/d)",
+                line=dict(color="#38bdf8", width=2.2, dash="dash"),
+                name=f"Confirmed 12M Post-Ramp Steady-State ({mature_benchmark:.0f} b/d)",
                 hoverinfo="name+y",
             )
         )
         
     fig.update_layout(
-        title={"text": "📅 12-Month Operational Rolling Intake Profile (b/day)", "font": {"size": 15}},
+        title={"text": "📅 Operational Rolling Intake Profile — 3M Setup & Ramp + Next 12M Mature Horizon (b/day)", "font": {"size": 15}},
         xaxis_title="Operational Horizon Month",
         yaxis_title="Bottles / Day",
         height=300,
@@ -4495,7 +4497,7 @@ def render_prediction_dashboard(
         st.html(f"""<div class="gate-grid">\n{cards_str}\n</div>""")
 
     # -------------------------------------------------------------
-    # 6. 12-Month Rolling Operational Intake Profile (Year 1)
+    # 6. 15-Month Operational Lifecycle & Intake Profile (3M Ramp + 12M Post-Ramp Horizon)
     # -------------------------------------------------------------
     lifecycle_h = res.get("lifecycle_horizon", {})
     rolling_profile = lifecycle_h.get("year1_rolling_profile")
@@ -4510,28 +4512,61 @@ def render_prediction_dashboard(
         st.divider()
         l_month_str = lifecycle_h.get("launch_month_name", "Go-Live Month")
         l_year_int = lifecycle_h.get("launch_year", 2026)
-        st.subheader("📈 12-Month Rolling Operational Intake Profile")
+        st.subheader("📈 15-Month Operational Lifecycle & Intake Profile")
         st.caption(
-            f"Confirmed Year 1 operational collection targets and seasonal intake profile starting from **{l_month_str} {l_year_int}**."
+            f"Confirmed operational collection targets starting from **{l_month_str} {l_year_int}**: **3-month setup & adoption ramp-up** (M01–M03) followed by the **next 12-month mature operational horizon** (M04–M15)."
         )
 
         season_fig = render_seasonality_chart(monthly_profile, steady_state_benchmark=bottiglie_day)
         st.plotly_chart(season_fig, use_container_width=True)
 
+        # Operational KPI Summary Cards: 3M Ramp vs Next 12 Months Mature Horizon
+        if isinstance(monthly_profile, list) and len(monthly_profile) > 3:
+            mature_slice = monthly_profile[3:]
+            ramp_slice = monthly_profile[:3]
+            mat_tot = sum(m.get("monthly_target_bottiglie", 0) for m in mature_slice)
+            mat_days = sum(m.get("days_in_month", 30) for m in mature_slice)
+            mat_avg = round(mat_tot / max(1, mat_days), 1)
+            ramp_tot = sum(m.get("monthly_target_bottiglie", 0) for m in ramp_slice)
+            tot_15m = ramp_tot + mat_tot
+
+            c_k1, c_k2, c_k3 = st.columns([1, 1, 1])
+            with c_k1:
+                st.html(f"""<div class="exec-card" style="border-top: 3px solid #f59e0b;">
+                    <div class="exec-card-top"><span class="exec-card-lbl">🛠️ Initial 3-Month Setup & Ramp</span><span class="exec-status-dot dot-yellow">● M01–M03</span></div>
+                    <div style="margin: 4px 0 2px 0;"><span style="font-size: 1.35rem; font-weight: 800; color: #f59e0b;">{ramp_tot:,}</span> <span style="font-size: 0.76rem; color: #94a3b8;">bottles</span></div>
+                    <div class="exec-card-bot"><span class="exec-bot-label">Adoption Curve</span><span class="exec-bot-val" style="color: #f59e0b; font-weight: 700;">65% → 92%</span></div>
+                </div>""")
+            with c_k2:
+                st.html(f"""<div class="exec-card" style="border-top: 3px solid #10b981;">
+                    <div class="exec-card-top"><span class="exec-card-lbl">🏆 Next 12 Months Post-Ramp (Annual)</span><span class="exec-status-dot dot-green">● M04–M15</span></div>
+                    <div style="margin: 4px 0 2px 0;"><span style="font-size: 1.35rem; font-weight: 800; color: #10b981;">{mat_tot:,}</span> <span style="font-size: 0.76rem; color: #94a3b8;">bottles / yr</span></div>
+                    <div class="exec-card-bot"><span class="exec-bot-label">12M Daily Benchmark</span><span class="exec-bot-val" style="color: #10b981; font-weight: 700;">{mat_avg:.1f} b/d</span></div>
+                </div>""")
+            with c_k3:
+                st.html(f"""<div class="exec-card" style="border-top: 3px solid #3b82f6;">
+                    <div class="exec-card-top"><span class="exec-card-lbl">📊 Full 15-Month Lifecycle Total</span><span class="exec-status-dot dot-blue">● All 15 Months</span></div>
+                    <div style="margin: 4px 0 2px 0;"><span style="font-size: 1.35rem; font-weight: 800; color: #38bdf8;">{tot_15m:,}</span> <span style="font-size: 0.76rem; color: #94a3b8;">bottles</span></div>
+                    <div class="exec-card-bot"><span class="exec-bot-label">Complete Runway</span><span class="exec-bot-val" style="color: #38bdf8; font-weight: 700;">3M Ramp + 12M Op</span></div>
+                </div>""")
+
         if isinstance(monthly_profile, list) and monthly_profile and isinstance(monthly_profile[0], dict):
             m_rows = []
-            for m in monthly_profile:
+            for idx, m in enumerate(monthly_profile):
                 d_val = m.get("daily_bottiglie_median", m.get("daily_bottiglie", 0.0))
                 t_val = m.get("monthly_target_bottiglie_median", m.get("monthly_target_bottiglie", int(d_val * 30.4)))
+                is_ramp = m.get("is_rampup", idx < 3)
+                horizon_badge = "🛠️ Setup Ramp" if is_ramp else f"🟢 Mature Op M{idx-2}"
                 m_rows.append({
                     "Operational Month": m.get("lifecycle_label", f"{m.get('month_name', '')} ({m.get('days_in_month', 30)}d)"),
+                    "Horizon Type": horizon_badge,
                     "Projected Daily (b/d)": f"{d_val:.1f} b/d",
                     "Monthly Target (b/mo)": f"{t_val:,} b/mo",
                     "Adoption Maturity": m.get("maturity_pct", "100%"),
                     "Lifecycle Stage": m.get("lifecycle_stage", "Mature Steady-State"),
                     "Seasonal Operational Context": m.get("seasonal_context", m.get("context", "Standard Seasonal Rhythm")),
                 })
-            with st.expander("📅 View Detailed 12-Month Daily Targets & Lifecycle Breakdown", expanded=False):
+            with st.expander("📅 View Detailed 15-Month Daily Targets & Lifecycle Breakdown (3M Ramp + 12M Mature)", expanded=False):
                 st.dataframe(pd.DataFrame(m_rows), use_container_width=True, hide_index=True)
 
     # -------------------------------------------------------------

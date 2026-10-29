@@ -315,8 +315,11 @@ def calculate_lifecycle_horizon(
     
     profile_lookup = {m["month_num"]: m for m in underwritten_monthly_profile}
     
-    rolling_12m = []
-    for k in range(1, 13):
+    # Generate 15 operational months total:
+    # Months 1 to 3: Setup & Ramp-Up
+    # Months 4 to 15: Confirmed full 12-month mature operational horizon (after first 3 months removed)
+    rolling_15m = []
+    for k in range(1, 16):
         cal_m = (start_m - 1 + (k - 1)) % 12 + 1
         cal_y = start_y + ((start_m - 1 + (k - 1)) // 12)
         m_name = month_names.get(cal_m, f"Month {cal_m}")
@@ -334,15 +337,15 @@ def calculate_lifecycle_horizon(
         monthly_b = int(round(daily_b * days_in_m))
         
         if k == 1:
-            stage_desc = "Onboarding & Discovery (Ramp-up)"
+            stage_desc = "Onboarding & Discovery (Ramp-up M1)"
         elif k == 2:
-            stage_desc = "Habit Formation (Ramp-up)"
+            stage_desc = "Habit Formation (Ramp-up M2)"
         elif k == 3:
-            stage_desc = "Consolidation Phase"
+            stage_desc = "Consolidation Phase (Ramp-up M3)"
         else:
-            stage_desc = "Mature Steady-State"
+            stage_desc = f"Mature Steady-State (Op Month {k-3})"
             
-        rolling_12m.append({
+        rolling_15m.append({
             "lifecycle_month": k,
             "lifecycle_label": f"M{k:02d} ({m_name[:3]} '{str(cal_y)[2:]})",
             "calendar_month_num": cal_m,
@@ -355,12 +358,24 @@ def calculate_lifecycle_horizon(
             "daily_presenze": daily_p,
             "monthly_target_bottiglie": monthly_b,
             "seasonal_context": season_ctx,
-            "lifecycle_stage": stage_desc
+            "lifecycle_stage": stage_desc,
+            "is_rampup": k <= 3,
+            "post_ramp_month": (k - 3) if k > 3 else None
         })
         
-    year1_total_bottles = sum(m["monthly_target_bottiglie"] for m in rolling_12m)
-    year1_total_days = sum(m["days_in_month"] for m in rolling_12m)
-    year1_avg_daily_bottles = round(year1_total_bottles / max(1, year1_total_days), 1)
+    # Full 12-month results strictly after the first 3 ramp-up months are removed (Months 4 to 15)
+    mature_12m = rolling_15m[3:]
+    mature_total_bottles = sum(m["monthly_target_bottiglie"] for m in mature_12m)
+    mature_total_days = sum(m["days_in_month"] for m in mature_12m)
+    mature_avg_daily_bottles = round(mature_total_bottles / max(1, mature_total_days), 1)
+
+    rampup_3m = rolling_15m[:3]
+    rampup_total_bottles = sum(m["monthly_target_bottiglie"] for m in rampup_3m)
+    rampup_total_days = sum(m["days_in_month"] for m in rampup_3m)
+    rampup_avg_daily_bottles = round(rampup_total_bottles / max(1, rampup_total_days), 1)
+
+    total_15m_bottles = sum(m["monthly_target_bottiglie"] for m in rolling_15m)
+    total_15m_days = sum(m["days_in_month"] for m in rolling_15m)
     
     # 3-Year Commercial Horizon
     y2_growth = (1.0 + ANNUAL_NETWORK_GROWTH_RATE) ** (delta_years + 1)
@@ -374,11 +389,11 @@ def calculate_lifecycle_horizon(
     
     multi_year = [
         {
-            "horizon": "Year 1 (Adoption & Ramp-Up)",
-            "annual_bottles": year1_total_bottles,
-            "daily_average": year1_avg_daily_bottles,
-            "capacity_utilization": f"{int(round((year1_total_bottles / max(1, expected_annual_bottiglie)) * 100))}%",
-            "operational_focus": "Customer app onboarding, store lobby awareness, logistics route calibration"
+            "horizon": "Year 1 (12 Months Post-Ramp)",
+            "annual_bottles": mature_total_bottles,
+            "daily_average": mature_avg_daily_bottles,
+            "capacity_utilization": f"{int(round((mature_total_bottles / max(1, expected_annual_bottiglie)) * 100))}%",
+            "operational_focus": "Confirmed 12-month mature throughput following initial 3-month setup & ramp-up"
         },
         {
             "horizon": "Year 2 (Mature Steady-State)",
@@ -402,9 +417,16 @@ def calculate_lifecycle_horizon(
         "launch_year": start_y,
         "rampup_enabled": enable_rampup,
         "macro_annual_growth_rate": ANNUAL_NETWORK_GROWTH_RATE,
-        "year1_rolling_profile": rolling_12m,
-        "year1_total_bottles": year1_total_bottles,
-        "year1_avg_daily_bottles": year1_avg_daily_bottles,
+        "year1_rolling_profile": rolling_15m,
+        "year1_total_bottles": mature_total_bottles,
+        "year1_avg_daily_bottles": mature_avg_daily_bottles,
+        "mature_12m_profile": mature_12m,
+        "mature_12m_total_bottles": mature_total_bottles,
+        "mature_12m_avg_daily_bottles": mature_avg_daily_bottles,
+        "rampup_3m_profile": rampup_3m,
+        "rampup_3m_total_bottles": rampup_total_bottles,
+        "rampup_3m_avg_daily_bottles": rampup_avg_daily_bottles,
+        "total_15m_bottles": total_15m_bottles,
         "multi_year_forecast": multi_year
     }
 
