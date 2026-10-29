@@ -273,7 +273,7 @@ def render_outlier_and_defect_dashboard():
 
     with col_btn:
         st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
-        if st.button("🚀 Run Live Fleet Audit", type="primary", use_container_width=True, help="Scans all 1,900+ machines across PostgreSQL database"):
+        if st.button("🚀 Run Live Fleet Audit", key="btn_run_fleet_audit_trigger", type="primary", use_container_width=True, help="Scans all 1,900+ machines across PostgreSQL database"):
             with st.spinner("📡 Scanning all machines in PostgreSQL across 8 anomaly regimes..."):
                 audit_df = run_fleet_audit_scan()
                 st.session_state["outlier_audit_df"] = audit_df

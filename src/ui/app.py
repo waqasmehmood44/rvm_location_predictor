@@ -3383,71 +3383,75 @@ def main():
         st.session_state["active_nav_tab"] = TAB_MAIN
 
     if active_tab == TAB_MAIN:
-        if "selected_store_pf" in st.session_state and st.session_state.get("prediction_result"):
-            sel_pf = st.session_state.get("selected_store_pf")
-            sel_st = st.session_state.get("selected_store_status", "")
-            sel_nm = st.session_state.get("input_store_name", "")
-            st.success(f"📍 **Active Prediction Loaded from {sel_st} Registry:** **{sel_nm}** (Machine ID: `{sel_pf}` | Status: **{sel_st}**)")
+        with st.container(key="tab_container_main"):
+            if "selected_store_pf" in st.session_state and st.session_state.get("prediction_result"):
+                sel_pf = st.session_state.get("selected_store_pf")
+                sel_st = st.session_state.get("selected_store_status", "")
+                sel_nm = st.session_state.get("input_store_name", "")
+                st.success(f"📍 **Active Prediction Loaded from {sel_st} Registry:** **{sel_nm}** (Machine ID: `{sel_pf}` | Status: **{sel_st}**)")
 
-        res = st.session_state.get("prediction_result")
-        if not res:
-            # Guided Onboarding Walkthrough Card
-            curr_step = st.session_state.get("wizard_step", 1)
-            st.markdown(
-                f"""
-                <div class="intel-section" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.85) 100%); border: 1px solid rgba(255, 255, 255, 0.1); border-left: 5px solid #22c55e; padding: 24px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);">
-                    <h3 style="color: #4ade80; margin-top: 0; font-size: 1.3rem; font-weight: 700;">🧭 Guided Prospective Location Analysis</h3>
-                    <p style="color: #cbd5e1; font-size: 1.0rem; line-height: 1.55;">
-                        Welcome to the <strong>Coripet RVM Prospective Predictor</strong>. Follow the 3-step decision support wizard on the left sidebar, or select any installed machine from the <strong style="color: #60a5fa;">SPL Machines</strong> or <strong style="color: #c084fc;">POT Machines</strong> tabs to run instant predictions:
-                    </p>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 18px;">
-                        <div style="background: {'rgba(34, 197, 94, 0.15)' if curr_step == 1 else 'rgba(15, 23, 42, 0.6)'}; border: 1px solid {'rgba(34, 197, 94, 0.45)' if curr_step == 1 else 'rgba(255, 255, 255, 0.08)'}; border-radius: 8px; padding: 14px;">
-                            <strong style="color: {'#4ade80' if curr_step == 1 else '#f1f5f9'};">1️⃣ Step 1: Site & Model</strong><br>
-                            <span style="font-size: 0.85rem; color: #94a3b8;">Enter store name, street, CAP, and machine. Click <em>Detect Location & Nielsen Scale</em>.</span>
-                        </div>
-                        <div style="background: {'rgba(34, 197, 94, 0.15)' if curr_step == 2 else 'rgba(15, 23, 42, 0.6)'}; border: 1px solid {'rgba(34, 197, 94, 0.45)' if curr_step == 2 else 'rgba(255, 255, 255, 0.08)'}; border-radius: 8px; padding: 14px;">
-                            <strong style="color: {'#4ade80' if curr_step == 2 else '#f1f5f9'};">2️⃣ Step 2: Nielsen Census</strong><br>
-                            <span style="font-size: 0.85rem; color: #94a3b8;">Review auto-detected store scale and footprint. Accept or adjust, then click <em>Continue</em>.</span>
-                        </div>
-                        <div style="background: {'rgba(34, 197, 94, 0.15)' if curr_step == 3 else 'rgba(15, 23, 42, 0.6)'}; border: 1px solid {'rgba(34, 197, 94, 0.45)' if curr_step == 3 else 'rgba(255, 255, 255, 0.08)'}; border-radius: 8px; padding: 14px;">
-                            <strong style="color: {'#4ade80' if curr_step == 3 else '#f1f5f9'};">3️⃣ Step 3: Coripet Rewards</strong><br>
-                            <span style="font-size: 0.85rem; color: #94a3b8;">Review contract promotions from the database. Keep or change, then click <em>Run Prediction</em>.</span>
-                        </div>
-                        <div style="background: {'rgba(34, 197, 94, 0.15)' if curr_step == 4 else 'rgba(15, 23, 42, 0.6)'}; border: 1px solid {'rgba(34, 197, 94, 0.45)' if curr_step == 4 else 'rgba(255, 255, 255, 0.08)'}; border-radius: 8px; padding: 14px;">
-                            <strong style="color: {'#4ade80' if curr_step == 4 else '#f1f5f9'};">4️⃣ Step 4: Executive Verdict</strong><br>
-                            <span style="font-size: 0.85rem; color: #94a3b8;">View 365-day yield, 12-month calendar, clearance gates, and investment score.</span>
+            res = st.session_state.get("prediction_result")
+            if not res:
+                # Guided Onboarding Walkthrough Card
+                curr_step = st.session_state.get("wizard_step", 1)
+                st.markdown(
+                    f"""
+                    <div class="intel-section" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.85) 100%); border: 1px solid rgba(255, 255, 255, 0.1); border-left: 5px solid #22c55e; padding: 24px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);">
+                        <h3 style="color: #4ade80; margin-top: 0; font-size: 1.3rem; font-weight: 700;">🧭 Guided Prospective Location Analysis</h3>
+                        <p style="color: #cbd5e1; font-size: 1.0rem; line-height: 1.55;">
+                            Welcome to the <strong>Coripet RVM Prospective Predictor</strong>. Follow the 3-step decision support wizard on the left sidebar, or select any installed machine from the <strong style="color: #60a5fa;">SPL Machines</strong> or <strong style="color: #c084fc;">POT Machines</strong> tabs to run instant predictions:
+                        </p>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 18px;">
+                            <div style="background: {'rgba(34, 197, 94, 0.15)' if curr_step == 1 else 'rgba(15, 23, 42, 0.6)'}; border: 1px solid {'rgba(34, 197, 94, 0.45)' if curr_step == 1 else 'rgba(255, 255, 255, 0.08)'}; border-radius: 8px; padding: 14px;">
+                                <strong style="color: {'#4ade80' if curr_step == 1 else '#f1f5f9'};">1️⃣ Step 1: Site & Model</strong><br>
+                                <span style="font-size: 0.85rem; color: #94a3b8;">Enter store name, street, CAP, and machine. Click <em>Detect Location & Nielsen Scale</em>.</span>
+                            </div>
+                            <div style="background: {'rgba(34, 197, 94, 0.15)' if curr_step == 2 else 'rgba(15, 23, 42, 0.6)'}; border: 1px solid {'rgba(34, 197, 94, 0.45)' if curr_step == 2 else 'rgba(255, 255, 255, 0.08)'}; border-radius: 8px; padding: 14px;">
+                                <strong style="color: {'#4ade80' if curr_step == 2 else '#f1f5f9'};">2️⃣ Step 2: Nielsen Census</strong><br>
+                                <span style="font-size: 0.85rem; color: #94a3b8;">Review auto-detected store scale and footprint. Accept or adjust, then click <em>Continue</em>.</span>
+                            </div>
+                            <div style="background: {'rgba(34, 197, 94, 0.15)' if curr_step == 3 else 'rgba(15, 23, 42, 0.6)'}; border: 1px solid {'rgba(34, 197, 94, 0.45)' if curr_step == 3 else 'rgba(255, 255, 255, 0.08)'}; border-radius: 8px; padding: 14px;">
+                                <strong style="color: {'#4ade80' if curr_step == 3 else '#f1f5f9'};">3️⃣ Step 3: Coripet Rewards</strong><br>
+                                <span style="font-size: 0.85rem; color: #94a3b8;">Review contract promotions from the database. Keep or change, then click <em>Run Prediction</em>.</span>
+                            </div>
+                            <div style="background: {'rgba(34, 197, 94, 0.15)' if curr_step == 4 else 'rgba(15, 23, 42, 0.6)'}; border: 1px solid {'rgba(34, 197, 94, 0.45)' if curr_step == 4 else 'rgba(255, 255, 255, 0.08)'}; border-radius: 8px; padding: 14px;">
+                                <strong style="color: {'#4ade80' if curr_step == 4 else '#f1f5f9'};">4️⃣ Step 4: Executive Verdict</strong><br>
+                                <span style="font-size: 0.85rem; color: #94a3b8;">View 365-day yield, 12-month calendar, clearance gates, and investment score.</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        else:
-            render_prediction_dashboard(
-                res=res,
-                predictor=predictor,
-                store_name=store_name,
-                address=address,
-                cap=cap,
-                comune=comune,
-                machine_type=machine_type,
-            )
+                    """,
+                    unsafe_allow_html=True,
+                )
+            else:
+                render_prediction_dashboard(
+                    res=res,
+                    predictor=predictor,
+                    store_name=store_name,
+                    address=address,
+                    cap=cap,
+                    comune=comune,
+                    machine_type=machine_type,
+                )
 
     elif active_tab == TAB_SPL:
-        with st.spinner("📡 Fetching live SPL machines from Coripet API..."):
-            df_spl, src_spl, dt_spl = get_machines_by_status("SPL", current_only=True)
-        render_machine_directory(df_spl, "SPL", predictor, data_source=src_spl, current_date_str=dt_spl)
+        with st.container(key="tab_container_spl"):
+            with st.spinner("📡 Fetching live SPL machines from Coripet API..."):
+                df_spl, src_spl, dt_spl = get_machines_by_status("SPL", current_only=True)
+            render_machine_directory(df_spl, "SPL", predictor, data_source=src_spl, current_date_str=dt_spl)
 
     elif active_tab == TAB_POT:
-        with st.spinner("📡 Fetching live POT machines from Coripet API..."):
-            df_pot, src_pot, dt_pot = get_machines_by_status("POT", current_only=True)
-        render_machine_directory(df_pot, "POT", predictor, data_source=src_pot, current_date_str=dt_pot)
+        with st.container(key="tab_container_pot"):
+            with st.spinner("📡 Fetching live POT machines from Coripet API..."):
+                df_pot, src_pot, dt_pot = get_machines_by_status("POT", current_only=True)
+            render_machine_directory(df_pot, "POT", predictor, data_source=src_pot, current_date_str=dt_pot)
 
     elif active_tab == TAB_OUTLIERS:
-        import importlib
-        import src.ui.outlier_dashboard as odb
-        importlib.reload(odb)
-        odb.render_outlier_and_defect_dashboard()
+        with st.container(key="tab_container_outliers"):
+            import importlib
+            import src.ui.outlier_dashboard as odb
+            importlib.reload(odb)
+            odb.render_outlier_and_defect_dashboard()
 
     elif active_tab == TAB_HISTORICAL:
         st.markdown(
