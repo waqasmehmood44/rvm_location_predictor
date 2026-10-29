@@ -1222,7 +1222,8 @@ def load_performance_drop_fleet() -> pd.DataFrame:
 def render_performance_drops_section(all_machines: List[Dict[str, str]], active_mach_current: Optional[str] = None) -> Optional[str]:
     """
     Renders fleet performance drop directory cleanly:
-    - Button column placed at the END of the table with modern button styling.
+    - Action button column is placed and pinned/stuck directly at the START (left) of the table.
+    - Button remains fixed and never moves when the user scrolls horizontally across the columns.
     - Explicit comfortable column pixel widths so NO text is truncated.
     - Seamless 1-click inspection that immediately loads dedicated forecast below.
     """
@@ -1237,8 +1238,8 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
             border: 1px solid rgba(56, 189, 248, 0.6) !important;
             border-radius: 6px !important;
             font-weight: 700 !important;
-            padding: 3px 12px !important;
-            font-size: 0.80rem !important;
+            padding: 3px 10px !important;
+            font-size: 0.78rem !important;
             box-shadow: 0 2px 6px rgba(0,0,0,0.25) !important;
             transition: all 0.2s ease !important;
         }
@@ -1393,9 +1394,10 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
     # Action button label per row: distinct and readable
     filtered_df["Action"] = filtered_df["PF"].apply(lambda pf: "Viewing 🎯" if str(pf).strip() == cur_sel else "Inspect 📊")
 
-    # 3. Clean st.dataframe with explicit comfortable widths to prevent ANY text truncation
-    # Action column is at the END of the table
+    # 3. Clean st.dataframe: Action column is STUCK AT THE START (pinned=True)
+    # The button remains permanently anchored on the left when scrolling columns horizontally
     display_cols = [
+        "Action",
         "Drop_Severity_Status",
         "Store_Banner",
         "Comune",
@@ -1406,8 +1408,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         "vol_lost",
         "Root_Cause_Diagnostic",
         "TipoMacchina",
-        "PF",
-        "Action"
+        "PF"
     ]
 
     st.dataframe(
@@ -1416,6 +1417,14 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         hide_index=True,
         height=330,
         column_config={
+            "Action": st.column_config.ButtonColumn(
+                "Action",
+                width=115,
+                pinned=True,
+                type="primary",
+                help="Click Inspect to load this machine's dedicated ground truth and AI forecast below",
+                key="drop_table_inspect_btn"
+            ),
             "Drop_Severity_Status": st.column_config.TextColumn("Status", width=105),
             "Store_Banner": st.column_config.TextColumn("Store Banner", width=180),
             "Comune": st.column_config.TextColumn("Comune", width=160),
@@ -1426,14 +1435,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
             "vol_lost": st.column_config.NumberColumn("Daily Loss", format="-%d b/d", width=105),
             "Root_Cause_Diagnostic": st.column_config.TextColumn("Diagnostic / Cause", width=270),
             "TipoMacchina": st.column_config.TextColumn("Hardware Model", width=125),
-            "PF": st.column_config.TextColumn("Machine ID", width=130),
-            "Action": st.column_config.ButtonColumn(
-                "Action",
-                width=120,
-                type="primary",
-                help="Click Inspect to load this machine's dedicated ground truth and AI forecast below",
-                key="drop_table_inspect_btn"
-            )
+            "PF": st.column_config.TextColumn("Machine ID", width=130)
         }
     )
 
