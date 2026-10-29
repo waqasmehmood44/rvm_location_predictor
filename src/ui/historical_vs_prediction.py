@@ -1221,10 +1221,38 @@ def load_performance_drop_fleet() -> pd.DataFrame:
 
 def render_performance_drops_section(all_machines: List[Dict[str, str]], active_mach_current: Optional[str] = None) -> Optional[str]:
     """
-    Renders fleet performance drop directory cleanly with a sticky ButtonColumn at the end.
-    The button is pinned to the table so it stays accessible when scrolling horizontally/vertically.
-    Clicking the button immediately selects that machine and loads its dedicated prediction & ground truth below.
+    Renders fleet performance drop directory cleanly:
+    - Button column placed at the END of the table with modern button styling.
+    - Explicit comfortable column pixel widths so NO text is truncated.
+    - Seamless 1-click inspection that immediately loads dedicated forecast below.
     """
+    # Custom CSS to elevate button styling inside dataframe and ensure crisp layout
+    st.markdown(
+        """
+        <style>
+        /* Elevate st.dataframe buttons into sleek, high-contrast action pills */
+        div[data-testid="stDataFrame"] button {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(56, 189, 248, 0.6) !important;
+            border-radius: 6px !important;
+            font-weight: 700 !important;
+            padding: 3px 12px !important;
+            font-size: 0.80rem !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25) !important;
+            transition: all 0.2s ease !important;
+        }
+        div[data-testid="stDataFrame"] button:hover {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+            border-color: #38bdf8 !important;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4) !important;
+            transform: translateY(-1px);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
     df_fleet = load_performance_drop_fleet()
     if df_fleet.empty:
         st.info("No historical fleet audit telemetry available.")
@@ -1331,16 +1359,16 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         unsafe_allow_html=True
     )
 
-    # 2. Build tailored diagnostics and drop status
+    # 2. Build tailored diagnostics and drop status with concise, readable text
     def format_drop_severity(row):
         dp = float(row.get("drop_pct", 0.0) or 0.0)
         if dp <= -50.0:
-            return "🔴 CRITICAL COLLAPSE"
+            return "🔴 Collapse"
         elif dp <= -30.0:
-            return "🟠 SEVERE DECLINE"
+            return "🟠 Severe"
         elif dp <= -15.0:
-            return "🟡 MODERATE DROP"
-        return "🟢 STABLE"
+            return "🟡 Moderate"
+        return "🟢 Stable"
 
     def summarize_root_cause(row):
         max_z = int(row.get("Max_Consecutive_Zero_Days", 0) or 0)
@@ -1362,10 +1390,11 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         cur_sel = str(filtered_df.iloc[0]["PF"]).strip()
         st.session_state["selected_telemetry_machine"] = cur_sel
 
-    # Action button label per row
+    # Action button label per row: distinct and readable
     filtered_df["Action"] = filtered_df["PF"].apply(lambda pf: "Viewing 🎯" if str(pf).strip() == cur_sel else "Inspect 📊")
 
-    # 3. Clean st.dataframe with sticky pinned ButtonColumn at the end
+    # 3. Clean st.dataframe with explicit comfortable widths to prevent ANY text truncation
+    # Action column is at the END of the table
     display_cols = [
         "Drop_Severity_Status",
         "Store_Banner",
@@ -1385,23 +1414,23 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         filtered_df[display_cols],
         use_container_width=True,
         hide_index=True,
-        height=320,
+        height=330,
         column_config={
-            "Drop_Severity_Status": st.column_config.TextColumn("Severity Status", width="small"),
-            "Store_Banner": st.column_config.TextColumn("Store Banner", width="medium"),
-            "Comune": st.column_config.TextColumn("Comune", width="small"),
-            "Regione": st.column_config.TextColumn("Regione", width="small"),
-            "Median_Bottles_Daily": st.column_config.NumberColumn("Past Baseline (b/d)", format="%d"),
-            "Recent_30d_Median": st.column_config.NumberColumn("Recent 30D (b/d)", format="%d"),
-            "drop_pct": st.column_config.NumberColumn("Drop %", format="%.1f%%"),
-            "vol_lost": st.column_config.NumberColumn("Vol Lost (b/d)", format="%d"),
-            "Root_Cause_Diagnostic": st.column_config.TextColumn("Diagnostic / Cause", width="medium"),
-            "TipoMacchina": st.column_config.TextColumn("Hardware Model", width="small"),
-            "PF": st.column_config.TextColumn("Machine ID (PF)", width="small"),
+            "Drop_Severity_Status": st.column_config.TextColumn("Status", width=105),
+            "Store_Banner": st.column_config.TextColumn("Store Banner", width=180),
+            "Comune": st.column_config.TextColumn("Comune", width=160),
+            "Regione": st.column_config.TextColumn("Regione", width=115),
+            "Median_Bottles_Daily": st.column_config.NumberColumn("Past Baseline", format="%d b/d", width=110),
+            "Recent_30d_Median": st.column_config.NumberColumn("Recent 30D", format="%d b/d", width=105),
+            "drop_pct": st.column_config.NumberColumn("Drop %", format="%.1f%%", width=95),
+            "vol_lost": st.column_config.NumberColumn("Daily Loss", format="-%d b/d", width=105),
+            "Root_Cause_Diagnostic": st.column_config.TextColumn("Diagnostic / Cause", width=270),
+            "TipoMacchina": st.column_config.TextColumn("Hardware Model", width=125),
+            "PF": st.column_config.TextColumn("Machine ID", width=130),
             "Action": st.column_config.ButtonColumn(
                 "Action",
-                width="small",
-                pinned=True,
+                width=120,
+                type="primary",
                 help="Click Inspect to load this machine's dedicated ground truth and AI forecast below",
                 key="drop_table_inspect_btn"
             )
@@ -1419,7 +1448,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
                 <div style="font-size: 0.95rem; font-weight: 700; color: #f8fafc; margin-top: 2px;">
                     📍 <span style="color: #38bdf8;">{cur_row['Store_Banner']}</span> ({cur_row['Comune']}, {cur_row['Regione']}) 
                     &bull; ID: <code>{cur_row['PF']}</code> 
-                    &bull; Past: <b style="color: #94a3b8;">{cur_row['Median_Bottles_Daily']:.0f} b/d</b> 
+                    &bull; Past Baseline: <b style="color: #94a3b8;">{cur_row['Median_Bottles_Daily']:.0f} b/d</b> 
                     &bull; Recent: <b style="color: #f87171;">{cur_row['Recent_30d_Median']:.0f} b/d</b> 
                     (<span style="color: #ef4444; font-weight: 800;">{cur_row['drop_pct']:.1f}%</span>)
                 </div>
