@@ -4557,36 +4557,6 @@ def render_prediction_dashboard(
         season_fig = render_seasonality_chart(monthly_profile, steady_state_benchmark=bottiglie_day)
         st.plotly_chart(season_fig, use_container_width=True)
 
-        # Operational KPI Summary Cards: 3M Ramp vs Next 12 Months Mature Horizon
-        if isinstance(monthly_profile, list) and len(monthly_profile) > 3:
-            mature_slice = monthly_profile[3:]
-            ramp_slice = monthly_profile[:3]
-            mat_tot = sum(m.get("monthly_target_bottiglie", 0) for m in mature_slice)
-            mat_days = sum(m.get("days_in_month", 30) for m in mature_slice)
-            mat_avg = round(mat_tot / max(1, mat_days), 1)
-            ramp_tot = sum(m.get("monthly_target_bottiglie", 0) for m in ramp_slice)
-            tot_15m = ramp_tot + mat_tot
-
-            c_k1, c_k2, c_k3 = st.columns([1, 1, 1])
-            with c_k1:
-                st.html(f"""<div class="exec-card" style="border-top: 3px solid #f59e0b;">
-                    <div class="exec-card-top"><span class="exec-card-lbl">🛠️ Initial 3-Month Setup & Ramp</span><span class="exec-status-dot dot-yellow">● M01–M03</span></div>
-                    <div style="margin: 4px 0 2px 0;"><span style="font-size: 1.35rem; font-weight: 800; color: #f59e0b;">{ramp_tot:,}</span> <span style="font-size: 0.76rem; color: #94a3b8;">bottles</span></div>
-                    <div class="exec-card-bot"><span class="exec-bot-label">Adoption Curve</span><span class="exec-bot-val" style="color: #f59e0b; font-weight: 700;">65% → 92%</span></div>
-                </div>""")
-            with c_k2:
-                st.html(f"""<div class="exec-card" style="border-top: 3px solid #10b981;">
-                    <div class="exec-card-top"><span class="exec-card-lbl">🏆 Next 12 Months Post-Ramp (Annual)</span><span class="exec-status-dot dot-green">● M04–M15</span></div>
-                    <div style="margin: 4px 0 2px 0;"><span style="font-size: 1.35rem; font-weight: 800; color: #10b981;">{mat_tot:,}</span> <span style="font-size: 0.76rem; color: #94a3b8;">bottles / yr</span></div>
-                    <div class="exec-card-bot"><span class="exec-bot-label">12M Daily Benchmark</span><span class="exec-bot-val" style="color: #10b981; font-weight: 700;">{mat_avg:.1f} b/d</span></div>
-                </div>""")
-            with c_k3:
-                st.html(f"""<div class="exec-card" style="border-top: 3px solid #3b82f6;">
-                    <div class="exec-card-top"><span class="exec-card-lbl">📊 Full 15-Month Lifecycle Total</span><span class="exec-status-dot dot-blue">● All 15 Months</span></div>
-                    <div style="margin: 4px 0 2px 0;"><span style="font-size: 1.35rem; font-weight: 800; color: #38bdf8;">{tot_15m:,}</span> <span style="font-size: 0.76rem; color: #94a3b8;">bottles</span></div>
-                    <div class="exec-card-bot"><span class="exec-bot-label">Complete Runway</span><span class="exec-bot-val" style="color: #38bdf8; font-weight: 700;">3M Ramp + 12M Op</span></div>
-                </div>""")
-
         if isinstance(monthly_profile, list) and monthly_profile and isinstance(monthly_profile[0], dict):
             m_rows = []
             for idx, m in enumerate(monthly_profile):
