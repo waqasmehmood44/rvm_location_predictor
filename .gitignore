@@ -45,6 +45,10 @@ venv.bak/
 
 # Datasets & Models (sensitive operational data)
 /data/
+models/**/*.csv
+models/**/*.parquet
+models/*_archive/
+models/experiment_with_new_data/
 models/preprocessing/*.csv
 models/preprocessing/*.parquet
 models/saved_models/*
