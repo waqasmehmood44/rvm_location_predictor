@@ -768,11 +768,23 @@ def render_fleet_benchmark_submodule(
     col_sel, col_mode = st.columns([3, 1])
     with col_sel:
         selector_label = "Select Reference Peer Machine to Benchmark (Active Fleet):" if is_prospective_site else "Select Physical Machine to Compare (Past vs Future):"
+        sel_key = f"comp_machine_selector_{'peer' if is_prospective_site else 'active'}"
+        # If active_mach was changed (e.g. from table click), sync session state
+        target_label = None
+        if active_mach:
+            for m in all_machines:
+                if m.get("pf") == active_mach or m.get("macchina") == active_mach:
+                    target_label = m["label"]
+                    break
+        if target_label and target_label in labels_list and st.session_state.get(sel_key) != target_label:
+            st.session_state[sel_key] = target_label
+
+        current_idx = labels_list.index(target_label) if (target_label and target_label in labels_list) else default_idx
         chosen_opt = st.selectbox(
             selector_label,
             options=labels_list,
-            index=default_idx,
-            key=f"comp_machine_selector_{'peer' if is_prospective_site else 'active'}",
+            index=current_idx,
+            key=sel_key,
             help="Select any active physical machine from PostgreSQL/Power BI to compare its historical telemetry with the prospective model prediction."
         )
         selected_rec = next((m for m in all_machines if m["label"] == chosen_opt), all_machines[default_idx] if all_machines else None)
@@ -1341,12 +1353,26 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         "Operational Action": filtered_df.get("Recommended_Action", pd.Series(["Field check advised"] * len(filtered_df)))
     })
 
-    st.dataframe(
+    st.caption("👆 **Click on any row in the table below** to immediately generate and inspect that machine's separate AI prediction & telemetry on this same screen:")
+
+    table_event = st.dataframe(
         display_df,
         use_container_width=True,
         hide_index=True,
-        height=320
+        height=320,
+        selection_mode="single-row",
+        on_select="rerun",
+        key="perf_drop_table"
     )
+
+    clicked_pf = None
+    if table_event and hasattr(table_event, "selection") and table_event.selection:
+        sel_rows = getattr(table_event.selection, "rows", [])
+        if sel_rows and len(sel_rows) > 0:
+            sel_r_idx = sel_rows[0]
+            if 0 <= sel_r_idx < len(filtered_df):
+                clicked_pf = str(filtered_df.iloc[sel_r_idx]["PF"]).strip()
+                st.session_state["selected_telemetry_machine"] = clicked_pf
 
     st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
     st.markdown(
@@ -1355,7 +1381,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
             <h4 style="margin: 0; color: #f8fafc; font-size: 1.05rem; font-weight: 700;">
                 🔍 Deep-Dive Machine Telemetry & Comparative AI Forecast
             </h4>
-            <span style="color: #94a3b8; font-size: 0.76rem;">Select any machine below to inspect its ground-truth 2-year intake curve and variance notes</span>
+            <span style="color: #94a3b8; font-size: 0.76rem;">Click a row above or pick from dropdown to load dedicated AI forecast</span>
         </div>
         """,
         unsafe_allow_html=True
@@ -1379,23 +1405,33 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
     label_to_id = {lbl: mid for mid, lbl in drop_labels}
     label_to_id.update({lbl: mid for mid, lbl in other_labels})
 
-    # Default selection: if user previously selected a machine, retain it; otherwise select top dropped machine
-    sel_idx = 0
-    cur_sel = active_mach_current or st.session_state.get("selected_machine") or st.session_state.get("selected_store_pf")
+    # Resolve active machine: clicked table row takes priority, then session state, then current
+    cur_sel = clicked_pf or st.session_state.get("selected_telemetry_machine") or active_mach_current or st.session_state.get("selected_machine") or st.session_state.get("selected_store_pf")
+
+    # Sync selectbox state when a table row is clicked
+    matching_label = None
     if cur_sel:
-        for idx, (mid, lbl) in enumerate(drop_labels + other_labels):
+        for mid, lbl in drop_labels + other_labels:
             if mid == cur_sel:
-                sel_idx = idx
+                matching_label = lbl
                 break
 
+    if matching_label and st.session_state.get("perf_drop_machine_selector") != matching_label:
+        st.session_state["perf_drop_machine_selector"] = matching_label
+
+    sel_idx = 0
+    if matching_label and matching_label in combined_choices:
+        sel_idx = combined_choices.index(matching_label)
+
     chosen_label = st.selectbox(
-        "Select Machine to Inspect Ground-Truth Telemetry vs Forecast:",
+        "Active Machine Under Inspection:",
         options=combined_choices,
-        index=sel_idx if sel_idx < len(combined_choices) else 0,
+        index=sel_idx,
         key="perf_drop_machine_selector"
     )
 
-    selected_mid = label_to_id.get(chosen_label)
+    selected_mid = label_to_id.get(chosen_label, cur_sel)
+    st.session_state["selected_telemetry_machine"] = selected_mid
     return selected_mid
 
 
