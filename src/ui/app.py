@@ -1987,14 +1987,13 @@ def render_machine_directory(
         ]
 
         tf_key = f"timeframe_filter_{status_label}"
-        default_opt = next((opt for opt in timeframe_options if "5 Months" in opt), timeframe_options[0])
-        if tf_key in st.session_state:
-            cur_val = str(st.session_state[tf_key])
-            if cur_val not in timeframe_options:
-                matched = next((opt for opt in timeframe_options if opt.split("(")[0].strip() == cur_val.split("(")[0].strip()), None)
-                st.session_state[tf_key] = matched if matched else default_opt
-        else:
+        default_opt = timeframe_options[0]  # Show Last 1 Month by default
+        if tf_key not in st.session_state or (st.session_state.get(f"init_tf_1m_{status_label}") is not True):
             st.session_state[tf_key] = default_opt
+            st.session_state[f"init_tf_1m_{status_label}"] = True
+        elif st.session_state[tf_key] not in timeframe_options:
+            matched = next((opt for opt in timeframe_options if opt.split("(")[0].strip() == str(st.session_state[tf_key]).split("(")[0].strip()), None)
+            st.session_state[tf_key] = matched if matched else default_opt
 
         current_timeframe = st.session_state.get(tf_key, default_opt)
 
