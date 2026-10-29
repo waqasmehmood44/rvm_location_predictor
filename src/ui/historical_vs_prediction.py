@@ -1221,8 +1221,8 @@ def load_performance_drop_fleet() -> pd.DataFrame:
 
 def render_performance_drops_section(all_machines: List[Dict[str, str]], active_mach_current: Optional[str] = None) -> Optional[str]:
     """
-    Renders fleet performance drop directory cleanly and simply, matching the exact st.dataframe
-    layout shown in the Outlier table screenshot.
+    Renders fleet performance drop directory cleanly and specifically tailored to the 'Historical vs. Forecast' tab.
+    Puts Store Banner, Location, Past Baseline, Recent 30D, Performance Drop %, and Daily Volume Lost front and center.
     """
     df_fleet = load_performance_drop_fleet()
     if df_fleet.empty:
@@ -1309,49 +1309,56 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
             </div>""", unsafe_allow_html=True
         )
 
-    # 1. Summary Filter Info Banner matching Screenshot 2
+    # 1. Summary Filter Info Banner matching tab theme
     st.markdown(
         f"""
         <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-left: 4px solid #38bdf8; padding: 8px 14px; border-radius: 6px; margin: 12px 0 10px 0; font-size: 0.84rem; color: #cbd5e1;">
-            <b>Active Audit Filter:</b> <span style="color: #38bdf8; font-weight: 700;">{sev_choice}</span> &bull; 
-            Showing <strong style="color: #f8fafc;">{len(filtered_df):,}</strong> machines with performance drops across the active fleet.
+            <b>Historical Performance Drops Audit:</b> <span style="color: #38bdf8; font-weight: 700;">{sev_choice}</span> &bull; 
+            Auditing <strong style="color: #f8fafc;">{len(filtered_df):,}</strong> machines whose recent collection dropped significantly vs historical baseline.
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    # 2. Build Triggered Rule & Criteria column exactly like Screenshot 2
-    def summarize_rule_trigger(row):
+    # 2. Build tailored diagnostics and drop status
+    def format_drop_severity(row):
+        dp = float(row.get("drop_pct", 0.0) or 0.0)
+        if dp <= -50.0:
+            return "🔴 CRITICAL COLLAPSE"
+        elif dp <= -30.0:
+            return "🟠 SEVERE DECLINE"
+        elif dp <= -15.0:
+            return "🟡 MODERATE DROP"
+        return "🟢 STABLE"
+
+    def summarize_root_cause(row):
         max_z = int(row.get("Max_Consecutive_Zero_Days", 0) or 0)
         rec_z = float(row.get("Recent_Zero_Rate_Pct", 0.0) or 0.0)
-        dp = float(row.get("drop_pct", 0.0) or 0.0)
+        anom = str(row.get("Anomaly_Classification", "PERFORMANCE_DROP"))
         if max_z >= 3:
-            return f"🔴 {max_z} zero-days streak ({rec_z:.1f}% rec)"
-        elif dp <= -50:
-            return f"🔻 Critical collapse ({dp:.1f}% drop)"
-        elif dp <= -20:
-            return f"⚠️ Severe decline ({dp:.1f}% drop)"
-        else:
-            return f"📉 Volume loss ({dp:.1f}% drop)"
+            return f"Offline: {max_z} zero-days streak ({rec_z:.1f}% zeros)"
+        elif "BOTTLENECK" in anom:
+            return "Capacity Choke / Bin Full"
+        elif "VOLATILITY" in anom:
+            return "High Volatility Collapse"
+        return "Retail Traffic Decline"
 
-    filtered_df["Triggered_Rule_Summary"] = filtered_df.apply(summarize_rule_trigger, axis=1)
-    filtered_df["Outlier_Status"] = filtered_df["drop_pct"].apply(lambda dp: "🚨 OUTLIER" if dp <= -30.0 else "📉 DROP")
+    filtered_df["Drop_Severity_Status"] = filtered_df.apply(format_drop_severity, axis=1)
+    filtered_df["Root_Cause_Diagnostic"] = filtered_df.apply(summarize_root_cause, axis=1)
 
-    # 3. Clean st.dataframe matching Screenshot 2
+    # 3. Clean st.dataframe with Historical vs Recent columns FRONT AND CENTER
     display_cols = [
-        "Outlier_Status",
-        "Triggered_Rule_Summary",
-        "PF",
+        "Drop_Severity_Status",
         "Store_Banner",
         "Comune",
         "Regione",
-        "TipoMacchina",
-        "Anomaly_Classification",
-        "Max_Consecutive_Zero_Days",
         "Median_Bottles_Daily",
         "Recent_30d_Median",
         "drop_pct",
-        "vol_lost"
+        "vol_lost",
+        "Root_Cause_Diagnostic",
+        "TipoMacchina",
+        "PF"
     ]
 
     st.dataframe(
@@ -1360,19 +1367,17 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         hide_index=True,
         height=320,
         column_config={
-            "Outlier_Status": st.column_config.TextColumn("Status", width="small"),
-            "Triggered_Rule_Summary": st.column_config.TextColumn("Triggered Rule & Criteria", width="medium"),
-            "PF": st.column_config.TextColumn("Machine ID", width="small"),
+            "Drop_Severity_Status": st.column_config.TextColumn("Severity Status", width="small"),
             "Store_Banner": st.column_config.TextColumn("Store Banner", width="medium"),
             "Comune": st.column_config.TextColumn("Comune", width="small"),
             "Regione": st.column_config.TextColumn("Regione", width="small"),
-            "TipoMacchina": st.column_config.TextColumn("TipoMacchina", width="small"),
-            "Anomaly_Classification": st.column_config.TextColumn("Anomaly Regime", width="medium"),
-            "Max_Consecutive_Zero_Days": st.column_config.NumberColumn("Max Zero Day", format="%d"),
-            "Median_Bottles_Daily": st.column_config.NumberColumn("Baseline (b/d)", format="%d"),
+            "Median_Bottles_Daily": st.column_config.NumberColumn("Past Baseline (b/d)", format="%d"),
             "Recent_30d_Median": st.column_config.NumberColumn("Recent 30D (b/d)", format="%d"),
             "drop_pct": st.column_config.NumberColumn("Drop %", format="%.1f%%"),
-            "vol_lost": st.column_config.NumberColumn("Vol Lost (b/d)", format="%d")
+            "vol_lost": st.column_config.NumberColumn("Vol Lost (b/d)", format="%d"),
+            "Root_Cause_Diagnostic": st.column_config.TextColumn("Diagnostic / Cause", width="medium"),
+            "TipoMacchina": st.column_config.TextColumn("Hardware Model", width="small"),
+            "PF": st.column_config.TextColumn("Machine ID (PF)", width="small")
         }
     )
 
@@ -1383,7 +1388,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
     machine_options = []
     pf_to_row = {}
     for _, r in filtered_df.iterrows():
-        opt_label = f"{r['PF']} — {r['Store_Banner']} ({r['Comune']}, {r['Regione']}) | Drop: {r['drop_pct']:.1f}% [Past: {r['Median_Bottles_Daily']:.0f} b/d → Recent: {r['Recent_30d_Median']:.0f} b/d]"
+        opt_label = f"{r['Store_Banner']} ({r['Comune']}, {r['Regione']}) — [Drop: {r['drop_pct']:.1f}% | Baseline: {r['Median_Bottles_Daily']:.0f} b/d → Recent: {r['Recent_30d_Median']:.0f} b/d | ID: {r['PF']}]"
         machine_options.append(opt_label)
         pf_to_row[opt_label] = r
 
@@ -1397,7 +1402,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
 
     with c_sel1:
         selected_opt = st.selectbox(
-            "🎯 Select Machine to Inspect Dedicated AI Forecast & Ground Truth Below:",
+            "🎯 Select Machine from Audit Table to Compare Historical Ground Truth vs AI Forecast Below:",
             options=machine_options,
             index=def_idx,
             key="drop_inspect_selectbox"
