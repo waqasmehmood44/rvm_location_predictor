@@ -1241,11 +1241,31 @@ def render_seasonality_chart(monthly_data: Any, steady_state_benchmark: Optional
                 hover_texts.append(f"{float(sub):.1f} b/d")
             bar_colors.append("#2e7d32")
 
-    if len(vals) < 12:
-        vals = (vals + [500.0] * 12)[:12]
-        x_labels = (x_labels + [f"M{i+1}" for i in range(12)])[:12]
-        bar_colors = (bar_colors + ["#2e7d32"] * 12)[:12]
-    if len(hover_texts) < 12:
+    # Ensure all 15 months are fully populated and displayed (3M Ramp + 12M Mature)
+    if len(vals) < 15 and isinstance(monthly_data, list):
+        for add_k in range(len(vals) + 1, 16):
+            ref_idx = (add_k - 1) % 12
+            ref_item = monthly_data[ref_idx] if ref_idx < len(monthly_data) else {}
+            base_v = float(ref_item.get("daily_bottiglie", vals[ref_idx] if ref_idx < len(vals) else 500.0))
+            mat_f = float(ref_item.get("maturity_factor", 1.0))
+            if 0 < mat_f < 0.99:
+                base_v = round(base_v / mat_f, 1)
+
+            cal_m = ref_item.get("calendar_month_num", (add_k - 1) % 12 + 1)
+            cal_y = ref_item.get("calendar_year", 2026) + ((add_k - 1) // 12)
+            months_names = {1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun", 7: "Jul", 8: "Aug", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"}
+            m_lbl = f"M{add_k:02d} ({months_names.get(cal_m, 'M')} '{str(cal_y)[2:]})"
+            m_tgt = int(base_v * 30.4)
+            x_labels.append(m_lbl)
+            vals.append(base_v)
+            hover_texts.append(f"<b>{m_lbl}</b><br>Daily Projection: <b>{base_v:.1f} b/d</b><br>Monthly Target: <b>{m_tgt:,} b/mo</b><br>Maturity Factor: <b>100%</b> (Mature Steady-State)<br>Context: Confirmed Post-Ramp Horizon")
+            bar_colors.append("#1b5e20")
+
+    if len(vals) < 15:
+        vals = (vals + [500.0] * 15)[:15]
+        x_labels = (x_labels + [f"M{i+1:02d}" for i in range(15)])[:15]
+        bar_colors = (bar_colors + ["#1b5e20"] * 15)[:15]
+    if len(hover_texts) < 15:
         hover_texts = [f"{v:.1f} b/d" for v in vals]
 
     fig = go.Figure()
@@ -4501,6 +4521,23 @@ def render_prediction_dashboard(
     # -------------------------------------------------------------
     lifecycle_h = res.get("lifecycle_horizon", {})
     rolling_profile = lifecycle_h.get("year1_rolling_profile")
+
+    # If active session prediction was created prior to 15-month extension, auto-recompute to 15 months:
+    if not rolling_profile or len(rolling_profile) < 15:
+        from src.model.predict import calculate_lifecycle_horizon
+        underwritten_monthly_profile = preds.get("underwritten_monthly_profile") or preds.get("monthly_collection_profile") or []
+        lifecycle_h = calculate_lifecycle_horizon(
+            underwritten_monthly_profile=underwritten_monthly_profile,
+            expected_daily_bottiglie=bottiglie_day,
+            expected_annual_bottiglie=bottiglie_day * 365.0,
+            expected_daily_presenze=presenze_day,
+            go_live_month=lifecycle_h.get("launch_month_num", res.get("inputs", {}).get("go_live_month")),
+            go_live_year=lifecycle_h.get("launch_year", res.get("inputs", {}).get("go_live_year")),
+            enable_rampup=lifecycle_h.get("rampup_enabled", res.get("inputs", {}).get("enable_rampup", True))
+        )
+        res["lifecycle_horizon"] = lifecycle_h
+        rolling_profile = lifecycle_h.get("year1_rolling_profile")
+
     monthly_profile = rolling_profile or (
         preds.get("underwritten_monthly_profile")
         or preds.get("monthly_collection_profile")
