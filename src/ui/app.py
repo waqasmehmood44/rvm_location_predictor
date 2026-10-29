@@ -1972,12 +1972,14 @@ def render_machine_directory(
         s_sop = df_active["dt_fine_sop"] if "dt_fine_sop" in df_active.columns else pd.Series(pd.NaT, index=df_active.index)
         c_now = pd.Timestamp.now()
 
+        n_1m = int((s_sop.notna() & (s_sop >= (c_now - pd.DateOffset(months=1)))).sum())
         n_5m = int((s_sop.notna() & (s_sop >= (c_now - pd.DateOffset(months=5)))).sum())
         n_12m = int((s_sop.notna() & (s_sop >= (c_now - pd.DateOffset(months=12)))).sum())
         n_24m = int((s_sop.notna() & (s_sop >= (c_now - pd.DateOffset(months=24)))).sum())
         n_all = len(df_active)
 
         timeframe_options = [
+            f"⚡ Last 1 Month ({n_1m} sites)",
             f"⏱️ Last 5 Months ({n_5m} sites)",
             f"📅 Last 12 Months ({n_12m} sites)",
             f"🗓️ Last 24 Months ({n_24m} sites)",
@@ -1985,7 +1987,7 @@ def render_machine_directory(
         ]
 
         tf_key = f"timeframe_filter_{status_label}"
-        default_opt = timeframe_options[0]  # Show Last 5 Months by default
+        default_opt = next((opt for opt in timeframe_options if "5 Months" in opt), timeframe_options[0])
         if tf_key in st.session_state:
             cur_val = str(st.session_state[tf_key])
             if cur_val not in timeframe_options:
@@ -2126,7 +2128,10 @@ def render_machine_directory(
         s_sop_f = filtered_df["dt_fine_sop"] if "dt_fine_sop" in filtered_df.columns else pd.Series(pd.NaT, index=filtered_df.index)
         c_now = pd.Timestamp.now()
 
-        if "5 Months" in selected_timeframe:
+        if "1 Month" in selected_timeframe:
+            cutoff_dt = c_now - pd.DateOffset(months=1)
+            filtered_df = filtered_df[s_sop_f.notna() & (s_sop_f >= cutoff_dt)]
+        elif "5 Months" in selected_timeframe:
             cutoff_dt = c_now - pd.DateOffset(months=5)
             filtered_df = filtered_df[s_sop_f.notna() & (s_sop_f >= cutoff_dt)]
         elif "12 Months" in selected_timeframe:
