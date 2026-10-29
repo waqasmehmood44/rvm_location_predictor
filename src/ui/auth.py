@@ -249,105 +249,107 @@ def require_auth() -> bool:
     # 3. Client-side localStorage check for page refreshes
     _js_auto_restore_token()
 
-    # 4. Unauthenticated: Render Login Screen
-    st.markdown(
-        """
-        <style>
-        section[data-testid="stSidebar"],
-        [data-testid="collapsedControl"] {
-            display: none !important;
-        }
-        .login-card {
-            background: rgba(15, 23, 42, 0.75);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 14px;
-            padding: 32px 36px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-            margin-top: 40px;
-        }
-        .login-card input,
-        .login-card input[type="password"],
-        .login-card input[type="text"],
-        div[data-testid="stTextInput"] input {
-            caret-color: #22c55e !important;
-            pointer-events: auto !important;
-            user-select: text !important;
-            -webkit-user-select: text !important;
-            cursor: text !important;
-        }
-        [data-theme="light"] .login-card {
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.10);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-    col_l, col_center, col_r = st.columns([1.5, 3.0, 1.5])
-    with col_center:
+    # 4. Unauthenticated: Render Login Screen inside isolated placeholder
+    login_wrapper = st.empty()
+    with login_wrapper.container():
         st.markdown(
             """
-            <div class="login-card">
-                <div style="text-align: center; margin-bottom: 24px;">
-                    <div style="font-size: 2.8rem; margin-bottom: 6px;">♻️</div>
-                    <h2 style="margin: 0; font-size: 1.55rem; font-weight: 800; letter-spacing: -0.4px;">
-                        Coripet RVM Predictor
-                    </h2>
-                    <p style="margin: 6px 0 0 0; opacity: 0.75; font-size: 0.88rem;">
-                        🔒 Secure Administrative Access Portal
-                    </p>
+            <style>
+            section[data-testid="stSidebar"],
+            [data-testid="collapsedControl"] {
+                display: none !important;
+            }
+            .login-unified-card {
+                background: linear-gradient(145deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 16px;
+                padding: 32px 36px 28px 36px;
+                box-shadow: 0 16px 40px rgba(0, 0, 0, 0.50);
+                margin-top: 35px;
+            }
+            [data-theme="light"] .login-unified-card {
+                background: #ffffff;
+                border: 1px solid rgba(0, 0, 0, 0.10);
+                box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
+            }
+            div[data-testid="stForm"] {
+                border: none !important;
+                padding: 0 !important;
+                background: transparent !important;
+            }
+            div[data-testid="stTextInput"] input {
+                caret-color: #22c55e !important;
+                border-radius: 8px !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+
+        col_l, col_center, col_r = st.columns([1.2, 2.6, 1.2])
+        with col_center:
+            st.markdown(
+                """
+                <div class="login-unified-card">
+                    <div style="text-align: center; margin-bottom: 22px;">
+                        <div style="font-size: 2.8rem; margin-bottom: 6px;">♻️</div>
+                        <h2 style="margin: 0; font-size: 1.55rem; font-weight: 800; letter-spacing: -0.4px; color: inherit;">
+                            Coripet RVM Predictor
+                        </h2>
+                        <p style="margin: 6px 0 0 0; opacity: 0.70; font-size: 0.88rem; font-weight: 500;">
+                            🔒 Secure Administrative Access Portal
+                        </p>
+                    </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            with st.form("admin_login_form", clear_on_submit=False, border=False):
+                st.markdown("<p style='margin: 0 0 4px 0; font-weight: 600; font-size: 0.85rem; opacity: 0.85;'>Username</p>", unsafe_allow_html=True)
+                user_input = st.text_input(
+                    "Username",
+                    placeholder="Enter admin username...",
+                    key="login_user_field",
+                    label_visibility="collapsed"
+                ).strip()
+
+                st.markdown("<p style='margin: 12px 0 4px 0; font-weight: 600; font-size: 0.85rem; opacity: 0.85;'>Password</p>", unsafe_allow_html=True)
+                pass_input = st.text_input(
+                    "Password",
+                    type="password",
+                    placeholder="Enter admin password...",
+                    key="login_pass_field",
+                    label_visibility="collapsed"
+                )
+
+                st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
+                submitted = st.form_submit_button(
+                    "🔐 Sign In to Console",
+                    type="primary",
+                    use_container_width=True
+                )
+
+                if submitted:
+                    if check_credentials(user_input, pass_input):
+                        st.session_state["is_authenticated"] = True
+                        st.session_state["authenticated_user"] = user_input
+                        token = generate_auth_token(user_input)
+                        _set_auth_param(token)
+                        _js_persist_token(token)
+                        st.toast("✅ Authentication successful. Welcome to Coripet Predictor!", icon="🔓")
+                        login_wrapper.empty()
+                        st.rerun()
+                    else:
+                        st.error("❌ Authentication failed: Invalid username or password.")
+
+            st.markdown(
+                """
+                    <div style="text-align: center; margin-top: 20px; font-size: 0.76rem; opacity: 0.55;">
+                        Coripet Intelligent Decision Support System &bull; Authorized Personnel Only
+                    </div>
                 </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        with st.form("admin_login_form", clear_on_submit=False):
-            st.markdown("<p style='margin: 0 0 4px 0; font-weight: 600; font-size: 0.85rem;'>Username</p>", unsafe_allow_html=True)
-            user_input = st.text_input(
-                "Username",
-                placeholder="Enter admin username...",
-                key="login_user_field",
-                label_visibility="collapsed"
-            ).strip()
-
-            st.markdown("<p style='margin: 12px 0 4px 0; font-weight: 600; font-size: 0.85rem;'>Password</p>", unsafe_allow_html=True)
-            pass_input = st.text_input(
-                "Password",
-                type="password",
-                placeholder="Enter admin password...",
-                key="login_pass_field",
-                label_visibility="collapsed"
+                """,
+                unsafe_allow_html=True
             )
-
-            st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
-            submitted = st.form_submit_button(
-                "🔐 Sign In to Console",
-                type="primary",
-                use_container_width=True
-            )
-
-            if submitted:
-                if check_credentials(user_input, pass_input):
-                    st.session_state["is_authenticated"] = True
-                    st.session_state["authenticated_user"] = user_input
-                    token = generate_auth_token(user_input)
-                    _set_auth_param(token)
-                    _js_persist_token(token)
-                    st.toast("✅ Authentication successful. Welcome to Coripet Predictor!", icon="🔓")
-                    st.rerun()
-                else:
-                    st.error("❌ Authentication failed: Invalid username or password.")
-
-        st.markdown(
-            """
-            <div style="text-align: center; margin-top: 18px; font-size: 0.78rem; opacity: 0.60;">
-                Coripet Intelligent Decision Support System &bull; Authorized Personnel Only
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
 
     return False
