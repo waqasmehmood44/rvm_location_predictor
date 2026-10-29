@@ -1221,73 +1221,21 @@ def load_performance_drop_fleet() -> pd.DataFrame:
 
 def render_performance_drops_section(all_machines: List[Dict[str, str]], active_mach_current: Optional[str] = None) -> Optional[str]:
     """
-    Renders fleet performance drop directory formatted simply and cleanly like the Outlier Table (3rd SS).
-    Shows all columns: Status, Triggered Rule & Criteria, Machine ID, Store Banner, Comune, Regione, 
-    TipoMacchina, Anomaly Regime, Max Zero Days, Baseline, Recent 30D, Drop %, and direct Inspect Action button.
-    Completely eliminates any phantom/empty line artifacts.
+    Renders fleet performance drop directory cleanly and simply, matching the exact st.dataframe
+    layout shown in the Outlier table screenshot.
     """
-    st.markdown(
-        """
-        <style>
-        .perf-drop-hdr {
-            font-size: 0.74rem;
-            font-weight: 700;
-            color: #94a3b8;
-            letter-spacing: 0.4px;
-            text-transform: uppercase;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            padding-bottom: 2px;
-        }
-        .perf-drop-cell {
-            font-size: 0.80rem;
-            color: #cbd5e1;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 2.3;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        """
-        <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.90) 0%, rgba(15, 23, 42, 0.95) 100%); 
-                    border: 1px solid rgba(239, 68, 68, 0.35); border-left: 6px solid #ef4444; 
-                    padding: 14px 20px; border-radius: 8px; margin-bottom: 14px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                <div>
-                    <h3 style="margin: 0; color: #f8fafc; font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                        <span>📉 Fleet Performance Drops Monitor</span>
-                    </h3>
-                    <p style="color: #94a3b8; font-size: 0.84rem; margin: 4px 0 0 0;">
-                        Audits all machines across the active Coripet network experiencing volume drops. Click <b>Inspect 📊</b> on any machine to see its dedicated results below.
-                    </p>
-                </div>
-                <span style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); padding: 5px 12px; border-radius: 6px; font-weight: 800; font-size: 0.80rem;">
-                    DEFICIT & VOLUME LOSS AUDIT
-                </span>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
     df_fleet = load_performance_drop_fleet()
     if df_fleet.empty:
         st.info("No historical fleet audit telemetry available.")
         return None
 
-    # Filter controls: search and severity filter
+    # Filter controls: search and drop severity filter
     c_f1, c_f2 = st.columns([3, 2])
     with c_f1:
-        search_kw = st.text_input("🔍 Search Store / Comune / Machine ID (PF)", "", placeholder="e.g. RetailPRO, Piccolo, Asti, MC...", key="drop_search_kw")
+        search_kw = st.text_input("🔍 Search Store, City, or Machine ID (PF):", "", placeholder="e.g. RetailPRO, Piccolo, Asti, MC...", key="drop_search_kw").strip()
     with c_f2:
         sev_choice = st.selectbox(
-            "Drop Severity Filter",
+            "Filter by Drop Severity:",
             options=["All Performance Drops (≥ 15% decline)", "Critical Collapse (≥ 50% drop)", "Severe Decline (30%–50% drop)", "Moderate Decline (15%–30% drop)"],
             index=0,
             key="drop_sev_choice"
@@ -1304,8 +1252,8 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
     else:
         mask = mask & (df_fleet["drop_pct"] <= -15.0)
 
-    if search_kw.strip():
-        kw = search_kw.strip().lower()
+    if search_kw:
+        kw = search_kw.lower()
         kw_mask = (
             df_fleet["PF"].astype(str).str.lower().str.contains(kw) |
             df_fleet["Store_Banner"].astype(str).str.lower().str.contains(kw) |
@@ -1314,7 +1262,11 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         )
         mask = mask & kw_mask
 
-    filtered_df = df_fleet[mask].sort_values("drop_pct", ascending=True).reset_index(drop=True)
+    filtered_df = df_fleet[mask].sort_values("drop_pct", ascending=True).copy().reset_index(drop=True)
+
+    if filtered_df.empty:
+        st.info("No machines match the selected filter criteria.")
+        return None
 
     # Executive KPI Metric Cards
     total_dropped = len(filtered_df)
@@ -1357,153 +1309,114 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
             </div>""", unsafe_allow_html=True
         )
 
-    st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
+    # 1. Summary Filter Info Banner matching Screenshot 2
+    st.markdown(
+        f"""
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-left: 4px solid #38bdf8; padding: 8px 14px; border-radius: 6px; margin: 12px 0 10px 0; font-size: 0.84rem; color: #cbd5e1;">
+            <b>Active Audit Filter:</b> <span style="color: #38bdf8; font-weight: 700;">{sev_choice}</span> &bull; 
+            Showing <strong style="color: #f8fafc;">{len(filtered_df):,}</strong> machines with performance drops across the active fleet.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-    if filtered_df.empty:
-        st.info("No machines match the selected filter criteria.")
-        return None
-
-    # Resolve active machine under inspection
-    cur_sel = st.session_state.get("selected_telemetry_machine") or active_mach_current
-    if not cur_sel or cur_sel not in filtered_df["PF"].values:
-        cur_sel = str(filtered_df.iloc[0]["PF"]).strip()
-        st.session_state["selected_telemetry_machine"] = cur_sel
-
-    # Pagination controls
-    page_size = 10
-    total_pages = max(1, (len(filtered_df) + page_size - 1) // page_size)
-    cur_page = st.session_state.get("drop_table_page", 1)
-    if cur_page > total_pages:
-        cur_page = 1
-        st.session_state["drop_table_page"] = 1
-
-    start_idx = (cur_page - 1) * page_size
-    end_idx = min(len(filtered_df), start_idx + page_size)
-    page_rows = filtered_df.iloc[start_idx:end_idx].reset_index(drop=True)
-
-    # Simple, Flat Table Header matching 3rd SS
-    # Columns: Status, Triggered Rule & Criteria, Machine ID, Store Banner, Comune, Regione, TipoMacchina, Anomaly Regime, Max Zero Days, Baseline, Recent 30D, Drop %, Action
-    cols_ratio = [0.9, 1.8, 1.3, 1.5, 1.1, 0.9, 1.1, 1.4, 0.8, 0.9, 0.9, 1.0, 1.1]
-
-    th0, th1, th2, th3, th4, th5, th6, th7, th8, th9, th10, th11, th12 = st.columns(cols_ratio)
-    with th0: st.markdown("<span class='perf-drop-hdr'>Status</span>", unsafe_allow_html=True)
-    with th1: st.markdown("<span class='perf-drop-hdr'>Triggered Criteria</span>", unsafe_allow_html=True)
-    with th2: st.markdown("<span class='perf-drop-hdr'>Machine ID</span>", unsafe_allow_html=True)
-    with th3: st.markdown("<span class='perf-drop-hdr'>Store Banner</span>", unsafe_allow_html=True)
-    with th4: st.markdown("<span class='perf-drop-hdr'>Comune</span>", unsafe_allow_html=True)
-    with th5: st.markdown("<span class='perf-drop-hdr'>Regione</span>", unsafe_allow_html=True)
-    with th6: st.markdown("<span class='perf-drop-hdr'>TipoMacchina</span>", unsafe_allow_html=True)
-    with th7: st.markdown("<span class='perf-drop-hdr'>Anomaly Regime</span>", unsafe_allow_html=True)
-    with th8: st.markdown("<span class='perf-drop-hdr'>Max Zero</span>", unsafe_allow_html=True)
-    with th9: st.markdown("<span class='perf-drop-hdr'>Baseline</span>", unsafe_allow_html=True)
-    with th10: st.markdown("<span class='perf-drop-hdr'>Recent 30D</span>", unsafe_allow_html=True)
-    with th11: st.markdown("<span class='perf-drop-hdr'>Drop %</span>", unsafe_allow_html=True)
-    with th12: st.markdown("<span class='perf-drop-hdr'>Action</span>", unsafe_allow_html=True)
-
-    st.markdown("<hr style='margin: 4px 0 8px 0; border: none; border-bottom: 2px solid rgba(56, 189, 248, 0.45);'>", unsafe_allow_html=True)
-
-    # Render each row tightly and simply without any phantom line artifacts
-    for r_idx, r in page_rows.iterrows():
-        pf_val = str(r["PF"]).strip()
-        banner_val = str(r["Store_Banner"])
-        comune_val = str(r["Comune"])
-        reg_val = str(r["Regione"])
-        model_val = str(r["TipoMacchina"])
-        anom_val = str(r.get("Anomaly_Classification", "PERFORMANCE_DROP"))
-        base_val = float(r["Median_Bottles_Daily"])
-        recent_val = float(r["Recent_30d_Median"])
-        drop_val = float(r["drop_pct"])
-        max_zeros = int(r.get("Max_Consecutive_Zero_Days", 0) or 0)
-        rec_zeros_pct = float(r.get("Recent_Zero_Rate_Pct", 0.0) or 0.0)
-
-        # Build clean Triggered Rule & Criteria summary matching 3rd SS
-        if max_zeros >= 3:
-            trig_str = f"🔴 {max_zeros} zero-days streak ({rec_zeros_pct:.1f}% rec)"
-        elif drop_val <= -50:
-            trig_str = f"🔻 Critical collapse ({drop_val:.1f}%)"
-        elif drop_val <= -20:
-            trig_str = f"⚠️ Severe decline ({drop_val:.1f}%)"
+    # 2. Build Triggered Rule & Criteria column exactly like Screenshot 2
+    def summarize_rule_trigger(row):
+        max_z = int(row.get("Max_Consecutive_Zero_Days", 0) or 0)
+        rec_z = float(row.get("Recent_Zero_Rate_Pct", 0.0) or 0.0)
+        dp = float(row.get("drop_pct", 0.0) or 0.0)
+        if max_z >= 3:
+            return f"🔴 {max_z} zero-days streak ({rec_z:.1f}% rec)"
+        elif dp <= -50:
+            return f"🔻 Critical collapse ({dp:.1f}% drop)"
+        elif dp <= -20:
+            return f"⚠️ Severe decline ({dp:.1f}% drop)"
         else:
-            trig_str = f"📉 Volume drop ({drop_val:.1f}%)"
+            return f"📉 Volume loss ({dp:.1f}% drop)"
 
-        is_outlier = (max_zeros >= 7 or drop_val <= -50.0 or "OFFLINE" in anom_val)
-        is_active = (cur_sel == pf_val)
+    filtered_df["Triggered_Rule_Summary"] = filtered_df.apply(summarize_rule_trigger, axis=1)
+    filtered_df["Outlier_Status"] = filtered_df["drop_pct"].apply(lambda dp: "🚨 OUTLIER" if dp <= -30.0 else "📉 DROP")
 
-        if r_idx > 0:
-            st.markdown("<hr style='margin: 3px 0; border: none; border-bottom: 1px solid rgba(255, 255, 255, 0.06);'>", unsafe_allow_html=True)
+    # 3. Clean st.dataframe matching Screenshot 2
+    display_cols = [
+        "Outlier_Status",
+        "Triggered_Rule_Summary",
+        "PF",
+        "Store_Banner",
+        "Comune",
+        "Regione",
+        "TipoMacchina",
+        "Anomaly_Classification",
+        "Max_Consecutive_Zero_Days",
+        "Median_Bottles_Daily",
+        "Recent_30d_Median",
+        "drop_pct",
+        "vol_lost"
+    ]
 
-        rc0, rc1, rc2, rc3, rc4, rc5, rc6, rc7, rc8, rc9, rc10, rc11, rc12 = st.columns(cols_ratio)
+    st.dataframe(
+        filtered_df[display_cols],
+        use_container_width=True,
+        hide_index=True,
+        height=320,
+        column_config={
+            "Outlier_Status": st.column_config.TextColumn("Status", width="small"),
+            "Triggered_Rule_Summary": st.column_config.TextColumn("Triggered Rule & Criteria", width="medium"),
+            "PF": st.column_config.TextColumn("Machine ID", width="small"),
+            "Store_Banner": st.column_config.TextColumn("Store Banner", width="medium"),
+            "Comune": st.column_config.TextColumn("Comune", width="small"),
+            "Regione": st.column_config.TextColumn("Regione", width="small"),
+            "TipoMacchina": st.column_config.TextColumn("TipoMacchina", width="small"),
+            "Anomaly_Classification": st.column_config.TextColumn("Anomaly Regime", width="medium"),
+            "Max_Consecutive_Zero_Days": st.column_config.NumberColumn("Max Zero Day", format="%d"),
+            "Median_Bottles_Daily": st.column_config.NumberColumn("Baseline (b/d)", format="%d"),
+            "Recent_30d_Median": st.column_config.NumberColumn("Recent 30D (b/d)", format="%d"),
+            "drop_pct": st.column_config.NumberColumn("Drop %", format="%.1f%%"),
+            "vol_lost": st.column_config.NumberColumn("Vol Lost (b/d)", format="%d")
+        }
+    )
 
-        with rc0:
-            if is_active:
-                st.markdown("<span style='color: #38bdf8; font-weight: 800; font-size: 0.74rem; line-height: 2.3;'>🎯 ACTIVE</span>", unsafe_allow_html=True)
-            elif is_outlier:
-                st.markdown("<span style='color: #f87171; font-weight: 700; font-size: 0.74rem; line-height: 2.3;'>🚨 OUTLIE</span>", unsafe_allow_html=True)
-            else:
-                st.markdown("<span style='color: #fbbf24; font-weight: 700; font-size: 0.74rem; line-height: 2.3;'>📉 DROP</span>", unsafe_allow_html=True)
+    # 4. Machine Selector Dropdown to inspect dedicated prediction and telemetry below
+    st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
+    c_sel1, c_sel2 = st.columns([3.5, 1.5])
+    
+    machine_options = []
+    pf_to_row = {}
+    for _, r in filtered_df.iterrows():
+        opt_label = f"{r['PF']} — {r['Store_Banner']} ({r['Comune']}, {r['Regione']}) | Drop: {r['drop_pct']:.1f}% [Past: {r['Median_Bottles_Daily']:.0f} b/d → Recent: {r['Recent_30d_Median']:.0f} b/d]"
+        machine_options.append(opt_label)
+        pf_to_row[opt_label] = r
 
-        with rc1:
-            st.markdown(f"<span class='perf-drop-cell' title='{trig_str}' style='color: #f1f5f9;'>{trig_str}</span>", unsafe_allow_html=True)
+    cur_sel = st.session_state.get("selected_telemetry_machine") or active_mach_current
+    def_idx = 0
+    if cur_sel:
+        for idx, opt in enumerate(machine_options):
+            if cur_sel in opt:
+                def_idx = idx
+                break
 
-        with rc2:
-            id_col = "#38bdf8" if is_active else "#93c5fd"
-            st.markdown(f"<code style='color: {id_col}; font-weight: 700; font-size: 0.78rem; line-height: 2.3;'>{pf_val}</code>", unsafe_allow_html=True)
+    with c_sel1:
+        selected_opt = st.selectbox(
+            "🎯 Select Machine to Inspect Dedicated AI Forecast & Ground Truth Below:",
+            options=machine_options,
+            index=def_idx,
+            key="drop_inspect_selectbox"
+        )
+    with c_sel2:
+        csv_bytes = filtered_df.to_csv(index=False).encode("utf-8")
+        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+        st.download_button(
+            label=f"📥 Download Report ({len(filtered_df):,} Stores CSV)",
+            data=csv_bytes,
+            file_name="coripet_performance_drops_audit.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
 
-        with rc3:
-            name_col = "#38bdf8" if is_active else "#f8fafc"
-            st.markdown(f"<span class='perf-drop-cell' style='color: {name_col}; font-weight: 600;'>{banner_val}</span>", unsafe_allow_html=True)
-
-        with rc4:
-            st.markdown(f"<span class='perf-drop-cell'>{comune_val}</span>", unsafe_allow_html=True)
-
-        with rc5:
-            st.markdown(f"<span class='perf-drop-cell' style='color: #94a3b8;'>{reg_val}</span>", unsafe_allow_html=True)
-
-        with rc6:
-            st.markdown(f"<span class='perf-drop-cell' style='color: #cbd5e1;'>{model_val}</span>", unsafe_allow_html=True)
-
-        with rc7:
-            anom_color = "#f87171" if "OFFLINE" in anom_val else ("#fbbf24" if "BOTTLENECK" in anom_val else "#cbd5e1")
-            st.markdown(f"<span class='perf-drop-cell' style='color: {anom_color}; font-size: 0.74rem;'>{anom_val}</span>", unsafe_allow_html=True)
-
-        with rc8:
-            z_col = "#f87171" if max_zeros > 0 else "#64748b"
-            st.markdown(f"<span class='perf-drop-cell' style='color: {z_col}; font-weight: 700;'>{max_zeros}</span>", unsafe_allow_html=True)
-
-        with rc9:
-            st.markdown(f"<span class='perf-drop-cell'>{base_val:.0f} b/d</span>", unsafe_allow_html=True)
-
-        with rc10:
-            r_col = "#ef4444" if recent_val < 50 else "#f59e0b"
-            st.markdown(f"<span class='perf-drop-cell' style='color: {r_col}; font-weight: 700;'>{recent_val:.0f} b/d</span>", unsafe_allow_html=True)
-
-        with rc11:
-            d_col = "#ef4444" if drop_val <= -50 else "#f59e0b"
-            st.markdown(f"<span class='perf-drop-cell' style='color: {d_col}; font-weight: 800;'>▼ {drop_val:.1f}%</span>", unsafe_allow_html=True)
-
-        with rc12:
-            btn_lbl = "Viewing 🎯" if is_active else "Inspect 📊"
-            btn_t = "primary" if is_active else "secondary"
-            if st.button(btn_lbl, key=f"btn_insp_{pf_val}_{r_idx}", type=btn_t, use_container_width=True):
-                st.session_state["selected_telemetry_machine"] = pf_val
-                st.rerun()
-
-    # Sleek Pagination navigation bar
-    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
-    c_p1, c_p2, c_p3 = st.columns([1.5, 2.5, 1.5])
-    with c_p1:
-        if st.button("⬅️ Previous Page", disabled=(cur_page <= 1), key="btn_prev_drop_p", use_container_width=True):
-            st.session_state["drop_table_page"] = max(1, cur_page - 1)
-            st.rerun()
-    with c_p2:
-        st.markdown(f"<div style='text-align: center; color: #94a3b8; font-size: 0.84rem; padding-top: 6px;'>Page <b>{cur_page}</b> of <b>{total_pages}</b> ({len(filtered_df):,} machines with drop)</div>", unsafe_allow_html=True)
-    with c_p3:
-        if st.button("Next Page ➡️", disabled=(cur_page >= total_pages), key="btn_next_drop_p", use_container_width=True):
-            st.session_state["drop_table_page"] = min(total_pages, cur_page + 1)
-            st.rerun()
-
-    st.session_state["selected_telemetry_machine"] = cur_sel
-    return cur_sel
+    selected_row = pf_to_row[selected_opt]
+    selected_pf = selected_row["PF"]
+    st.session_state["selected_telemetry_machine"] = selected_pf
+    return selected_pf
 
 
 def render_historical_vs_prediction_section(
