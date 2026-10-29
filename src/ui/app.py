@@ -3158,7 +3158,7 @@ def main():
     TAB_SPL = "📋 SPL Machines"
     TAB_POT = "💡 POT Machines"
     TAB_OUTLIERS = "🔍 Outlier & Defect Simulator"
-    TAB_HISTORICAL = "📉 Performance Drops & Telemetry"
+    TAB_HISTORICAL = "🚧 Under Construction"
     NAV_TABS = [TAB_MAIN, TAB_SPL, TAB_POT, TAB_OUTLIERS, TAB_HISTORICAL]
 
     if "pending_nav_tab" in st.session_state:
@@ -3244,18 +3244,47 @@ def main():
         render_outlier_and_defect_dashboard()
 
     elif active_tab == TAB_HISTORICAL:
-        res = st.session_state.get("prediction_result")
-        sel_pf = st.session_state.get("selected_store_pf")
-        sel_st = st.session_state.get("selected_store_status")
-        import importlib
-        import src.ui.historical_vs_prediction as hvp
-        importlib.reload(hvp)
-        hvp.render_historical_vs_prediction_section(
-            res=res,
-            default_pf=sel_pf,
-            store_status=sel_st,
-            force_comparative_view=True
+        st.markdown(
+            """
+            <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.70) 0%, rgba(15, 23, 42, 0.85) 100%); 
+                        border: 1px solid rgba(234, 179, 8, 0.35); 
+                        border-left: 6px solid #eab308; 
+                        padding: 38px 24px; 
+                        border-radius: 12px; 
+                        text-align: center; 
+                        margin: 20px 0; 
+                        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.30);">
+                <div style="font-size: 3.5rem; line-height: 1; margin-bottom: 14px;">🚧</div>
+                <h2 style="color: #facc15; font-size: 1.55rem; font-weight: 800; margin: 0 0 10px 0; letter-spacing: -0.3px;">
+                    Under Construction
+                </h2>
+                <p style="color: #cbd5e1; font-size: 1.0rem; max-width: 620px; margin: 0 auto 18px auto; line-height: 1.6;">
+                    The <strong>Performance Drops & Telemetry</strong> analytics module is currently undergoing planned upgrades and calibration with Coripet IoT live data feeds.
+                </p>
+                <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.35); padding: 6px 16px; border-radius: 20px; font-size: 0.82rem; color: #fde047; font-weight: 700;">
+                    <span>⚙️</span> In Active Development • Coming Soon
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
+
+        with st.expander("🛠️ Developer Mode: View Experimental Telemetry Module", expanded=False):
+            try:
+                res = st.session_state.get("prediction_result")
+                sel_pf = st.session_state.get("selected_store_pf")
+                sel_st = st.session_state.get("selected_store_status")
+                import importlib
+                import src.ui.historical_vs_prediction as hvp
+                importlib.reload(hvp)
+                hvp.render_historical_vs_prediction_section(
+                    res=res,
+                    default_pf=sel_pf,
+                    store_status=sel_st,
+                    force_comparative_view=True
+                )
+            except Exception as e:
+                st.warning(f"Experimental module is currently offline: {e}")
 
 
 def render_prediction_dashboard(
