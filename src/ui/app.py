@@ -2262,7 +2262,24 @@ def render_machine_directory(
             sop_status = str(row.get("StatoSopralluogoClean", row.get("StatoSopralluogo", "Definitivo")))
             sop_status_badge = '<span class="badge-sop-def">✅ Definitivo</span>' if sop_status.lower() == "definitivo" else f'<span class="badge-stat-blue" style="font-size: 0.70rem; padding: 2px 7px;">📋 {sop_status}</span>'
             sop_date_str = str(row.get("DataFineSopralluogoFormatted", ""))
-            sop_date_line = f'<div style="font-size: 0.72rem; color: inherit; opacity: 0.75; margin-top: 3px;">📅 Survey: <strong style="color: inherit; opacity: 1.0;">{sop_date_str}</strong></div>' if sop_date_str and sop_date_str != "Null" and sop_date_str != "nan" else '<div style="font-size: 0.72rem; color: #94a3b8; margin-top: 3px;">📅 Survey: <em>Pending</em></div>'
+            if sop_date_str and sop_date_str != "Null" and sop_date_str != "nan":
+                sop_date_line = (
+                    f'<div style="margin-top: 5px; display: inline-flex; align-items: center; gap: 6px; '
+                    f'background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); '
+                    f'padding: 3px 9px; border-radius: 5px; font-size: 0.78rem;">'
+                    f'<span style="color: #94a3b8; font-weight: 600;">📅 Data Fine Sopralluogo:</span> '
+                    f'<strong style="color: #38bdf8; font-weight: 800;">{sop_date_str}</strong>'
+                    f'</div>'
+                )
+            else:
+                sop_date_line = (
+                    '<div style="margin-top: 5px; display: inline-flex; align-items: center; gap: 6px; '
+                    'background: rgba(148, 163, 184, 0.10); border: 1px solid rgba(148, 163, 184, 0.25); '
+                    'padding: 3px 9px; border-radius: 5px; font-size: 0.78rem;">'
+                    '<span style="color: #94a3b8; font-weight: 600;">📅 Data Fine Sopralluogo:</span> '
+                    '<span style="color: #cbd5e1; font-style: italic;">In attesa</span>'
+                    '</div>'
+                )
 
             scale_parts = [n_fmt]
             if n_sqm > 0: scale_parts.append(f"{int(round(n_sqm)):,} m²")
