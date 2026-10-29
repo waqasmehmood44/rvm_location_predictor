@@ -27,6 +27,9 @@ import streamlit.components.v1 as components
 # Ensure repository root is on sys.path
 sys.path.insert(0, os.path.abspath("."))
 
+import importlib
+import src.ui.auth as auth_mod
+importlib.reload(auth_mod)
 from src.ui.auth import require_auth
 from src.data.hidden_manager import (
     get_hidden_pf_set,
