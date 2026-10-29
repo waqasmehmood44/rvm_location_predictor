@@ -3444,8 +3444,10 @@ def main():
         render_machine_directory(df_pot, "POT", predictor, data_source=src_pot, current_date_str=dt_pot)
 
     elif active_tab == TAB_OUTLIERS:
-        from src.ui.outlier_dashboard import render_outlier_and_defect_dashboard
-        render_outlier_and_defect_dashboard()
+        import importlib
+        import src.ui.outlier_dashboard as odb
+        importlib.reload(odb)
+        odb.render_outlier_and_defect_dashboard()
 
     elif active_tab == TAB_HISTORICAL:
         st.markdown(
