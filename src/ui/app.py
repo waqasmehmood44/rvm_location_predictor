@@ -2556,15 +2556,219 @@ def render_machine_directory(
             st.markdown("<div style='border-bottom: 1px solid rgba(128, 128, 128, 0.15); margin: 8px 0 10px 0;'></div>", unsafe_allow_html=True)
 
 
+
+def render_translation_widget():
+    """Renders an executive client-side language switcher (Italian / English) using Google Translate bridge."""
+    widget_html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="utf-8">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 4px 2px;
+            overflow: hidden;
+        }
+        .lang-switcher-wrap {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.90);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 30px;
+            padding: 3px 5px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+            gap: 4px;
+        }
+        .lang-globe {
+            font-size: 13px;
+            margin-left: 6px;
+            margin-right: 2px;
+            opacity: 0.85;
+        }
+        .lang-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: #94a3b8;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            outline: none;
+            user-select: none;
+        }
+        .lang-btn:hover {
+            color: #f1f5f9;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .lang-btn.active-it {
+            background: rgba(34, 197, 94, 0.22);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.55);
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.25);
+        }
+        .lang-btn.active-en {
+            background: rgba(56, 189, 248, 0.20);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.55);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+        }
+    </style>
+    </head>
+    <body>
+        <div class="lang-switcher-wrap">
+            <span class="lang-globe">🌐</span>
+            <button id="btn-it" class="lang-btn" onclick="switchLang('it')">
+                <span>🇮🇹</span> Italiano
+            </button>
+            <button id="btn-en" class="lang-btn" onclick="switchLang('en')">
+                <span>🇬🇧</span> English
+            </button>
+        </div>
+
+    <script>
+    (function() {
+        function getParentDoc() {
+            try { return window.parent.document; } catch(e) { return document; }
+        }
+        function getParentWin() {
+            try { return window.parent; } catch(e) { return window; }
+        }
+
+        const pDoc = getParentDoc();
+        const pWin = getParentWin();
+
+        function checkCurrentLang() {
+            const cookies = pDoc.cookie || "";
+            const isIT = cookies.includes("googtrans=/en/it");
+            const btnIT = document.getElementById("btn-it");
+            const btnEN = document.getElementById("btn-en");
+            if (!btnIT || !btnEN) return;
+            if (isIT) {
+                btnIT.classList.add("active-it");
+                btnEN.classList.remove("active-en");
+            } else {
+                btnEN.classList.add("active-en");
+                btnIT.classList.remove("active-it");
+            }
+        }
+
+        function initGoogleTranslate() {
+            if (pDoc.getElementById("gt-script-elem")) return;
+
+            if (!pDoc.getElementById("google_translate_element")) {
+                const div = pDoc.createElement("div");
+                div.id = "google_translate_element";
+                div.style.display = "none";
+                pDoc.body.appendChild(div);
+            }
+
+            if (!pDoc.getElementById("gt-custom-styles")) {
+                const style = pDoc.createElement("style");
+                style.id = "gt-custom-styles";
+                style.innerHTML = `
+                    .goog-te-banner-frame, .skiptranslate, #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
+                    body { top: 0px !important; position: static !important; }
+                    #google_translate_element { display: none !important; }
+                    .goog-text-highlight { background-color: transparent !important; border: none !important; box-shadow: none !important; }
+                    font { background-color: transparent !important; box-shadow: none !important; }
+                `;
+                pDoc.head.appendChild(style);
+            }
+
+            pWin.googleTranslateElementInit = function() {
+                try {
+                    new pWin.google.translate.TranslateElement({
+                        pageLanguage: 'en',
+                        includedLanguages: 'it,en',
+                        autoDisplay: false
+                    }, 'google_translate_element');
+                } catch(e) {}
+            };
+
+            const s = pDoc.createElement("script");
+            s.id = "gt-script-elem";
+            s.type = "text/javascript";
+            s.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+            pDoc.head.appendChild(s);
+        }
+
+        window.switchLang = function(targetLang) {
+            initGoogleTranslate();
+
+            const domain = pWin.location.hostname;
+            if (targetLang === 'it') {
+                pDoc.cookie = "googtrans=/en/it; path=/;";
+                if (domain && domain !== 'localhost') {
+                    pDoc.cookie = "googtrans=/en/it; path=/; domain=" + domain + ";";
+                    pDoc.cookie = "googtrans=/en/it; path=/; domain=." + domain + ";";
+                }
+            } else {
+                pDoc.cookie = "googtrans=/en/en; path=/;";
+                pDoc.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                if (domain && domain !== 'localhost') {
+                    pDoc.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + domain + ";";
+                    pDoc.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=." + domain + ";";
+                }
+            }
+
+            const combo = pDoc.querySelector('.goog-te-combo');
+            if (combo) {
+                combo.value = targetLang;
+                combo.dispatchEvent(new Event('change'));
+                setTimeout(checkCurrentLang, 300);
+            } else {
+                setTimeout(function() {
+                    const c2 = pDoc.querySelector('.goog-te-combo');
+                    if (c2) {
+                        c2.value = targetLang;
+                        c2.dispatchEvent(new Event('change'));
+                        checkCurrentLang();
+                    } else {
+                        pWin.location.reload();
+                    }
+                }, 500);
+            }
+        };
+
+        initGoogleTranslate();
+        checkCurrentLang();
+        setTimeout(checkCurrentLang, 500);
+    })();
+    </script>
+    </body>
+    </html>
+    """
+    components.html(widget_html, height=46)
+
+
 def main():
     if not require_auth():
         return
 
-    st.markdown('<div class="main-header">♻️ Coripet RVM Prospective Location Predictor</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="sub-header">Certified Machine Learning Decision Support System for Reverse Vending Machine Network Expansion</div>',
-        unsafe_allow_html=True,
-    )
+    hdr_left, hdr_right = st.columns([0.75, 0.25])
+    with hdr_left:
+        st.markdown('<div class="main-header">♻️ Coripet RVM Prospective Location Predictor</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="sub-header">Certified Machine Learning Decision Support System for Reverse Vending Machine Network Expansion</div>',
+            unsafe_allow_html=True,
+        )
+    with hdr_right:
+        render_translation_widget()
 
     predictor, is_production, err_msg = load_production_predictor()
 
