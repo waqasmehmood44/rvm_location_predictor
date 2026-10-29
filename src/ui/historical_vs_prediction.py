@@ -1221,8 +1221,9 @@ def load_performance_drop_fleet() -> pd.DataFrame:
 
 def render_performance_drops_section(all_machines: List[Dict[str, str]], active_mach_current: Optional[str] = None) -> Optional[str]:
     """
-    Renders fleet-wide performance drop monitor table with direct 'Inspect Results 📊' buttons on every row.
-    Clicking any button immediately selects that machine and loads its separate AI prediction & telemetry below on the same screen.
+    Renders sleek, enterprise-grade fleet performance drop directory.
+    Removed arbitrary baseline threshold; displays all network machines experiencing volume drops.
+    Clicking 'Inspect 📊' on any row immediately loads that machine's results below on the same screen.
     """
     st.markdown(
         """
@@ -1235,7 +1236,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
                         <span>📉 Fleet Performance Drops Monitor</span>
                     </h3>
                     <p style="color: #94a3b8; font-size: 0.84rem; margin: 4px 0 0 0;">
-                        Audits all machines across the active Coripet network that <b>historically performed well (≥ 250 b/d baseline)</b>, but recently suffered <b>sharp volume drops (≥ 20% decline)</b>. Click <b>Inspect 📊</b> on any machine to see its dedicated results below.
+                        Audits all machines across the active Coripet network experiencing volume drops. Click <b>Inspect 📊</b> on any machine to see its dedicated results below.
                     </p>
                 </div>
                 <span style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); padding: 5px 12px; border-radius: 6px; font-weight: 800; font-size: 0.80rem;">
@@ -1252,37 +1253,28 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         st.info("No historical fleet audit telemetry available.")
         return None
 
-    # Filter controls
-    c_f1, c_f2, c_f3 = st.columns([2, 1.5, 1.5])
+    # Filter controls: removed arbitrary baseline threshold slider
+    c_f1, c_f2 = st.columns([3, 2])
     with c_f1:
         search_kw = st.text_input("🔍 Search Store / Comune / PF Code", "", placeholder="e.g. RetailPRO, Piccolo, Asti, MC...", key="drop_search_kw")
     with c_f2:
         sev_choice = st.selectbox(
-            "Drop Severity",
-            options=["All Significant Drops (≥ 20%)", "Critical Collapse (≥ 50% drop)", "Severe Decline (30%–50% drop)", "Moderate Decline (20%–30% drop)"],
+            "Drop Severity Filter",
+            options=["All Performance Drops (≥ 15% decline)", "Critical Collapse (≥ 50% drop)", "Severe Decline (30%–50% drop)", "Moderate Decline (15%–30% drop)"],
             index=0,
             key="drop_sev_choice"
         )
-    with c_f3:
-        min_baseline = st.slider(
-            "Min Past Baseline (b/d)",
-            min_value=150,
-            max_value=800,
-            value=250,
-            step=50,
-            key="drop_min_base"
-        )
 
-    # Apply filters
-    mask = (df_fleet["Median_Bottles_Daily"] >= min_baseline)
+    # Base mask: all machines with historical volume > 30 and drop >= 15%
+    mask = (df_fleet["Median_Bottles_Daily"] > 30.0)
     if "≥ 50%" in sev_choice:
         mask = mask & (df_fleet["drop_pct"] <= -50.0)
     elif "30%–50%" in sev_choice:
         mask = mask & (df_fleet["drop_pct"] > -50.0) & (df_fleet["drop_pct"] <= -30.0)
-    elif "20%–30%" in sev_choice:
-        mask = mask & (df_fleet["drop_pct"] > -30.0) & (df_fleet["drop_pct"] <= -20.0)
+    elif "15%–30%" in sev_choice:
+        mask = mask & (df_fleet["drop_pct"] > -30.0) & (df_fleet["drop_pct"] <= -15.0)
     else:
-        mask = mask & (df_fleet["drop_pct"] <= -20.0)
+        mask = mask & (df_fleet["drop_pct"] <= -15.0)
 
     if search_kw.strip():
         kw = search_kw.strip().lower()
@@ -1296,7 +1288,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
 
     filtered_df = df_fleet[mask].sort_values("drop_pct", ascending=True).reset_index(drop=True)
 
-    # Executive KPI Metric Cards
+    # Executive KPI Metric Cards (clean without arbitrary threshold restrictions)
     total_dropped = len(filtered_df)
     crit_count = int((filtered_df["drop_pct"] <= -50.0).sum())
     sev_count = int(((filtered_df["drop_pct"] > -50.0) & (filtered_df["drop_pct"] <= -30.0)).sum())
@@ -1309,7 +1301,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
             f"""<div style="{card_style} border-top: 3px solid #ef4444;">
                 <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Machines with Drop</span>
                 <div style="font-size: 1.55rem; font-weight: 800; color: #f87171; margin: 6px 0 2px 0;">{total_dropped:,} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">units</span></div>
-                <div style="font-size: 0.73rem; color: #64748b;">Baseline ≥ {min_baseline} b/d</div>
+                <div style="font-size: 0.73rem; color: #64748b;">All filtered machines</div>
             </div>""", unsafe_allow_html=True
         )
     with c_m2:
@@ -1361,22 +1353,25 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
     end_idx = min(len(filtered_df), start_idx + page_size)
     page_rows = filtered_df.iloc[start_idx:end_idx].reset_index(drop=True)
 
-    # Clean Table Header without Checkboxes
-    st.markdown("<div style='background: rgba(15, 23, 42, 0.75); border-radius: 8px 8px 0 0; padding: 10px 14px; border: 1px solid rgba(255, 255, 255, 0.08); border-bottom: 2px solid rgba(56, 189, 248, 0.4);'>", unsafe_allow_html=True)
-    th0, th1, th2, th3, th4, th5, th6, th7, th8 = st.columns([1.5, 2.2, 1.6, 1.4, 1.1, 1.1, 1.2, 1.2, 1.4])
-    with th0: st.markdown("<strong style='font-size: 0.76rem; color: #94a3b8;'>PF CODE</strong>", unsafe_allow_html=True)
-    with th1: st.markdown("<strong style='font-size: 0.76rem; color: #94a3b8;'>STORE / BANNER</strong>", unsafe_allow_html=True)
-    with th2: st.markdown("<strong style='font-size: 0.76rem; color: #94a3b8;'>MUNICIPALITY</strong>", unsafe_allow_html=True)
-    with th3: st.markdown("<strong style='font-size: 0.76rem; color: #94a3b8;'>MODEL</strong>", unsafe_allow_html=True)
-    with th4: st.markdown("<strong style='font-size: 0.76rem; color: #94a3b8;'>BASELINE</strong>", unsafe_allow_html=True)
-    with th5: st.markdown("<strong style='font-size: 0.76rem; color: #94a3b8;'>RECENT 30D</strong>", unsafe_allow_html=True)
-    with th6: st.markdown("<strong style='font-size: 0.76rem; color: #94a3b8;'>DROP %</strong>", unsafe_allow_html=True)
-    with th7: st.markdown("<strong style='font-size: 0.76rem; color: #94a3b8;'>VOL LOST</strong>", unsafe_allow_html=True)
-    with th8: st.markdown("<strong style='font-size: 0.76rem; color: #94a3b8;'>ACTION</strong>", unsafe_allow_html=True)
+    # Redesigned Sleek Enterprise Table Header
+    st.markdown(
+        """
+        <div style="background: rgba(15, 23, 42, 0.85); border-radius: 8px 8px 0 0; padding: 10px 14px; 
+                    border: 1px solid rgba(255, 255, 255, 0.08); border-bottom: 2px solid rgba(56, 189, 248, 0.40);">
+        """,
+        unsafe_allow_html=True
+    )
+    th1, th2, th3, th4, th5 = st.columns([3.2, 2.6, 2.0, 2.2, 1.4])
+    with th1: st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>MACHINE & STORE</strong>", unsafe_allow_html=True)
+    with th2: st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>LOCATION & REGION</strong>", unsafe_allow_html=True)
+    with th3: st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>HARDWARE & BASELINE</strong>", unsafe_allow_html=True)
+    with th4: st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>RECENT 30D & DROP</strong>", unsafe_allow_html=True)
+    with th5: st.markdown("<strong style='font-size: 0.78rem; letter-spacing: 0.6px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>ACTION</strong>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Render each row with a direct action button
+    # Render each row tightly without gap bloat
     for r_idx, r in page_rows.iterrows():
+        global_rank = start_idx + r_idx + 1
         pf_val = str(r["PF"]).strip()
         banner_val = str(r["Store_Banner"])
         comune_val = str(r["Comune"])
@@ -1388,28 +1383,62 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         loss_val = float(r["vol_lost"])
 
         is_active = (cur_sel == pf_val)
-        row_bg = "background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.45); border-left: 4px solid #38bdf8;" if is_active else "background: rgba(30, 41, 59, 0.45); border: 1px solid rgba(255, 255, 255, 0.05); border-bottom: 1px solid rgba(255, 255, 255, 0.08);"
-        drop_badge = f'<span style="color: #ef4444; font-weight: 800;">🔻 {drop_val:.1f}%</span>' if drop_val <= -50 else f'<span style="color: #f59e0b; font-weight: 700;">⚠️ {drop_val:.1f}%</span>'
+        row_bg = "background: rgba(56, 189, 248, 0.12); border-left: 4px solid #38bdf8;" if is_active else "background: rgba(30, 41, 59, 0.40);"
+        drop_badge = f'<span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 2px 7px; border-radius: 4px; font-weight: 800; font-size: 0.78rem;">🔻 {drop_val:.1f}%</span>' if drop_val <= -50 else f'<span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 2px 7px; border-radius: 4px; font-weight: 700; font-size: 0.78rem;">⚠️ {drop_val:.1f}%</span>'
+        rank_badge = f'<span style="background: rgba(255, 255, 255, 0.08); color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.74rem;">#{global_rank}</span>'
 
-        st.markdown(f"<div style='{row_bg} padding: 8px 14px; margin-top: 3px; border-radius: 6px;'>", unsafe_allow_html=True)
-        rc0, rc1, rc2, rc3, rc4, rc5, rc6, rc7, rc8 = st.columns([1.5, 2.2, 1.6, 1.4, 1.1, 1.1, 1.2, 1.2, 1.4])
-        with rc0:
-            st.markdown(f"<code style='color: {'#38bdf8' if is_active else '#93c5fd'}; font-weight: 700; font-size: 0.82rem;'>{pf_val}</code>", unsafe_allow_html=True)
+        st.markdown(f"<div style='{row_bg} padding: 10px 14px; border-radius: 6px; margin-top: 4px; border: 1px solid rgba(255, 255, 255, 0.05);'>", unsafe_allow_html=True)
+        rc1, rc2, rc3, rc4, rc5 = st.columns([3.2, 2.6, 2.0, 2.2, 1.4])
         with rc1:
-            st.markdown(f"<strong style='color: #f8fafc; font-size: 0.86rem;'>{banner_val}</strong>", unsafe_allow_html=True)
+            st.markdown(
+                f"""
+                <div style="line-height: 1.35;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        {rank_badge}
+                        <strong style="color: {'#38bdf8' if is_active else '#f8fafc'}; font-size: 0.95rem;">{banner_val}</strong>
+                    </div>
+                    <div style="display: flex; gap: 6px; align-items: center; margin-top: 4px; flex-wrap: wrap;">
+                        <span style="background: rgba(255, 255, 255, 0.06); color: #93c5fd; border: 1px solid rgba(255, 255, 255, 0.12); padding: 1px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 700;">🆔 {pf_val}</span>
+                        <span style="font-size: 0.72rem; color: #94a3b8;">{r.get('Anomaly_Classification', 'PERFORMANCE_DROP')}</span>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
         with rc2:
-            st.markdown(f"<span style='color: #cbd5e1; font-size: 0.82rem;'>{comune_val} <small style='color: #64748b;'>({reg_val})</small></span>", unsafe_allow_html=True)
+            st.markdown(
+                f"""
+                <div style="font-size: 0.86rem; line-height: 1.4;">
+                    <div style="color: #f1f5f9; font-weight: 600;">📍 {comune_val}</div>
+                    <div style="color: #94a3b8; font-size: 0.78rem; margin-top: 2px;">Region: <strong style="color: #cbd5e1;">{reg_val}</strong></div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
         with rc3:
-            st.markdown(f"<span style='color: #94a3b8; font-size: 0.80rem;'>{model_val}</span>", unsafe_allow_html=True)
+            st.markdown(
+                f"""
+                <div style="font-size: 0.86rem; line-height: 1.4;">
+                    <div style="color: #f1f5f9; font-weight: 600;">⚙️ {model_val}</div>
+                    <div style="color: #94a3b8; font-size: 0.78rem; margin-top: 2px;">Past Baseline: <strong style="color: #38bdf8;">{base_val:.0f} b/d</strong></div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
         with rc4:
-            st.markdown(f"<span style='color: #cbd5e1; font-size: 0.82rem;'>{base_val:.0f} b/d</span>", unsafe_allow_html=True)
+            st.markdown(
+                f"""
+                <div style="line-height: 1.35;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 1.05rem; font-weight: 800; color: {'#ef4444' if recent_val < 50 else '#f59e0b'};">{recent_val:.0f} b/d</span>
+                        {drop_badge}
+                    </div>
+                    <div style="color: #94a3b8; font-size: 0.76rem; margin-top: 2px;">Loss: <strong style="color: #f87171;">-{loss_val:.0f} b/d</strong></div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
         with rc5:
-            st.markdown(f"<span style='color: {'#ef4444' if recent_val < 50 else '#cbd5e1'}; font-weight: 700; font-size: 0.82rem;'>{recent_val:.0f} b/d</span>", unsafe_allow_html=True)
-        with rc6:
-            st.markdown(f"<span style='font-size: 0.84rem;'>{drop_badge}</span>", unsafe_allow_html=True)
-        with rc7:
-            st.markdown(f"<span style='color: #f87171; font-size: 0.82rem;'>-{loss_val:.0f} b/d</span>", unsafe_allow_html=True)
-        with rc8:
             btn_lbl = "Viewing 🎯" if is_active else "Inspect 📊"
             btn_t = "primary" if is_active else "secondary"
             if st.button(btn_lbl, key=f"btn_insp_row_{pf_val}", type=btn_t, use_container_width=True):
@@ -1417,7 +1446,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
                 st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # Pagination navigation bar
+    # Sleek Pagination navigation bar
     st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
     c_p1, c_p2, c_p3 = st.columns([1.5, 2.5, 1.5])
     with c_p1:
