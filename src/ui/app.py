@@ -3090,13 +3090,14 @@ def main():
     # Main Dashboard Tabs Execution: Predictor, SPL, POT
     # -------------------------------------------------------------
     # -------------------------------------------------------------
-    # Navigation Views: Prospective Predictor, SPL, POT
+    # Navigation Views: Prospective Predictor, Historical Actuals, SPL, POT, Outliers
     # -------------------------------------------------------------
     TAB_MAIN = "🎯 Prospective Predictor"
+    TAB_HISTORICAL = "⚖️ Historical vs. Forecast"
     TAB_SPL = "📋 SPL Machines"
     TAB_POT = "💡 POT Machines"
     TAB_OUTLIERS = "🔍 Outlier & Defect Simulator"
-    NAV_TABS = [TAB_MAIN, TAB_SPL, TAB_POT, TAB_OUTLIERS]
+    NAV_TABS = [TAB_MAIN, TAB_HISTORICAL, TAB_SPL, TAB_POT, TAB_OUTLIERS]
 
     if "pending_nav_tab" in st.session_state:
         st.session_state["active_nav_tab"] = st.session_state.pop("pending_nav_tab")
@@ -3165,6 +3166,18 @@ def main():
                 comune=comune,
                 machine_type=machine_type,
             )
+
+    elif active_tab == TAB_HISTORICAL:
+        res = st.session_state.get("prediction_result")
+        sel_pf = st.session_state.get("selected_store_pf")
+        sel_st = st.session_state.get("selected_store_status")
+        from src.ui.historical_vs_prediction import render_historical_vs_prediction_section
+        render_historical_vs_prediction_section(
+            res=res,
+            default_pf=sel_pf,
+            store_status=sel_st,
+            force_comparative_view=True
+        )
 
     elif active_tab == TAB_SPL:
         with st.spinner("📡 Fetching live SPL machines from Coripet API..."):
@@ -3821,16 +3834,6 @@ def render_prediction_dashboard(
     with col_term:
         st.subheader("📋 Verbatim Location Analysis")
         st.markdown(f'<div class="terminal-box">{formatted_text}</div>', unsafe_allow_html=True)
-
-    # -------------------------------------------------------------
-    # 3.25. Historical Actuals vs. Prospective AI Model Comparison
-    # -------------------------------------------------------------
-    from src.ui.historical_vs_prediction import render_historical_vs_prediction_section
-    render_historical_vs_prediction_section(
-        res=res,
-        default_pf=st.session_state.get("selected_store_pf"),
-        store_status=st.session_state.get("selected_store_status")
-    )
 
     # -------------------------------------------------------------
     # 3.5. Statistical Probability & Future Performance Profile
