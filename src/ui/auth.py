@@ -190,51 +190,6 @@ def require_auth() -> bool:
             display: none !important;
         }
 
-        /* Top-Right Loading & Status Widget during Login Execution */
-        header[data-testid="stHeader"] {
-            background: transparent !important;
-            z-index: 999990 !important;
-            pointer-events: none !important;
-            height: 0px !important;
-            min-height: 0px !important;
-            overflow: visible !important;
-        }
-        div[data-testid="stStatusWidget"],
-        .stStatusWidget {
-            visibility: visible !important;
-            display: inline-flex !important;
-            opacity: 1 !important;
-            position: fixed !important;
-            top: 10px !important;
-            right: 18px !important;
-            z-index: 1000000 !important;
-            background: rgba(15, 23, 42, 0.94) !important;
-            border: 1.5px solid #22c55e !important;
-            border-radius: 24px !important;
-            padding: 5px 14px !important;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.50), 0 0 14px rgba(34, 197, 94, 0.45) !important;
-            backdrop-filter: blur(10px) !important;
-            align-items: center !important;
-            gap: 8px !important;
-            pointer-events: auto !important;
-        }
-        div[data-testid="stStatusWidget"] button,
-        div[data-testid="stStatusWidget"] [data-testid="stStatusWidgetRunningIcon"],
-        div[data-testid="stStatusWidget"] [data-testid="stStatusWidgetRunningManIcon"],
-        div[data-testid="stStatusWidget"] svg,
-        div[data-testid="stStatusWidget"] img {
-            visibility: visible !important;
-            display: inline-flex !important;
-            opacity: 1 !important;
-            pointer-events: auto !important;
-            color: #4ade80 !important;
-        }
-
-        /* Hide hamburger menu in header toolbar */
-        div[data-testid="stMainMenu"] {
-            display: none !important;
-        }
-
         .login-unified-card {
             background: linear-gradient(145deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
             border: 1px solid rgba(255, 255, 255, 0.12);
