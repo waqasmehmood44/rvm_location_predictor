@@ -1654,6 +1654,27 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
             box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4) !important;
             transform: translateY(-1px);
         }
+
+        /* Prevent Glide Data Grid floating overlay popup editor when double-clicking table cells */
+        div[class*="DataGridOverlayEditorStyle"],
+        div.gdg-style,
+        div.gdg-clip-region,
+        #portal textarea,
+        #portal input,
+        #portal div[class*="DataGridOverlayEditorStyle"],
+        div[data-testid="stDataFrame"] textarea,
+        div[data-testid="stDataFrame"] input.gdg-input {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            height: 0px !important;
+            width: 0px !important;
+            position: absolute !important;
+            top: -9999px !important;
+            left: -9999px !important;
+            border: none !important;
+        }
         </style>
         """,
         unsafe_allow_html=True
@@ -1842,19 +1863,19 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
                 help="Click Inspect to load this machine's dedicated crash telemetry and root cause diagnostics below",
                 key="drop_table_inspect_btn"
             ),
-            "Drop_Severity_Status": st.column_config.TextColumn("Status", width=105),
-            "Descrizione": st.column_config.TextColumn("Description", width=260, help="Official machine location description from Coripet API results"),
-            "Store_Banner": st.column_config.TextColumn("Store Banner", width=180),
-            "Comune": st.column_config.TextColumn("Comune", width=150),
-            "Regione": st.column_config.TextColumn("Regione", width=110),
-            "Median_Bottles_Daily": st.column_config.NumberColumn("Past Baseline", format="%d b/d", width=110),
-            "Recent_30d_Median": st.column_config.NumberColumn("Recent Velocity", format="%d b/d", width=115),
-            "drop_pct": st.column_config.NumberColumn("Drop %", format="%.1f%%", width=95),
-            "vol_lost": st.column_config.NumberColumn("Daily Loss", format="-%d b/d", width=105),
-            "Root_Cause_Diagnostic": st.column_config.TextColumn("Identified Root Cause", width=280),
-            "DataFineRange": st.column_config.TextColumn("Active Through", width=115, help="Validity end date from mt_CaricaViewStoricoPuntoFisico (Strictly ATTVO snapshot)"),
-            "TipoMacchina": st.column_config.TextColumn("Hardware Model", width=125),
-            "PF": st.column_config.TextColumn("Machine ID", width=130)
+            "Drop_Severity_Status": st.column_config.TextColumn("Status", width=105, disabled=True),
+            "Descrizione": st.column_config.TextColumn("Description", width=260, help="Official machine location description from Coripet API results", disabled=True),
+            "Store_Banner": st.column_config.TextColumn("Store Banner", width=180, disabled=True),
+            "Comune": st.column_config.TextColumn("Comune", width=150, disabled=True),
+            "Regione": st.column_config.TextColumn("Regione", width=110, disabled=True),
+            "Median_Bottles_Daily": st.column_config.NumberColumn("Past Baseline", format="%d b/d", width=110, disabled=True),
+            "Recent_30d_Median": st.column_config.NumberColumn("Recent Velocity", format="%d b/d", width=115, disabled=True),
+            "drop_pct": st.column_config.NumberColumn("Drop %", format="%.1f%%", width=95, disabled=True),
+            "vol_lost": st.column_config.NumberColumn("Daily Loss", format="-%d b/d", width=105, disabled=True),
+            "Root_Cause_Diagnostic": st.column_config.TextColumn("Identified Root Cause", width=280, disabled=True),
+            "DataFineRange": st.column_config.TextColumn("Active Through", width=115, help="Validity end date from mt_CaricaViewStoricoPuntoFisico (Strictly ATTVO snapshot)", disabled=True),
+            "TipoMacchina": st.column_config.TextColumn("Hardware Model", width=125, disabled=True),
+            "PF": st.column_config.TextColumn("Machine ID", width=130, disabled=True)
         }
     )
 
@@ -1867,8 +1888,10 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
             <div>
                 <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Actively Inspected Crashed Unit</span>
                 <div style="font-size: 0.95rem; font-weight: 700; color: #f8fafc; margin-top: 2px;">
-                    📍 <span style="color: #38bdf8;">{cur_row['Store_Banner']}</span> &bull; <i>{cur_row.get('Descrizione', '')}</i> ({cur_row['Comune']}, {cur_row['Regione']}) 
-                    &bull; ID: <code>{cur_row['PF']}</code> 
+                    📍 <span style="color: #38bdf8; user-select: all; -webkit-user-select: all;">{cur_row['Store_Banner']}</span> &bull; 
+                    <i style="color: #cbd5e1; user-select: all; -webkit-user-select: all;">{cur_row.get('Descrizione', '')}</i> 
+                    (<span style="user-select: all; -webkit-user-select: all;">{cur_row['Comune']}, {cur_row['Regione']}</span>) 
+                    &bull; ID: <code style="user-select: all; -webkit-user-select: all; cursor: pointer;" title="Double-click or drag to copy ID">{cur_row['PF']}</code> 
                     &bull; API: <span style="color: #22c55e; font-weight: 700;">🟢 ATTVO</span> <span style="color: #94a3b8; font-size: 0.80rem;">(Thru {cur_row.get('DataFineRange', '')})</span>
                     &bull; Baseline: <b style="color: #94a3b8;">{cur_row['Median_Bottles_Daily']:.0f} b/d</b> 
                     &bull; Recent: <b style="color: #f87171;">{cur_row['Recent_30d_Median']:.0f} b/d</b> 

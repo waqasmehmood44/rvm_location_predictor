@@ -1045,6 +1045,27 @@ st.markdown(
     div[data-testid="stSelectbox"]:has(input[placeholder*="Store Name"]) div[data-baseweb="select"] {
         cursor: text !important;
     }
+
+    /* Suppress Glide Data Grid floating overlay popup editor when double-clicking table cells */
+    div[class*="DataGridOverlayEditorStyle"],
+    div.gdg-style,
+    div.gdg-clip-region,
+    #portal textarea,
+    #portal input,
+    #portal div[class*="DataGridOverlayEditorStyle"],
+    div[data-testid="stDataFrame"] textarea,
+    div[data-testid="stDataFrame"] input.gdg-input {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        height: 0px !important;
+        width: 0px !important;
+        position: absolute !important;
+        top: -9999px !important;
+        left: -9999px !important;
+        border: none !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
