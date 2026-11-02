@@ -1513,7 +1513,11 @@ def load_performance_drop_fleet() -> pd.DataFrame:
                 df["Root_Cause_Diagnostic"] = df["Reason_Category"].fillna("📉 Downward Performance Crash")
                 df["Root_Cause_Detail"] = df["Reason_Detail"].fillna("Sustained downward performance collapse without recovery.")
 
-                for c in ["Store_Banner", "Comune", "Regione"]:
+                if "Descrizione" not in df.columns:
+                    df["Descrizione"] = df.get("Store_Banner", "") + " " + df.get("Comune", "")
+                df["Descrizione"] = df["Descrizione"].fillna("").astype(str)
+
+                for c in ["Store_Banner", "Comune", "Regione", "Descrizione"]:
                     if c in df.columns:
                         df[c] = df[c].apply(_clean_str)
 
@@ -1542,7 +1546,11 @@ def load_performance_drop_fleet() -> pd.DataFrame:
                 df["Root_Cause_Diagnostic"] = df.get("Anomaly_Classification", "PERFORMANCE_DROP")
                 df["Root_Cause_Detail"] = df.get("Recommended_Action", "Significant operational drop detected.")
 
-                for c in ["Store_Banner", "Comune", "Regione"]:
+                if "Descrizione" not in df.columns:
+                    df["Descrizione"] = df.get("Store_Banner", "") + " " + df.get("Comune", "")
+                df["Descrizione"] = df["Descrizione"].fillna("").astype(str)
+
+                for c in ["Store_Banner", "Comune", "Regione", "Descrizione"]:
                     if c in df.columns:
                         df[c] = df[c].apply(_clean_str)
 
@@ -1640,6 +1648,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         kw = search_kw.lower()
         kw_mask = (
             df_fleet["PF"].astype(str).str.lower().str.contains(kw) |
+            df_fleet.get("Descrizione", pd.Series("", index=df_fleet.index)).astype(str).str.lower().str.contains(kw) |
             df_fleet["Store_Banner"].astype(str).str.lower().str.contains(kw) |
             df_fleet["Comune"].astype(str).str.lower().str.contains(kw) |
             df_fleet["Regione"].astype(str).str.lower().str.contains(kw)
@@ -1739,6 +1748,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
     display_cols = [
         "Action",
         "Drop_Severity_Status",
+        "Descrizione",
         "Store_Banner",
         "Comune",
         "Regione",
@@ -1766,6 +1776,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
                 key="drop_table_inspect_btn"
             ),
             "Drop_Severity_Status": st.column_config.TextColumn("Status", width=105),
+            "Descrizione": st.column_config.TextColumn("Description", width=260, help="Official machine location description from Coripet API results"),
             "Store_Banner": st.column_config.TextColumn("Store Banner", width=180),
             "Comune": st.column_config.TextColumn("Comune", width=150),
             "Regione": st.column_config.TextColumn("Regione", width=110),
@@ -1788,7 +1799,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
             <div>
                 <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Actively Inspected Crashed Unit</span>
                 <div style="font-size: 0.95rem; font-weight: 700; color: #f8fafc; margin-top: 2px;">
-                    📍 <span style="color: #38bdf8;">{cur_row['Store_Banner']}</span> ({cur_row['Comune']}, {cur_row['Regione']}) 
+                    📍 <span style="color: #38bdf8;">{cur_row['Store_Banner']}</span> &bull; <i>{cur_row.get('Descrizione', '')}</i> ({cur_row['Comune']}, {cur_row['Regione']}) 
                     &bull; ID: <code>{cur_row['PF']}</code> 
                     &bull; Baseline: <b style="color: #94a3b8;">{cur_row['Median_Bottles_Daily']:.0f} b/d</b> 
                     &bull; Recent: <b style="color: #f87171;">{cur_row['Recent_30d_Median']:.0f} b/d</b> 
@@ -1810,7 +1821,8 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
     machine_options = []
     pf_to_row = {}
     for _, r in filtered_df.iterrows():
-        opt_label = f"{r['Store_Banner']} ({r['Comune']}, {r['Regione']}) — [Drop: {r['drop_pct']:.1f}% | Cause: {r['Root_Cause_Diagnostic']} | ID: {r['PF']}]"
+        desc_str = f" — {r['Descrizione']}" if r.get("Descrizione") else ""
+        opt_label = f"{r['Store_Banner']}{desc_str} ({r['Comune']}, {r['Regione']}) — [Drop: {r['drop_pct']:.1f}% | Cause: {r['Root_Cause_Diagnostic']} | ID: {r['PF']}]"
         machine_options.append(opt_label)
         pf_to_row[opt_label] = r
 
