@@ -230,6 +230,11 @@ def require_auth() -> bool:
             color: #4ade80 !important;
         }
 
+        /* Hide hamburger menu in header toolbar */
+        div[data-testid="stMainMenu"] {
+            display: none !important;
+        }
+
         .login-unified-card {
             background: linear-gradient(145deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
             border: 1px solid rgba(255, 255, 255, 0.12);
