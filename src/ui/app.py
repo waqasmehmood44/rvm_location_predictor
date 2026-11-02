@@ -995,16 +995,93 @@ st.markdown(
         transform: translateY(0px) !important;
         box-shadow: 0 2px 8px rgba(22, 163, 74, 0.30) !important;
     }
-    /* Hide Streamlit Deploy Button */
+    /* Hide ONLY Streamlit Deploy Button (Never suppress the Streamlit Status Widget) */
     .stDeployButton,
     [data-testid="stDeployButton"],
     header [data-testid="stDeployButton"],
-    header button[title="Deploy"],
-    button[kind="header"]:has([data-testid="stIconMaterial"]) {
+    header button[title="Deploy"] {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
         pointer-events: none !important;
+    }
+
+    /* ============================================================
+       STREAMLIT TOP-RIGHT WAITING / LOADING STATUS SIGN
+       ============================================================ */
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+        z-index: 999990 !important;
+        pointer-events: none !important;
+    }
+
+    header[data-testid="stHeader"] > * {
+        pointer-events: auto !important;
+    }
+
+    div[data-testid="stToolbar"] {
+        position: fixed !important;
+        top: 10px !important;
+        right: 18px !important;
+        z-index: 1000000 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+    }
+
+    div[data-testid="stStatusWidget"],
+    .stStatusWidget {
+        visibility: visible !important;
+        display: inline-flex !important;
+        opacity: 1 !important;
+        position: fixed !important;
+        top: 10px !important;
+        right: 18px !important;
+        z-index: 1000000 !important;
+        background: rgba(15, 23, 42, 0.94) !important;
+        border: 1.5px solid #22c55e !important;
+        border-radius: 24px !important;
+        padding: 5px 14px !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.50), 0 0 14px rgba(34, 197, 94, 0.45) !important;
+        backdrop-filter: blur(10px) !important;
+        align-items: center !important;
+        gap: 8px !important;
+        pointer-events: auto !important;
+        animation: coripet-status-pulse 2s infinite ease-in-out !important;
+    }
+
+    [data-theme="light"] div[data-testid="stStatusWidget"],
+    [data-theme="light"] .stStatusWidget {
+        background: rgba(255, 255, 255, 0.95) !important;
+        border: 1.5px solid #16a34a !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 0 12px rgba(22, 163, 74, 0.35) !important;
+    }
+
+    @keyframes coripet-status-pulse {
+        0% {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.50), 0 0 10px rgba(34, 197, 94, 0.35);
+            border-color: rgba(34, 197, 94, 0.60);
+        }
+        50% {
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.65), 0 0 20px rgba(34, 197, 94, 0.80);
+            border-color: rgba(74, 222, 128, 1.0);
+        }
+        100% {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.50), 0 0 10px rgba(34, 197, 94, 0.35);
+            border-color: rgba(34, 197, 94, 0.60);
+        }
+    }
+
+    div[data-testid="stStatusWidget"] button,
+    div[data-testid="stStatusWidget"] [data-testid="stStatusWidgetRunningIcon"],
+    div[data-testid="stStatusWidget"] [data-testid="stStatusWidgetRunningManIcon"],
+    div[data-testid="stStatusWidget"] svg,
+    div[data-testid="stStatusWidget"] img {
+        visibility: visible !important;
+        display: inline-flex !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        color: #4ade80 !important;
     }
 
     /* Dropdown Filters (SPL, POT, Outliers): Full-box clickable, strictly non-editable, no cursor */
@@ -2761,6 +2838,93 @@ def render_translation_widget():
         initGoogleTranslate();
         checkCurrentLang();
         setTimeout(checkCurrentLang, 500);
+
+        // ============================================================
+        // Top-Right Waiting Sign Bridge (Streamlit Loading Stage Indicator)
+        // ============================================================
+        (function initWaitingIndicator() {
+            if (pDoc.getElementById("coripet-waiting-bridge-css")) return;
+
+            const style = pDoc.createElement("style");
+            style.id = "coripet-waiting-bridge-css";
+            style.innerHTML = `
+                #coripet-waiting-pill {
+                    position: fixed;
+                    top: 10px;
+                    right: 18px;
+                    z-index: 1000000;
+                    display: none;
+                    align-items: center;
+                    gap: 8px;
+                    background: rgba(15, 23, 42, 0.94);
+                    border: 1.5px solid #22c55e;
+                    border-radius: 24px;
+                    padding: 5px 14px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 14px rgba(34, 197, 94, 0.45);
+                    backdrop-filter: blur(10px);
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                    font-size: 12px;
+                    font-weight: 700;
+                    color: #4ade80;
+                    letter-spacing: 0.3px;
+                    pointer-events: none;
+                    transition: opacity 0.2s ease;
+                }
+                #coripet-waiting-pill.visible {
+                    display: inline-flex !important;
+                }
+                .coripet-waiting-spinner {
+                    width: 14px;
+                    height: 14px;
+                    border: 2px solid rgba(74, 222, 128, 0.25);
+                    border-top: 2px solid #4ade80;
+                    border-radius: 50%;
+                    animation: coripet-spin 0.75s linear infinite;
+                }
+                @keyframes coripet-spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `;
+            pDoc.head.appendChild(style);
+
+            let pill = pDoc.getElementById("coripet-waiting-pill");
+            if (!pill) {
+                pill = pDoc.createElement("div");
+                pill.id = "coripet-waiting-pill";
+                pill.innerHTML = '<div class="coripet-waiting-spinner"></div><span>Running...</span>';
+                pDoc.body.appendChild(pill);
+            }
+
+            function syncWithStreamlit() {
+                const nativeStatus = pDoc.querySelector('[data-testid="stStatusWidget"]');
+                const isNativeRunning = nativeStatus && nativeStatus.offsetParent !== null;
+                if (isNativeRunning) {
+                    pill.classList.remove("visible");
+                }
+            }
+
+            const obs = new MutationObserver(() => {
+                syncWithStreamlit();
+            });
+            obs.observe(pDoc.body, { childList: true, subtree: true });
+
+            pDoc.addEventListener("click", (e) => {
+                const target = e.target;
+                if (
+                    target.closest('button') ||
+                    target.closest('[data-testid="stSegmentedControl"] button') ||
+                    target.closest('[data-baseweb="tab"]') ||
+                    target.closest('[data-baseweb="select"]') ||
+                    target.closest('[data-testid="stSelectbox"]')
+                ) {
+                    pill.classList.add("visible");
+                    setTimeout(() => {
+                        pill.classList.remove("visible");
+                    }, 4000);
+                }
+            }, true);
+        })();
     })();
     </script>
     </body>
