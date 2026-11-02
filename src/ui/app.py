@@ -1013,10 +1013,17 @@ st.markdown(
         background: transparent !important;
         z-index: 999990 !important;
         pointer-events: none !important;
+        height: 0px !important;
+        min-height: 0px !important;
+        overflow: visible !important;
     }
 
-    header[data-testid="stHeader"] > * {
+    /* Segmented Control Navigation Tabs: 100% Clickable & Responsive */
+    div[data-testid="stSegmentedControl"],
+    div[data-testid="stSegmentedControl"] *,
+    div[data-testid="stSegmentedControl"] button {
         pointer-events: auto !important;
+        cursor: pointer !important;
     }
 
     div[data-testid="stToolbar"] {
@@ -2948,22 +2955,28 @@ def render_translation_widget():
             });
             obs.observe(pDoc.body, { childList: true, subtree: true });
 
-            // On any user interaction, immediately activate the cycling runner pill
-            pDoc.addEventListener("click", (e) => {
-                const target = e.target;
-                if (
-                    target.closest('button') ||
-                    target.closest('[data-testid="stSegmentedControl"] button') ||
-                    target.closest('[data-baseweb="tab"]') ||
-                    target.closest('[data-baseweb="select"]') ||
-                    target.closest('[data-testid="stSelectbox"]')
-                ) {
-                    pill.classList.add("visible");
-                    setTimeout(() => {
-                        pill.classList.remove("visible");
-                    }, 4000);
-                }
-            }, true);
+            // Safe, non-interfering user interaction listener (bubbling phase, never blocks clicks)
+            if (!pWin._coripetSafeClickListenerAttached) {
+                pWin._coripetSafeClickListenerAttached = true;
+                pDoc.addEventListener("click", (e) => {
+                    try {
+                        const elem = (e.target && e.target instanceof Element) ? e.target : (e.target ? e.target.parentElement : null);
+                        if (!elem) return;
+                        if (
+                            elem.closest('button') ||
+                            elem.closest('[data-testid="stSegmentedControl"]') ||
+                            elem.closest('[data-baseweb="select"]') ||
+                            elem.closest('[data-testid="stSelectbox"]')
+                        ) {
+                            const p = pDoc.getElementById("coripet-waiting-pill");
+                            if (p) {
+                                p.classList.add("visible");
+                                setTimeout(() => { p.classList.remove("visible"); }, 3500);
+                            }
+                        }
+                    } catch(err) {}
+                }, false);
+            }
         })();
     })();
     </script>

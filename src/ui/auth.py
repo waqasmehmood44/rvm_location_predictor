@@ -195,9 +195,9 @@ def require_auth() -> bool:
             background: transparent !important;
             z-index: 999990 !important;
             pointer-events: none !important;
-        }
-        header[data-testid="stHeader"] > * {
-            pointer-events: auto !important;
+            height: 0px !important;
+            min-height: 0px !important;
+            overflow: visible !important;
         }
         div[data-testid="stStatusWidget"],
         .stStatusWidget {
