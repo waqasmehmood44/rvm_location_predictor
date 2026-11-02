@@ -1054,32 +1054,44 @@ def render_fleet_benchmark_submodule(
                 unsafe_allow_html=True
             )
 
-        # Operational Crash Diagnostics Notes
-        drivers = []
-        if crash_drop_pct <= -50.0:
-            drivers.append(
-                f"<b>🚨 Critical Volume Collapse ({crash_drop_pct:.1f}%):</b> Machine collection collapsed from historical baseline of <b>{hist_daily_med:.0f} b/d</b> down to <b>{hist_recent_30d:.0f} b/d</b>, representing an acute net loss of <b>-{daily_vol_lost:,.0f} bottles/day (-{monthly_vol_lost:,.0f} b/mo)</b>."
-            )
-        else:
-            drivers.append(
-                f"<b>⚠️ Downward Performance Drop ({crash_drop_pct:.1f}%):</b> Machine is running significantly below baseline (<b>{hist_daily_med:.0f} b/d → {hist_recent_30d:.0f} b/d</b>), producing an operational deficit of <b>-{daily_vol_lost:,.0f} b/d</b>."
-            )
-        if hist_zero_days >= 3:
-            drivers.append(
-                f"<b>🛑 Chronic Downtime & Outage Exposure:</b> Unit logged <b>{hist_zero_days} zero-collection days ({hist_zero_pct:.1f}% downtime)</b> across its operational lifecycle, pointing to unserviced bin choke, sensor failure, or store offline intervals."
-            )
-        if hist_mach in ["DAINT_A-bis", "DAINT_B-bis", "Eurven Greeny"] and hist_daily_med >= 300:
-            drivers.append(
-                f"<b>📦 Physical Capacity Bottleneck:</b> Installed model <code>{hist_mach}</code> has a low bin capacity (300–500 bottles). Sustained demand routinely fills the bin before logistics collection, causing recurring dropouts."
-            )
-        narrative_html = "<br><br>".join([f"&bull; {d}" for d in drivers])
+        # Look up certified diagnostic root cause from certified fleet
+        df_crash_meta = load_performance_drop_fleet()
+        matched_crash = None
+        if not df_crash_meta.empty and "PF" in df_crash_meta.columns:
+            m_match = df_crash_meta[(df_crash_meta["PF"] == str(hist.get("pf", ""))) | (df_crash_meta["macchina"] == str(hist.get("macchina", "")))]
+            if not m_match.empty:
+                matched_crash = m_match.iloc[0]
+
+        crash_reason_title = matched_crash.get("Root_Cause_Diagnostic", "Defective Hardware / Prolonged Offline Outage") if matched_crash is not None else "Defective Hardware / Prolonged Offline Outage"
+        crash_reason_text = matched_crash.get("Root_Cause_Detail", "") if matched_crash is not None else ""
+        if not crash_reason_text:
+            if hist_zero_days >= 10:
+                crash_reason_text = f"Machine logged {hist_zero_days} zero-collection days ({hist_zero_pct:.1f}% downtime). Unit is offline or suffering chronic component/sensor failure."
+            elif crash_drop_pct <= -50.0:
+                crash_reason_text = f"Collection suffered a severe collapse of {abs(crash_drop_pct):.1f}% vs baseline (falling from {hist_daily_med:.0f} to {hist_recent_30d:.0f} b/d). Operational inspection required."
+            else:
+                crash_reason_text = f"Collection declined by {abs(crash_drop_pct):.1f}% vs historical baseline, creating an ongoing daily volume deficit of -{daily_vol_lost:.0f} b/d."
+
         st.markdown(
             f"""
-            <div style="background: rgba(30, 41, 59, 0.70); border: 1px solid rgba(239, 68, 68, 0.25); border-left: 4px solid #ef4444; border-radius: 8px; padding: 14px 16px; margin: 14px 0 18px 0; font-size: 0.85rem; color: #cbd5e1; line-height: 1.55;">
-                <div style="font-weight: 700; color: #f8fafc; margin-bottom: 6px; font-size: 0.90rem;">
-                    ⚠️ Operational Crash & Root Cause Diagnostics
+            <div style="background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(239, 68, 68, 0.40); border-left: 5px solid #ef4444; border-radius: 8px; padding: 16px 20px; margin: 12px 0 16px 0; box-shadow: 0 4px 14px rgba(0,0,0,0.25);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                    <span style="font-weight: 800; font-size: 1.02rem; color: #f87171;">
+                        🔍 Identified Machine Crash Reason & Operational Root Cause
+                    </span>
+                    <span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.80rem;">
+                        {crash_reason_title}
+                    </span>
                 </div>
-                {narrative_html}
+                <div style="font-size: 0.90rem; color: #f1f5f9; line-height: 1.6; margin-bottom: 8px;">
+                    <b>Field Diagnosis:</b> {crash_reason_text}
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; font-size: 0.82rem; color: #94a3b8; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 10px;">
+                    <div>Past Normal Baseline: <b style="color: #cbd5e1;">{hist_daily_med:.0f} b/d</b></div>
+                    <div>Current Crash Level: <b style="color: #f87171;">{hist_recent_30d:.0f} b/d ({crash_drop_pct:.1f}%)</b></div>
+                    <div>Daily Deficit: <b style="color: #ef4444;">-{daily_vol_lost:.0f} b/d</b></div>
+                    <div>Outage Dead Days: <b style="color: {'#ef4444' if hist_zero_days > 10 else '#fbbf24'};">{hist_zero_days} days ({hist_zero_pct:.1f}% downtime)</b></div>
+                </div>
             </div>
             """,
             unsafe_allow_html=True
@@ -1476,9 +1488,9 @@ def render_fleet_benchmark_submodule(
 @st.cache_data(ttl=300, show_spinner=False)
 def load_performance_drop_fleet() -> pd.DataFrame:
     """
-    Loads machine-level performance telemetry across the fleet.
-    Strictly filters to machines experiencing downward performance drops and crashes (drop_pct <= -15.0%, vol_lost > 0).
-    Excludes all machines with zero drop, steady-state, or positive growth (no upsides).
+    Loads certified ground-truth machine-level performance telemetry across the fleet.
+    Strictly filters to machines experiencing sustained downward crashes with zero recovery / no upsides.
+    Specifies verified root causes (downtime outages, capacity chokes, footfall collapse, promotion expiration).
     """
     import unicodedata
     def _clean_str(val):
@@ -1488,10 +1500,35 @@ def load_performance_drop_fleet() -> pd.DataFrame:
         s = unicodedata.normalize("NFKD", s)
         return "".join(c for c in s if not unicodedata.combining(c)).strip()
 
-    csv_path = ROOT_DIR / "data" / "reports" / "defected_and_outlier_machines.csv"
+    csv_path = ROOT_DIR / "data" / "reports" / "certified_crashing_machines.csv"
     if csv_path.exists():
         try:
             df = pd.read_csv(csv_path)
+            if not df.empty and "Baseline_Daily" in df.columns and "Recent_Daily" in df.columns:
+                df = df.copy()
+                df["Median_Bottles_Daily"] = df["Baseline_Daily"].fillna(0.0).astype(float)
+                df["Recent_30d_Median"] = df["Recent_Daily"].fillna(0.0).astype(float)
+                df["drop_pct"] = df["drop_pct"].fillna(0.0).astype(float)
+                df["vol_lost"] = df["vol_lost"].fillna(0.0).astype(float)
+                df["Root_Cause_Diagnostic"] = df["Reason_Category"].fillna("📉 Downward Performance Crash")
+                df["Root_Cause_Detail"] = df["Reason_Detail"].fillna("Sustained downward performance collapse without recovery.")
+
+                for c in ["Store_Banner", "Comune", "Regione"]:
+                    if c in df.columns:
+                        df[c] = df[c].apply(_clean_str)
+
+                # Ensure strictly downward crashing units only
+                df = df[(df["drop_pct"] <= -20.0) & (df["vol_lost"] > 0)].copy()
+                df = df.sort_values(["drop_pct", "vol_lost"], ascending=[True, False]).reset_index(drop=True)
+                return df
+        except Exception:
+            pass
+
+    # Fallback to defected machines CSV if certified CSV not found
+    old_csv_path = ROOT_DIR / "data" / "reports" / "defected_and_outlier_machines.csv"
+    if old_csv_path.exists():
+        try:
+            df = pd.read_csv(old_csv_path)
             if not df.empty and "Median_Bottles_Daily" in df.columns and "Recent_30d_Median" in df.columns:
                 df = df.copy()
                 df["Median_Bottles_Daily"] = df["Median_Bottles_Daily"].fillna(0.0).astype(float)
@@ -1502,66 +1539,28 @@ def load_performance_drop_fleet() -> pd.DataFrame:
                     0.0
                 )
                 df["vol_lost"] = df["Median_Bottles_Daily"] - df["Recent_30d_Median"]
+                df["Root_Cause_Diagnostic"] = df.get("Anomaly_Classification", "PERFORMANCE_DROP")
+                df["Root_Cause_Detail"] = df.get("Recommended_Action", "Significant operational drop detected.")
 
                 for c in ["Store_Banner", "Comune", "Regione"]:
                     if c in df.columns:
                         df[c] = df[c].apply(_clean_str)
 
-                # STRICT CRASH FILTER: downward collapse only, no upsides
-                df = df[(df["drop_pct"] <= -15.0) & (df["Median_Bottles_Daily"] >= 30.0) & (df["vol_lost"] > 0)].copy()
+                df = df[(df["drop_pct"] <= -20.0) & (df["Median_Bottles_Daily"] >= 30.0) & (df["vol_lost"] > 0)].copy()
                 df = df.sort_values(["drop_pct", "vol_lost"], ascending=[True, False]).reset_index(drop=True)
                 return df
         except Exception:
             pass
 
-    try:
-        engine = get_db_engine()
-        query = """
-            SELECT 
-                pf as PF,
-                MAX(cliente) as Store_Banner,
-                MAX(comune) as Comune,
-                MAX(regione) as Regione,
-                MAX(tipomacchina) as TipoMacchina,
-                COUNT(*) as Operational_Days,
-                AVG(bottiglie) as Median_Bottles_Daily,
-                AVG(CASE WHEN giorno_dt >= DATE('now', '-30 days') THEN bottiglie END) as Recent_30d_Median
-            FROM master_daily_rvm
-            GROUP BY pf
-            HAVING COUNT(*) >= 30;
-        """
-        with engine.connect() as conn:
-            df = pd.read_sql(query, conn)
-        df["Median_Bottles_Daily"] = df["Median_Bottles_Daily"].fillna(0.0).astype(float)
-        df["Recent_30d_Median"] = df["Recent_30d_Median"].fillna(0.0).astype(float)
-        df["drop_pct"] = np.where(
-            df["Median_Bottles_Daily"] > 0,
-            ((df["Recent_30d_Median"] - df["Median_Bottles_Daily"]) / df["Median_Bottles_Daily"]) * 100.0,
-            0.0
-        )
-        df["vol_lost"] = df["Median_Bottles_Daily"] - df["Recent_30d_Median"]
-        df["Anomaly_Classification"] = np.where(df["drop_pct"] <= -50.0, "DEFECTIVE_OFFLINE", "PERFORMANCE_DROP")
-        df["Recommended_Action"] = "Field Inspection Required: Significant operational volume drop detected."
-
-        for c in ["Store_Banner", "Comune", "Regione"]:
-            if c in df.columns:
-                df[c] = df[c].apply(_clean_str)
-
-        # STRICT CRASH FILTER: downward collapse only, no upsides
-        df = df[(df["drop_pct"] <= -15.0) & (df["Median_Bottles_Daily"] >= 30.0) & (df["vol_lost"] > 0)].copy()
-        df = df.sort_values(["drop_pct", "vol_lost"], ascending=[True, False]).reset_index(drop=True)
-        return df
-    except Exception:
-        return pd.DataFrame()
+    return pd.DataFrame()
 
 
 def render_performance_drops_section(all_machines: List[Dict[str, str]], active_mach_current: Optional[str] = None) -> Optional[str]:
     """
     Renders fleet performance drop directory cleanly:
+    - Dedicated crash identification for machines going downward with zero upsides.
+    - Explicit diagnosis and root-cause reasons explaining why each machine crashed.
     - Action button column is placed and pinned/stuck directly at the START (left) of the table.
-    - Button remains fixed and never moves when the user scrolls horizontally across the columns.
-    - Explicit comfortable column pixel widths so NO text is truncated.
-    - Seamless 1-click inspection that immediately loads dedicated crash telemetry below.
     """
     st.markdown(
         """
@@ -1594,21 +1593,33 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         st.info("No historical fleet audit telemetry available.")
         return None
 
-    # Filter controls: search and drop severity filter
-    c_f1, c_f2 = st.columns([3, 2])
+    # Filter controls: search, severity, and root cause reason
+    c_f1, c_f2, c_f3 = st.columns([2.5, 1.8, 2.2])
     with c_f1:
         search_kw = st.text_input("🔍 Search Store, City, or Machine ID (PF):", "", placeholder="e.g. Piccolo, Asti, MC...", key="drop_search_kw").strip()
     with c_f2:
         sev_choice = st.selectbox(
             "Filter by Crash Severity:",
             options=[
-                "🚨 All Downward Crashes (≥ 15% drop)",
+                "🚨 All Confirmed Crashes",
                 "🔴 Critical Collapse (≥ 50% drop)",
                 "🟠 Severe Decline (30%–50% drop)",
-                "🟡 Significant Decline (15%–30% drop)"
+                "🟡 Significant Decline (20%–30% drop)"
             ],
             index=0,
             key="drop_sev_choice"
+        )
+    with c_f3:
+        reason_opts = ["All Crash Causes"]
+        if "Reason_Category" in df_fleet.columns:
+            for r_cat in df_fleet["Reason_Category"].dropna().unique():
+                if r_cat and r_cat not in reason_opts:
+                    reason_opts.append(r_cat)
+        cause_choice = st.selectbox(
+            "Filter by Root Cause Reason:",
+            options=reason_opts,
+            index=0,
+            key="drop_cause_choice"
         )
 
     # Base mask: strict crash filtering (no upsides)
@@ -1617,10 +1628,13 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         mask = (df_fleet["drop_pct"] <= -50.0)
     elif "30%–50%" in sev_choice:
         mask = (df_fleet["drop_pct"] > -50.0) & (df_fleet["drop_pct"] <= -30.0)
-    elif "15%–30%" in sev_choice:
-        mask = (df_fleet["drop_pct"] > -30.0) & (df_fleet["drop_pct"] <= -15.0)
+    elif "20%–30%" in sev_choice:
+        mask = (df_fleet["drop_pct"] > -30.0) & (df_fleet["drop_pct"] <= -20.0)
     else:
-        mask = (df_fleet["drop_pct"] <= -15.0)
+        mask = (df_fleet["drop_pct"] <= -20.0)
+
+    if cause_choice != "All Crash Causes" and "Reason_Category" in df_fleet.columns:
+        mask = mask & (df_fleet["Reason_Category"] == cause_choice)
 
     if search_kw:
         kw = search_kw.lower()
@@ -1683,48 +1697,35 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
     with c_m4:
         st.markdown(
             f"""<div style="{card_style} border-top: 3px solid #38bdf8;">
-                <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Daily Volume Deficit</span>
+                <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Total Daily Lost Volume</span>
                 <div style="font-size: 1.55rem; font-weight: 800; color: #38bdf8; margin: 6px 0 2px 0;">-{tot_vol_lost:,} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">b/d</span></div>
-                <div style="font-size: 0.73rem; color: #64748b;">Fleet-wide lost intake</div>
+                <div style="font-size: 0.73rem; color: #64748b;">Fleet network deficit</div>
             </div>""", unsafe_allow_html=True
         )
 
-    # Summary Filter Info Banner matching tab theme
+    # Summary Filter Info Banner
     st.markdown(
         f"""
         <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-left: 4px solid #ef4444; padding: 8px 14px; border-radius: 6px; margin: 12px 0 10px 0; font-size: 0.84rem; color: #cbd5e1;">
-            <b>Operational Performance Drops & Crashes:</b> <span style="color: #f87171; font-weight: 700;">{sev_choice}</span> &bull; 
+            <b>Operational Performance Drops Audit:</b> <span style="color: #f87171; font-weight: 700;">{sev_choice}</span> &bull; 
+            Cause: <span style="color: #fbbf24; font-weight: 700;">{cause_choice}</span> &bull; 
             Auditing <strong style="color: #f8fafc;">{len(filtered_df):,}</strong> machines whose collection has crashed vs historical baseline (no upsides).
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    # Build tailored diagnostics and drop status with concise, readable text
     def format_drop_severity(row):
         dp = float(row.get("drop_pct", 0.0) or 0.0)
         if dp <= -50.0:
             return "🔴 Collapse"
         elif dp <= -30.0:
             return "🟠 Severe"
-        elif dp <= -15.0:
-            return "🟡 Moderate"
+        elif dp <= -20.0:
+            return "🟡 Decline"
         return "🟢 Stable"
 
-    def summarize_root_cause(row):
-        max_z = int(row.get("Max_Consecutive_Zero_Days", 0) or 0)
-        rec_z = float(row.get("Recent_Zero_Rate_Pct", 0.0) or 0.0)
-        anom = str(row.get("Anomaly_Classification", "PERFORMANCE_DROP"))
-        if max_z >= 3:
-            return f"Offline: {max_z} zero-days streak ({rec_z:.1f}% zeros)"
-        elif "BOTTLENECK" in anom:
-            return "Capacity Choke / Bin Full"
-        elif "VOLATILITY" in anom:
-            return "High Volatility Collapse"
-        return "Retail Traffic Decline"
-
     filtered_df["Drop_Severity_Status"] = filtered_df.apply(format_drop_severity, axis=1)
-    filtered_df["Root_Cause_Diagnostic"] = filtered_df.apply(summarize_root_cause, axis=1)
 
     cur_sel = st.session_state.get("selected_telemetry_machine") or active_mach_current
     if not cur_sel or cur_sel not in filtered_df["PF"].values:
@@ -1761,18 +1762,18 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
                 width=115,
                 pinned=True,
                 type="primary",
-                help="Click Inspect to load this machine's dedicated crash telemetry and deficit breakdown below",
+                help="Click Inspect to load this machine's dedicated crash telemetry and root cause diagnostics below",
                 key="drop_table_inspect_btn"
             ),
             "Drop_Severity_Status": st.column_config.TextColumn("Status", width=105),
             "Store_Banner": st.column_config.TextColumn("Store Banner", width=180),
-            "Comune": st.column_config.TextColumn("Comune", width=160),
-            "Regione": st.column_config.TextColumn("Regione", width=115),
+            "Comune": st.column_config.TextColumn("Comune", width=150),
+            "Regione": st.column_config.TextColumn("Regione", width=110),
             "Median_Bottles_Daily": st.column_config.NumberColumn("Past Baseline", format="%d b/d", width=110),
-            "Recent_30d_Median": st.column_config.NumberColumn("Recent 30D", format="%d b/d", width=105),
+            "Recent_30d_Median": st.column_config.NumberColumn("Recent Velocity", format="%d b/d", width=115),
             "drop_pct": st.column_config.NumberColumn("Drop %", format="%.1f%%", width=95),
             "vol_lost": st.column_config.NumberColumn("Daily Loss", format="-%d b/d", width=105),
-            "Root_Cause_Diagnostic": st.column_config.TextColumn("Diagnostic / Cause", width=270),
+            "Root_Cause_Diagnostic": st.column_config.TextColumn("Identified Root Cause", width=280),
             "TipoMacchina": st.column_config.TextColumn("Hardware Model", width=125),
             "PF": st.column_config.TextColumn("Machine ID", width=130)
         }
@@ -1789,14 +1790,15 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
                 <div style="font-size: 0.95rem; font-weight: 700; color: #f8fafc; margin-top: 2px;">
                     📍 <span style="color: #38bdf8;">{cur_row['Store_Banner']}</span> ({cur_row['Comune']}, {cur_row['Regione']}) 
                     &bull; ID: <code>{cur_row['PF']}</code> 
-                    &bull; Past Baseline: <b style="color: #94a3b8;">{cur_row['Median_Bottles_Daily']:.0f} b/d</b> 
+                    &bull; Baseline: <b style="color: #94a3b8;">{cur_row['Median_Bottles_Daily']:.0f} b/d</b> 
                     &bull; Recent: <b style="color: #f87171;">{cur_row['Recent_30d_Median']:.0f} b/d</b> 
                     (<span style="color: #ef4444; font-weight: 800;">{cur_row['drop_pct']:.1f}%</span>)
-                    &bull; Daily Deficit: <b style="color: #ef4444;">-{cur_row['vol_lost']:.0f} b/d</b>
+                    &bull; Deficit: <b style="color: #ef4444;">-{cur_row['vol_lost']:.0f} b/d</b>
+                    &bull; Cause: <span style="color: #fbbf24; font-weight: 700;">{cur_row['Root_Cause_Diagnostic']}</span>
                 </div>
             </div>
             <span style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 5px 12px; border-radius: 4px; font-size: 0.76rem; font-weight: 800;">
-                CRASH TELEMETRY & DEFICIT ACTIVE BELOW ⬇️
+                CRASH TELEMETRY & ROOT CAUSE ACTIVE BELOW ⬇️
             </span>
         </div>
         """,
@@ -1808,7 +1810,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
     machine_options = []
     pf_to_row = {}
     for _, r in filtered_df.iterrows():
-        opt_label = f"{r['Store_Banner']} ({r['Comune']}, {r['Regione']}) — [Drop: {r['drop_pct']:.1f}% | Baseline: {r['Median_Bottles_Daily']:.0f} b/d → Recent: {r['Recent_30d_Median']:.0f} b/d | ID: {r['PF']}]"
+        opt_label = f"{r['Store_Banner']} ({r['Comune']}, {r['Regione']}) — [Drop: {r['drop_pct']:.1f}% | Cause: {r['Root_Cause_Diagnostic']} | ID: {r['PF']}]"
         machine_options.append(opt_label)
         pf_to_row[opt_label] = r
 
@@ -1845,7 +1847,6 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
             st.session_state["selected_telemetry_machine"] = cur_sel
 
     return cur_sel
-
 
 def render_historical_vs_prediction_section(
     res: Optional[Dict[str, Any]] = None,
