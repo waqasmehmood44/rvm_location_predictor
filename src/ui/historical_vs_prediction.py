@@ -1489,8 +1489,11 @@ def render_fleet_benchmark_submodule(
 def load_performance_drop_fleet() -> pd.DataFrame:
     """
     Loads certified ground-truth machine-level performance telemetry across the fleet.
-    Strictly filters to machines experiencing sustained downward crashes with zero recovery / no upsides.
-    Specifies verified root causes (downtime outages, capacity chokes, footfall collapse, promotion expiration).
+    Strictly filters against mt_CaricaViewStoricoPuntoFisico API:
+    - Verifies 'DataFineRange' against the latest active date snapshot
+    - Only includes currently operational machines with 'Stato' == 'ATTVO'
+    - Strictly excludes decommissioned (DISATT), potential (POT), or survey (SPL) machines
+    - Isolates machines experiencing sustained downward performance crashes with zero upsides.
     """
     import unicodedata
     def _clean_str(val):
@@ -1499,6 +1502,37 @@ def load_performance_drop_fleet() -> pd.DataFrame:
         s = str(val).replace("\ufffd", "").replace("", "")
         s = unicodedata.normalize("NFKD", s)
         return "".join(c for c in s if not unicodedata.combining(c)).strip()
+
+    # Query API / local store master to get latest active snapshot
+    active_pfs = set()
+    active_machs = set()
+    pf_to_stato = {}
+    pf_to_end = {}
+    pf_to_desc = {}
+    latest_date_str = ""
+
+    try:
+        from src.ui.app import fetch_raw_coripet_machines
+        df_api, _ = fetch_raw_coripet_machines()
+        if not df_api.empty and "DataFineRange" in df_api.columns and "Stato" in df_api.columns:
+            df_api = df_api.copy()
+            df_api["dt_fine"] = pd.to_datetime(df_api["DataFineRange"], format="%d/%m/%Y", errors="coerce")
+            max_dt = df_api["dt_fine"].max()
+            if pd.notna(max_dt):
+                latest_date_str = max_dt.strftime("%d/%m/%Y")
+            df_api["Stato_Clean"] = df_api["Stato"].astype(str).str.upper().str.strip()
+            
+            # Active snapshot: DataFineRange == max_dt AND Stato == 'ATTVO'
+            active_api = df_api[(df_api["dt_fine"] == max_dt) & (df_api["Stato_Clean"] == "ATTVO")].drop_duplicates("PuntoFisico", keep="last")
+            active_pfs = set(active_api["PuntoFisico"].dropna().astype(str).str.strip().unique())
+            if "Macchina" in active_api.columns:
+                active_machs = set(active_api["Macchina"].dropna().astype(str).str.strip().unique())
+            pf_to_stato = active_api.set_index("PuntoFisico")["Stato"].to_dict()
+            pf_to_end = active_api.set_index("PuntoFisico")["DataFineRange"].to_dict()
+            if "Descrizione" in active_api.columns:
+                pf_to_desc = active_api.set_index("PuntoFisico")["Descrizione"].to_dict()
+    except Exception:
+        pass
 
     csv_path = ROOT_DIR / "data" / "reports" / "certified_crashing_machines.csv"
     if csv_path.exists():
@@ -1513,11 +1547,31 @@ def load_performance_drop_fleet() -> pd.DataFrame:
                 df["Root_Cause_Diagnostic"] = df["Reason_Category"].fillna("📉 Downward Performance Crash")
                 df["Root_Cause_Detail"] = df["Reason_Detail"].fillna("Sustained downward performance collapse without recovery.")
 
-                if "Descrizione" not in df.columns:
-                    df["Descrizione"] = df.get("Store_Banner", "") + " " + df.get("Comune", "")
-                df["Descrizione"] = df["Descrizione"].fillna("").astype(str)
+                # If active_pfs from API was populated, enforce filter
+                if active_pfs:
+                    is_active_mask = (
+                        df["PF"].astype(str).str.strip().isin(active_pfs) |
+                        (df["macchina"].astype(str).str.strip().isin(active_machs) if "macchina" in df.columns else False)
+                    )
+                    df = df[is_active_mask].copy()
 
-                for c in ["Store_Banner", "Comune", "Regione", "Descrizione"]:
+                # Add and populate API Stato and DataFineRange
+                if "Stato" not in df.columns:
+                    df["Stato"] = "ATTVO"
+                if pf_to_stato:
+                    df["Stato"] = df["PF"].map(pf_to_stato).fillna(df["Stato"])
+                
+                if "DataFineRange" not in df.columns:
+                    df["DataFineRange"] = latest_date_str
+                if pf_to_end:
+                    df["DataFineRange"] = df["PF"].map(pf_to_end).fillna(df["DataFineRange"])
+
+                if "Descrizione" not in df.columns:
+                    df["Descrizione"] = ""
+                if pf_to_desc:
+                    df["Descrizione"] = df["Descrizione"].replace("", np.nan).fillna(df["PF"].map(pf_to_desc)).fillna("")
+
+                for c in ["Store_Banner", "Comune", "Regione", "Descrizione", "Stato", "DataFineRange"]:
                     if c in df.columns:
                         df[c] = df[c].apply(_clean_str)
 
@@ -1546,11 +1600,29 @@ def load_performance_drop_fleet() -> pd.DataFrame:
                 df["Root_Cause_Diagnostic"] = df.get("Anomaly_Classification", "PERFORMANCE_DROP")
                 df["Root_Cause_Detail"] = df.get("Recommended_Action", "Significant operational drop detected.")
 
-                if "Descrizione" not in df.columns:
-                    df["Descrizione"] = df.get("Store_Banner", "") + " " + df.get("Comune", "")
-                df["Descrizione"] = df["Descrizione"].fillna("").astype(str)
+                if active_pfs:
+                    is_active_mask = (
+                        df["PF"].astype(str).str.strip().isin(active_pfs) |
+                        (df["macchina"].astype(str).str.strip().isin(active_machs) if "macchina" in df.columns else False)
+                    )
+                    df = df[is_active_mask].copy()
 
-                for c in ["Store_Banner", "Comune", "Regione", "Descrizione"]:
+                if "Stato" not in df.columns:
+                    df["Stato"] = "ATTVO"
+                if pf_to_stato:
+                    df["Stato"] = df["PF"].map(pf_to_stato).fillna(df["Stato"])
+                
+                if "DataFineRange" not in df.columns:
+                    df["DataFineRange"] = latest_date_str
+                if pf_to_end:
+                    df["DataFineRange"] = df["PF"].map(pf_to_end).fillna(df["DataFineRange"])
+
+                if "Descrizione" not in df.columns:
+                    df["Descrizione"] = ""
+                if pf_to_desc:
+                    df["Descrizione"] = df["Descrizione"].replace("", np.nan).fillna(df["PF"].map(pf_to_desc)).fillna("")
+
+                for c in ["Store_Banner", "Comune", "Regione", "Descrizione", "Stato", "DataFineRange"]:
                     if c in df.columns:
                         df[c] = df[c].apply(_clean_str)
 
@@ -1651,7 +1723,8 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
             df_fleet.get("Descrizione", pd.Series("", index=df_fleet.index)).astype(str).str.lower().str.contains(kw) |
             df_fleet["Store_Banner"].astype(str).str.lower().str.contains(kw) |
             df_fleet["Comune"].astype(str).str.lower().str.contains(kw) |
-            df_fleet["Regione"].astype(str).str.lower().str.contains(kw)
+            df_fleet["Regione"].astype(str).str.lower().str.contains(kw) |
+            df_fleet.get("DataFineRange", pd.Series("", index=df_fleet.index)).astype(str).str.lower().str.contains(kw)
         )
         mask = mask & kw_mask
 
@@ -1684,7 +1757,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
             f"""<div style="{card_style} border-top: 3px solid #ef4444;">
                 <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Crashed Machines</span>
                 <div style="font-size: 1.55rem; font-weight: 800; color: #f87171; margin: 6px 0 2px 0;">{total_dropped:,} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">units</span></div>
-                <div style="font-size: 0.73rem; color: #64748b;">Downward deficit only</div>
+                <div style="font-size: 0.73rem; color: #22c55e; font-weight: 700;">🟢 Strictly ATTVO in service</div>
             </div>""", unsafe_allow_html=True
         )
     with c_m2:
@@ -1713,12 +1786,14 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         )
 
     # Summary Filter Info Banner
+    active_range_lbl = filtered_df["DataFineRange"].iloc[0] if "DataFineRange" in filtered_df.columns and not filtered_df.empty and filtered_df["DataFineRange"].iloc[0] else "Current Active Snapshot"
     st.markdown(
         f"""
         <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-left: 4px solid #ef4444; padding: 8px 14px; border-radius: 6px; margin: 12px 0 10px 0; font-size: 0.84rem; color: #cbd5e1;">
             <b>Operational Performance Drops Audit:</b> <span style="color: #f87171; font-weight: 700;">{sev_choice}</span> &bull; 
             Cause: <span style="color: #fbbf24; font-weight: 700;">{cause_choice}</span> &bull; 
-            Auditing <strong style="color: #f8fafc;">{len(filtered_df):,}</strong> machines whose collection has crashed vs historical baseline (no upsides).
+            API Status: <span style="color: #22c55e; font-weight: 700;">🟢 ATTVO Only (Valid Through: {active_range_lbl})</span> &bull; 
+            Auditing <strong style="color: #f8fafc;">{len(filtered_df):,}</strong> live operational machines whose collection has crashed vs baseline (no decommissioned units).
         </div>
         """,
         unsafe_allow_html=True
@@ -1757,6 +1832,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         "drop_pct",
         "vol_lost",
         "Root_Cause_Diagnostic",
+        "DataFineRange",
         "TipoMacchina",
         "PF"
     ]
@@ -1785,6 +1861,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
             "drop_pct": st.column_config.NumberColumn("Drop %", format="%.1f%%", width=95),
             "vol_lost": st.column_config.NumberColumn("Daily Loss", format="-%d b/d", width=105),
             "Root_Cause_Diagnostic": st.column_config.TextColumn("Identified Root Cause", width=280),
+            "DataFineRange": st.column_config.TextColumn("Active Through", width=115, help="Validity end date from mt_CaricaViewStoricoPuntoFisico (Strictly ATTVO snapshot)"),
             "TipoMacchina": st.column_config.TextColumn("Hardware Model", width=125),
             "PF": st.column_config.TextColumn("Machine ID", width=130)
         }
@@ -1801,6 +1878,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
                 <div style="font-size: 0.95rem; font-weight: 700; color: #f8fafc; margin-top: 2px;">
                     📍 <span style="color: #38bdf8;">{cur_row['Store_Banner']}</span> &bull; <i>{cur_row.get('Descrizione', '')}</i> ({cur_row['Comune']}, {cur_row['Regione']}) 
                     &bull; ID: <code>{cur_row['PF']}</code> 
+                    &bull; API: <span style="color: #22c55e; font-weight: 700;">🟢 ATTVO</span> <span style="color: #94a3b8; font-size: 0.80rem;">(Thru {cur_row.get('DataFineRange', '')})</span>
                     &bull; Baseline: <b style="color: #94a3b8;">{cur_row['Median_Bottles_Daily']:.0f} b/d</b> 
                     &bull; Recent: <b style="color: #f87171;">{cur_row['Recent_30d_Median']:.0f} b/d</b> 
                     (<span style="color: #ef4444; font-weight: 800;">{cur_row['drop_pct']:.1f}%</span>)
@@ -1822,7 +1900,8 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
     pf_to_row = {}
     for _, r in filtered_df.iterrows():
         desc_str = f" — {r['Descrizione']}" if r.get("Descrizione") else ""
-        opt_label = f"{r['Store_Banner']}{desc_str} ({r['Comune']}, {r['Regione']}) — [Drop: {r['drop_pct']:.1f}% | Cause: {r['Root_Cause_Diagnostic']} | ID: {r['PF']}]"
+        end_str = f" | 🟢 ATTVO ({r.get('DataFineRange', '')})" if r.get("DataFineRange") else " | 🟢 ATTVO"
+        opt_label = f"{r['Store_Banner']}{desc_str} ({r['Comune']}, {r['Regione']}) — [Drop: {r['drop_pct']:.1f}% | Cause: {r['Root_Cause_Diagnostic']}{end_str} | ID: {r['PF']}]"
         machine_options.append(opt_label)
         pf_to_row[opt_label] = r
 
