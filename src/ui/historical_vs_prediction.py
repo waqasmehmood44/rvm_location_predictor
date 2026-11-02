@@ -1112,62 +1112,38 @@ def render_fleet_benchmark_submodule(
             unsafe_allow_html=True
         )
 
-        # Direct Side-by-Side Graphs: Past 2-Year Trend vs Daily Crash Timeline (NO UPSIDE CURVE)
+        # Dedicated Crash Trajectory Visualizer: Daily Rolling Trend Collapse & Outages (Full Width)
         st.markdown("#### 📉 Machine Crash Diagnostics & Deficit Breakdown")
-        max_past_daily = float(hist["monthly_agg"]["median_daily"].max()) if not hist["monthly_agg"].empty else float(hist["median_daily"])
-        max_daily_roll = float(hist["df_daily"]["roll_30d"].max()) if not hist["df_daily"].empty else max_past_daily
-        common_y_max = float(max(max_past_daily, max_daily_roll, 100.0) * 1.15)
+        max_daily_roll = float(hist["df_daily"]["roll_30d"].max()) if not hist["df_daily"].empty else float(hist["median_daily"])
+        if not hist["df_daily"].empty and "roll_7d" in hist["df_daily"].columns:
+            max_7d_roll = float(hist["df_daily"]["roll_7d"].max())
+            max_daily_roll = max(max_daily_roll, max_7d_roll)
+        common_y_max = float(max(max_daily_roll, hist["median_daily"], 100.0) * 1.15)
 
-        col_g_past, col_g_future = st.columns(2)
-        with col_g_past:
-            st.markdown(
-                f"""
-                <div style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.08); border-top: 3px solid #0284c7; border-radius: 10px; padding: 12px 16px; margin-bottom: 6px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 0.95rem; font-weight: 800; color: #38bdf8;">
-                            🕰️ Historical Intake: Bottles per Day (Last 2 Years)
-                        </span>
-                        <span style="font-size: 0.72rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); padding: 2px 7px; border-radius: 4px; font-weight: 700;">
-                            FIELD REALITY (b/d)
-                        </span>
-                    </div>
-                    <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 4px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-                        <span>Daily Median: <b style="color: #f59e0b;">{hist_daily_med:.0f} b/d</b></span>
-                        <span>Power BI Media (Mean): <b style="color: #38bdf8;">{hist_daily_mean:.0f} b/d</b></span>
-                        <span>Recent 30d: <b style="color: #f87171;">{hist_recent_30d:.0f} b/d</b></span>
-                        <span>Downtime: <b style="color: {'#f87171' if hist_zero_pct > 5 else '#34d399'};">{hist_zero_pct:.1f}%</b></span>
-                    </div>
+        st.markdown(
+            f"""
+            <div style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.08); border-top: 3px solid #ef4444; border-radius: 10px; padding: 14px 18px; margin-bottom: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <span style="font-size: 1.05rem; font-weight: 800; color: #f87171;">
+                        📉 Crash Trajectory: Daily Rolling Velocity & Outages (Last 12 Months)
+                    </span>
+                    <span style="font-size: 0.74rem; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); padding: 3px 9px; border-radius: 4px; font-weight: 700;">
+                        CRASH DEFICIT TELEMETRY (b/d)
+                    </span>
                 </div>
-                """,
-                unsafe_allow_html=True
-            )
-            fig_past = build_past_daily_bottles_figure(hist, y_max=common_y_max, chart_height=380)
-            st.plotly_chart(fig_past, use_container_width=True, theme=None, config={"displayModeBar": False, "responsive": True}, key=f"plotly_past_daily_crash_{hist['macchina']}")
-
-        with col_g_future:
-            st.markdown(
-                f"""
-                <div style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.08); border-top: 3px solid #ef4444; border-radius: 10px; padding: 12px 16px; margin-bottom: 6px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 0.95rem; font-weight: 800; color: #f87171;">
-                            📉 Crash Trajectory: Daily Rolling Velocity & Outages (Last 12 Months)
-                        </span>
-                        <span style="font-size: 0.72rem; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); padding: 2px 7px; border-radius: 4px; font-weight: 700;">
-                            CRASH DEFICIT (b/d)
-                        </span>
-                    </div>
-                    <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 4px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-                        <span>Past Baseline: <b style="color: #fbbf24;">{hist_daily_med:.0f} b/d</b></span>
-                        <span>Recent Velocity: <b style="color: #f87171;">{hist_recent_30d:.0f} b/d</b></span>
-                        <span>Daily Deficit: <b style="color: #ef4444;">-{daily_vol_lost:.0f} b/d</b></span>
-                        <span>Dead Days: <b style="color: #f87171;">{hist_zero_days} days</b></span>
-                    </div>
+                <div style="font-size: 0.82rem; color: #94a3b8; margin-top: 6px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                    <span>Past Normal Baseline: <b style="color: #fbbf24;">{hist_daily_med:.0f} b/d</b></span>
+                    <span>Recent 30-Day Velocity: <b style="color: #f87171;">{hist_recent_30d:.0f} b/d ({crash_drop_pct:.1f}%)</b></span>
+                    <span>Daily Volume Lost: <b style="color: #ef4444;">-{daily_vol_lost:.0f} b/d</b></span>
+                    <span>Outage Downtime: <b style="color: {'#ef4444' if hist_zero_pct > 5 else '#34d399'};">{hist_zero_days} dead days ({hist_zero_pct:.1f}%)</b></span>
+                    <span>Power BI Historical Mean: <b style="color: #38bdf8;">{hist_daily_mean:.0f} b/d</b></span>
                 </div>
-                """,
-                unsafe_allow_html=True
-            )
-            fig_crash = build_crash_daily_trajectory_figure(hist, y_max=common_y_max, chart_height=380)
-            st.plotly_chart(fig_crash, use_container_width=True, theme=None, config={"displayModeBar": False, "responsive": True}, key=f"plotly_crash_trajectory_{hist['macchina']}")
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        fig_crash = build_crash_daily_trajectory_figure(hist, y_max=common_y_max, chart_height=420)
+        st.plotly_chart(fig_crash, use_container_width=True, theme=None, config={"displayModeBar": False, "responsive": True}, key=f"plotly_crash_trajectory_{hist['macchina']}")
 
         return
 
