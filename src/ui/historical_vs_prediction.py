@@ -499,6 +499,121 @@ def build_past_daily_bottles_figure(
     return fig
 
 
+def build_crash_daily_trajectory_figure(
+    hist_summary: Dict[str, Any],
+    y_max: Optional[float] = None,
+    chart_height: int = 380
+) -> go.Figure:
+    """
+    Builds a high-resolution crash diagnostics figure showing the daily rolling trend collapse,
+    baseline deficit, and zero-collection downtime outage markers.
+    Strictly focuses on downside performance drops with zero upside projections.
+    """
+    df = hist_summary.get("df_daily", pd.DataFrame()).copy()
+    if df.empty:
+        return go.Figure()
+
+    # Filter to last 12 months for high-definition crash inspection
+    last_date = df["giorno_dt"].max()
+    if pd.notna(last_date):
+        cutoff = last_date - pd.DateOffset(months=12)
+        df = df[df["giorno_dt"] >= cutoff].copy()
+
+    baseline_med = float(hist_summary.get("median_daily", 0.0))
+    fig = go.Figure()
+
+    # 1. 30-Day Rolling Daily Trend (Amber Area showing collapse)
+    fig.add_trace(
+        go.Scatter(
+            x=df["giorno_dt"],
+            y=df["roll_30d"],
+            mode="lines",
+            name="30-Day Sustained Velocity",
+            line=dict(color="#f97316", width=2.5),
+            fill="tozeroy",
+            fillcolor="rgba(249, 115, 22, 0.12)",
+            hovertemplate="<b>%{x|%d %b %Y} 30D Velocity:</b> %{y:,.1f} b/d<extra></extra>"
+        )
+    )
+
+    # 2. 7-Day Short-Term Velocity (Red/Rose Line)
+    fig.add_trace(
+        go.Scatter(
+            x=df["giorno_dt"],
+            y=df["roll_7d"],
+            mode="lines",
+            name="7-Day Rolling Velocity",
+            line=dict(color="#f43f5e", width=1.5, dash="dot"),
+            hovertemplate="<b>%{x|%d %b %Y} 7D Velocity:</b> %{y:,.1f} b/d<extra></extra>"
+        )
+    )
+
+    # 3. Baseline Reference Line
+    fig.add_hline(
+        y=baseline_med,
+        line_dash="dash",
+        line_color="#fbbf24",
+        line_width=1.8,
+        annotation_text=f"Baseline: {baseline_med:.0f} b/d",
+        annotation_position="top left",
+        annotation_font=dict(color="#fbbf24", size=10, family="Inter")
+    )
+
+    # 4. Zero-Collection Downtime Markers
+    df_zeros = df[df["is_zero"]].copy()
+    if not df_zeros.empty:
+        marker_y = max(3.0, baseline_med * 0.03)
+        fig.add_trace(
+            go.Scatter(
+                x=df_zeros["giorno_dt"],
+                y=[marker_y] * len(df_zeros),
+                mode="markers",
+                name="Zero-Intake Outage Day",
+                marker=dict(symbol="x", size=7, color="#ef4444", line=dict(width=1.8, color="#ffffff")),
+                hovertemplate="<b>%{x|%d %b %Y} Outage:</b> 0 bottles collected (Machine Down)<extra></extra>"
+            )
+        )
+
+    y_axis_dict = dict(
+        title=dict(text="Daily Bottles (b/d)", font=dict(color=TEXT_MUTED, size=11)),
+        showgrid=True,
+        gridcolor=GRID_COLOR,
+        tickfont=dict(size=10, color=TEXT_MUTED),
+        zeroline=False,
+        rangemode="tozero"
+    )
+    if y_max:
+        y_axis_dict["range"] = [0, y_max]
+
+    fig.update_layout(
+        template="plotly_dark",
+        xaxis=dict(
+            title=dict(text="Operational Date (Last 12 Months)", font=dict(color=TEXT_MUTED, size=11)),
+            showgrid=False,
+            tickfont=dict(size=9, color=TEXT_MUTED)
+        ),
+        yaxis=y_axis_dict,
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.22,
+            xanchor="center",
+            x=0.5,
+            bgcolor="rgba(15, 23, 42, 0.85)",
+            bordercolor="rgba(255, 255, 255, 0.12)",
+            borderwidth=1,
+            font=dict(size=10, color=TEXT_MUTED)
+        ),
+        hovermode="x unified",
+        margin=dict(l=55, r=25, t=25, b=75),
+        height=chart_height,
+        plot_bgcolor="#0f172a",
+        paper_bgcolor="#0f172a"
+    )
+
+    return fig
+
+
 def build_past_history_daily_figure(
     df_raw: pd.DataFrame,
     hist_summary: Dict[str, Any],
@@ -756,7 +871,8 @@ def render_fleet_benchmark_submodule(
     pf_to_label: Dict[str, str],
     is_prospective_site: bool = False,
     active_mach: Optional[str] = None,
-    show_selector: bool = True
+    show_selector: bool = True,
+    is_crash_mode: bool = False
 ):
     """Submodule for rendering peer benchmark or active machine comparative telemetry."""
     if active_mach and active_mach in mach_to_label:
@@ -800,7 +916,7 @@ def render_fleet_benchmark_submodule(
             else:
                 st.info(f"⚙️ Physical Machine: `{selected_mach}`")
     else:
-        # No dropdown needed: user clicks machine button directly from table
+        # User clicks machine button directly from table
         selected_rec = next((m for m in all_machines if m.get("pf") == active_mach or m.get("macchina") == active_mach), None)
         selected_mach = active_mach or (selected_rec["macchina"] if selected_rec else None)
 
@@ -809,14 +925,228 @@ def render_fleet_benchmark_submodule(
         return
 
     # Fetch historical data (strictly last 2 years for this physical machine)
-    with st.spinner(f"Loading historical operational telemetry for machine {selected_mach}..."):
+    with st.spinner(f"Loading operational telemetry for machine {selected_mach}..."):
         hist = fetch_machine_historical_profile(selected_mach)
 
     if not hist:
         st.error(f"No historical daily collection records found in database for machine ID `{selected_mach}`.")
         return
 
-    # Synchronize AI Model Forecast strictly to the selected physical machine
+    # Historical metrics
+    hist_daily_med = float(hist["median_daily"])
+    hist_daily_mean = float(hist["mean_daily"])
+    hist_monthly = hist_daily_med * 30.4
+    hist_annual = hist_daily_med * 365
+    hist_visits = float(hist["median_visits"])
+    hist_bpu = float(hist["bottles_per_user"])
+    hist_recent_30d = float(hist["recent_30d_median"])
+    hist_zero_days = int(hist["zero_days"])
+    hist_zero_pct = float(hist["zero_rate"])
+    hist_mach = hist["model"]
+
+    # Crash-specific downward metrics
+    crash_drop_pct = ((hist_recent_30d - hist_daily_med) / max(1.0, hist_daily_med)) * 100.0
+    daily_vol_lost = max(0.0, hist_daily_med - hist_recent_30d)
+    monthly_vol_lost = daily_vol_lost * 30.4
+    annual_vol_lost = daily_vol_lost * 365
+
+    f_date_str = hist["first_date"].strftime("%b %Y")
+    l_date_str = hist["last_date"].strftime("%b %Y")
+    site_desc = f" &bull; Site PF: <code>{hist['pf']}</code>" if hist.get("pf") else ""
+    serial_desc = f" (SN: {hist['serial']})" if hist.get("serial") else ""
+
+    card_bg = "background: rgba(30, 41, 59, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px; height: 100%; box-sizing: border-box;"
+
+    # =========================================================================
+    # DEDICATED CRASH TELEMETRY & DEFICIT VIEW (Strictly No Upside Forecast)
+    # =========================================================================
+    if is_crash_mode:
+        if crash_drop_pct <= -50.0:
+            verdict_badge = f'<span style="background: rgba(220, 38, 38, 0.2); color: #f87171; border: 1px solid rgba(220, 38, 38, 0.5); padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.82rem;">🚨 Critical Crash ({crash_drop_pct:.1f}% Deficit)</span>'
+            verdict_border = "#dc2626"
+        elif crash_drop_pct <= -30.0:
+            verdict_badge = f'<span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5); padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.82rem;">🟠 Severe Downward Decline ({crash_drop_pct:.1f}%)</span>'
+            verdict_border = "#f59e0b"
+        else:
+            verdict_badge = f'<span style="background: rgba(234, 179, 8, 0.2); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.5); padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.82rem;">🟡 Downward Deficit ({crash_drop_pct:.1f}%)</span>'
+            verdict_border = "#eab308"
+
+        header_title = f"Crash Diagnostics: {hist['banner']} — {hist['comune']} ({hist['regione']})"
+        header_subtitle = f"Physical Machine: <code>{hist['macchina']}</code>{serial_desc}{site_desc} &bull; Model: <b>{hist['model']}</b> &bull; Baseline: <b>{hist_daily_med:.0f} b/d</b> &bull; Recent 30D: <b style=\"color: #f87171;\">{hist_recent_30d:.0f} b/d</b> &bull; Net Loss: <b style=\"color: #ef4444;\">{crash_drop_pct:.1f}% (-{daily_vol_lost:.0f} b/d)</b> &bull; Logged: {f_date_str} to {l_date_str}"
+
+        st.markdown(
+            f"""
+            <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%); border: 1px solid rgba(255, 255, 255, 0.1); border-left: 5px solid {verdict_border}; padding: 14px 18px; border-radius: 10px; margin-bottom: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.25);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <div>
+                        <strong style="font-size: 1.10rem; color: #f8fafc;">{header_title}</strong>
+                        <div style="font-size: 0.82rem; color: #94a3b8; margin-top: 3px;">
+                            {header_subtitle}
+                        </div>
+                    </div>
+                    <div>{verdict_badge}</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        # 4 Crash Metrics KPI Cards
+        c_kpi1, c_kpi2, c_kpi3, c_kpi4 = st.columns(4)
+        with c_kpi1:
+            st.markdown(
+                f"""
+                <div style="{card_bg} border-top: 3px solid #ef4444;">
+                    <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Past Baseline vs Recent 30D</span>
+                    <div style="font-size: 1.55rem; font-weight: 800; color: #f87171; margin: 6px 0 2px 0;">
+                        {hist_recent_30d:.0f} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">b/d</span>
+                    </div>
+                    <div style="font-size: 0.73rem; color: #64748b;">
+                        Baseline: <b style="color: #94a3b8;">{hist_daily_med:.0f} b/d</b> &bull; Drop: <b style="color: #ef4444;">{crash_drop_pct:.1f}%</b>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        with c_kpi2:
+            st.markdown(
+                f"""
+                <div style="{card_bg} border-top: 3px solid #dc2626;">
+                    <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Daily Volume Deficit</span>
+                    <div style="font-size: 1.55rem; font-weight: 800; color: #dc2626; margin: 6px 0 2px 0;">
+                        -{daily_vol_lost:,.0f} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">b/d</span>
+                    </div>
+                    <div style="font-size: 0.73rem; color: #64748b;">
+                        Monthly Deficit: <b style="color: #f87171;">-{monthly_vol_lost:,.0f} b/mo</b>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        with c_kpi3:
+            st.markdown(
+                f"""
+                <div style="{card_bg} border-top: 3px solid #f59e0b;">
+                    <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Downtime & Outage Rate</span>
+                    <div style="font-size: 1.55rem; font-weight: 800; color: {'#ef4444' if hist_zero_pct > 10 else '#fbbf24'}; margin: 6px 0 2px 0;">
+                        {hist_zero_pct:.1f}% <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">downtime</span>
+                    </div>
+                    <div style="font-size: 0.73rem; color: #64748b;">
+                        Dead Days: <b style="color: #f87171;">{hist_zero_days:,} days</b> &bull; Total: <b>{hist['total_days']:,} d</b>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        with c_kpi4:
+            st.markdown(
+                f"""
+                <div style="{card_bg} border-top: 3px solid #38bdf8;">
+                    <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Active Footfall & Hardware</span>
+                    <div style="font-size: 1.55rem; font-weight: 800; color: #38bdf8; margin: 6px 0 2px 0;">
+                        {hist_visits:.0f} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">u/d</span>
+                    </div>
+                    <div style="font-size: 0.73rem; color: #64748b;">
+                        Intensity: <b style="color: #93c5fd;">{hist_bpu:.1f} b/u</b> &bull; Model: <b style="color: #cbd5e1;">{hist['model']}</b>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        # Operational Crash Diagnostics Notes
+        drivers = []
+        if crash_drop_pct <= -50.0:
+            drivers.append(
+                f"<b>🚨 Critical Volume Collapse ({crash_drop_pct:.1f}%):</b> Machine collection collapsed from historical baseline of <b>{hist_daily_med:.0f} b/d</b> down to <b>{hist_recent_30d:.0f} b/d</b>, representing an acute net loss of <b>-{daily_vol_lost:,.0f} bottles/day (-{monthly_vol_lost:,.0f} b/mo)</b>."
+            )
+        else:
+            drivers.append(
+                f"<b>⚠️ Downward Performance Drop ({crash_drop_pct:.1f}%):</b> Machine is running significantly below baseline (<b>{hist_daily_med:.0f} b/d → {hist_recent_30d:.0f} b/d</b>), producing an operational deficit of <b>-{daily_vol_lost:,.0f} b/d</b>."
+            )
+        if hist_zero_days >= 3:
+            drivers.append(
+                f"<b>🛑 Chronic Downtime & Outage Exposure:</b> Unit logged <b>{hist_zero_days} zero-collection days ({hist_zero_pct:.1f}% downtime)</b> across its operational lifecycle, pointing to unserviced bin choke, sensor failure, or store offline intervals."
+            )
+        if hist_mach in ["DAINT_A-bis", "DAINT_B-bis", "Eurven Greeny"] and hist_daily_med >= 300:
+            drivers.append(
+                f"<b>📦 Physical Capacity Bottleneck:</b> Installed model <code>{hist_mach}</code> has a low bin capacity (300–500 bottles). Sustained demand routinely fills the bin before logistics collection, causing recurring dropouts."
+            )
+        narrative_html = "<br><br>".join([f"&bull; {d}" for d in drivers])
+        st.markdown(
+            f"""
+            <div style="background: rgba(30, 41, 59, 0.70); border: 1px solid rgba(239, 68, 68, 0.25); border-left: 4px solid #ef4444; border-radius: 8px; padding: 14px 16px; margin: 14px 0 18px 0; font-size: 0.85rem; color: #cbd5e1; line-height: 1.55;">
+                <div style="font-weight: 700; color: #f8fafc; margin-bottom: 6px; font-size: 0.90rem;">
+                    ⚠️ Operational Crash & Root Cause Diagnostics
+                </div>
+                {narrative_html}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        # Direct Side-by-Side Graphs: Past 2-Year Trend vs Daily Crash Timeline (NO UPSIDE CURVE)
+        st.markdown("#### 📉 Machine Crash Diagnostics & Deficit Breakdown")
+        max_past_daily = float(hist["monthly_agg"]["median_daily"].max()) if not hist["monthly_agg"].empty else float(hist["median_daily"])
+        max_daily_roll = float(hist["df_daily"]["roll_30d"].max()) if not hist["df_daily"].empty else max_past_daily
+        common_y_max = float(max(max_past_daily, max_daily_roll, 100.0) * 1.15)
+
+        col_g_past, col_g_future = st.columns(2)
+        with col_g_past:
+            st.markdown(
+                f"""
+                <div style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.08); border-top: 3px solid #0284c7; border-radius: 10px; padding: 12px 16px; margin-bottom: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.95rem; font-weight: 800; color: #38bdf8;">
+                            🕰️ Historical Intake: Bottles per Day (Last 2 Years)
+                        </span>
+                        <span style="font-size: 0.72rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); padding: 2px 7px; border-radius: 4px; font-weight: 700;">
+                            FIELD REALITY (b/d)
+                        </span>
+                    </div>
+                    <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 4px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                        <span>Daily Median: <b style="color: #f59e0b;">{hist_daily_med:.0f} b/d</b></span>
+                        <span>Power BI Media (Mean): <b style="color: #38bdf8;">{hist_daily_mean:.0f} b/d</b></span>
+                        <span>Recent 30d: <b style="color: #f87171;">{hist_recent_30d:.0f} b/d</b></span>
+                        <span>Downtime: <b style="color: {'#f87171' if hist_zero_pct > 5 else '#34d399'};">{hist_zero_pct:.1f}%</b></span>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            fig_past = build_past_daily_bottles_figure(hist, y_max=common_y_max, chart_height=380)
+            st.plotly_chart(fig_past, use_container_width=True, theme=None, config={"displayModeBar": False, "responsive": True}, key=f"plotly_past_daily_crash_{hist['macchina']}")
+
+        with col_g_future:
+            st.markdown(
+                f"""
+                <div style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.08); border-top: 3px solid #ef4444; border-radius: 10px; padding: 12px 16px; margin-bottom: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.95rem; font-weight: 800; color: #f87171;">
+                            📉 Crash Trajectory: Daily Rolling Velocity & Outages (Last 12 Months)
+                        </span>
+                        <span style="font-size: 0.72rem; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); padding: 2px 7px; border-radius: 4px; font-weight: 700;">
+                            CRASH DEFICIT (b/d)
+                        </span>
+                    </div>
+                    <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 4px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                        <span>Past Baseline: <b style="color: #fbbf24;">{hist_daily_med:.0f} b/d</b></span>
+                        <span>Recent Velocity: <b style="color: #f87171;">{hist_recent_30d:.0f} b/d</b></span>
+                        <span>Daily Deficit: <b style="color: #ef4444;">-{daily_vol_lost:.0f} b/d</b></span>
+                        <span>Dead Days: <b style="color: #f87171;">{hist_zero_days} days</b></span>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            fig_crash = build_crash_daily_trajectory_figure(hist, y_max=common_y_max, chart_height=380)
+            st.plotly_chart(fig_crash, use_container_width=True, theme=None, config={"displayModeBar": False, "responsive": True}, key=f"plotly_crash_trajectory_{hist['macchina']}")
+
+        return
+
+    # =========================================================================
+    # STANDARD COMPARATIVE BENCHMARK VIEW (Prospective / Healthy Units)
+    # =========================================================================
     if selected_rec or hist:
         s_ban = (selected_rec.get("banner") if selected_rec else None) or hist.get("banner", "Store")
         s_addr = (selected_rec.get("indirizzo") if selected_rec else None) or hist.get("indirizzo") or hist.get("comune", "Italia")
@@ -864,18 +1194,6 @@ def render_fleet_benchmark_submodule(
     pred_reward = pred_summary["pred_reward"]
     inputs = res.get("inputs", {})
 
-    # Historical metrics
-    hist_daily_med = hist["median_daily"]
-    hist_daily_mean = hist["mean_daily"]
-    hist_monthly = hist_daily_med * 30.4
-    hist_annual = hist_daily_med * 365
-    hist_visits = hist["median_visits"]
-    hist_bpu = hist["bottles_per_user"]
-    hist_recent_30d = hist["recent_30d_median"]
-    hist_zero_days = hist["zero_days"]
-    hist_zero_pct = hist["zero_rate"]
-    hist_mach = hist["model"]
-
     # Calculate Deltas
     delta_daily_abs = pred_daily - hist_daily_med
     delta_daily_pct = ((pred_daily - hist_daily_med) / max(1.0, hist_daily_med)) * 100.0
@@ -904,11 +1222,6 @@ def render_fleet_benchmark_submodule(
     label_past_kpi = f"PEER BENCHMARK ({hist['macchina']})" if is_prospective_site else "PAST ACTUAL"
     label_future_kpi = "PROSPECTIVE MODEL" if is_prospective_site else "FUTURE MODEL"
 
-    # Executive Summary Bar
-    f_date_str = hist["first_date"].strftime("%b %Y")
-    l_date_str = hist["last_date"].strftime("%b %Y")
-    site_desc = f" &bull; Site PF: <code>{hist['pf']}</code>" if hist.get("pf") else ""
-    serial_desc = f" (SN: {hist['serial']})" if hist.get("serial") else ""
     header_title = f"Reference Peer Benchmark: {hist['banner']} — {hist['comune']} ({hist['regione']})" if is_prospective_site else f"{hist['banner']} — {hist['comune']} ({hist['regione']})"
     header_subtitle_prefix = "Active Fleet Reference: " if is_prospective_site else ""
 
@@ -944,8 +1257,6 @@ def render_fleet_benchmark_submodule(
             bg, fg = "rgba(56, 189, 248, 0.2)", "#38bdf8"
             icon = "◆"
         return f'<span style="background: {bg}; color: {fg}; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">{icon} {sign}{pct:.1f}% ({sign}{abs_val:,.0f} {unit})</span>'
-
-    card_bg = "background: rgba(30, 41, 59, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px; height: 100%; box-sizing: border-box;"
 
     with c_kpi1:
         delta_badge_daily = format_delta_badge(delta_daily_pct, delta_daily_abs, "b/d")
@@ -1166,8 +1477,17 @@ def render_fleet_benchmark_submodule(
 def load_performance_drop_fleet() -> pd.DataFrame:
     """
     Loads machine-level performance telemetry across the fleet.
-    Computes historical baseline vs recent 30-day performance to pinpoint machines with significant drops.
+    Strictly filters to machines experiencing downward performance drops and crashes (drop_pct <= -15.0%, vol_lost > 0).
+    Excludes all machines with zero drop, steady-state, or positive growth (no upsides).
     """
+    import unicodedata
+    def _clean_str(val):
+        if pd.isna(val):
+            return ""
+        s = str(val).replace("\ufffd", "").replace("", "")
+        s = unicodedata.normalize("NFKD", s)
+        return "".join(c for c in s if not unicodedata.combining(c)).strip()
+
     csv_path = ROOT_DIR / "data" / "reports" / "defected_and_outlier_machines.csv"
     if csv_path.exists():
         try:
@@ -1182,6 +1502,14 @@ def load_performance_drop_fleet() -> pd.DataFrame:
                     0.0
                 )
                 df["vol_lost"] = df["Median_Bottles_Daily"] - df["Recent_30d_Median"]
+
+                for c in ["Store_Banner", "Comune", "Regione"]:
+                    if c in df.columns:
+                        df[c] = df[c].apply(_clean_str)
+
+                # STRICT CRASH FILTER: downward collapse only, no upsides
+                df = df[(df["drop_pct"] <= -15.0) & (df["Median_Bottles_Daily"] >= 30.0) & (df["vol_lost"] > 0)].copy()
+                df = df.sort_values(["drop_pct", "vol_lost"], ascending=[True, False]).reset_index(drop=True)
                 return df
         except Exception:
             pass
@@ -1214,6 +1542,14 @@ def load_performance_drop_fleet() -> pd.DataFrame:
         df["vol_lost"] = df["Median_Bottles_Daily"] - df["Recent_30d_Median"]
         df["Anomaly_Classification"] = np.where(df["drop_pct"] <= -50.0, "DEFECTIVE_OFFLINE", "PERFORMANCE_DROP")
         df["Recommended_Action"] = "Field Inspection Required: Significant operational volume drop detected."
+
+        for c in ["Store_Banner", "Comune", "Regione"]:
+            if c in df.columns:
+                df[c] = df[c].apply(_clean_str)
+
+        # STRICT CRASH FILTER: downward collapse only, no upsides
+        df = df[(df["drop_pct"] <= -15.0) & (df["Median_Bottles_Daily"] >= 30.0) & (df["vol_lost"] > 0)].copy()
+        df = df.sort_values(["drop_pct", "vol_lost"], ascending=[True, False]).reset_index(drop=True)
         return df
     except Exception:
         return pd.DataFrame()
@@ -1225,9 +1561,8 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
     - Action button column is placed and pinned/stuck directly at the START (left) of the table.
     - Button remains fixed and never moves when the user scrolls horizontally across the columns.
     - Explicit comfortable column pixel widths so NO text is truncated.
-    - Seamless 1-click inspection that immediately loads dedicated forecast below.
+    - Seamless 1-click inspection that immediately loads dedicated crash telemetry below.
     """
-    # Custom CSS to elevate button styling inside dataframe and ensure crisp layout
     st.markdown(
         """
         <style>
@@ -1262,25 +1597,30 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
     # Filter controls: search and drop severity filter
     c_f1, c_f2 = st.columns([3, 2])
     with c_f1:
-        search_kw = st.text_input("🔍 Search Store, City, or Machine ID (PF):", "", placeholder="e.g. RetailPRO, Piccolo, Asti, MC...", key="drop_search_kw").strip()
+        search_kw = st.text_input("🔍 Search Store, City, or Machine ID (PF):", "", placeholder="e.g. Piccolo, Asti, MC...", key="drop_search_kw").strip()
     with c_f2:
         sev_choice = st.selectbox(
-            "Filter by Drop Severity:",
-            options=["All Performance Drops (≥ 15% decline)", "Critical Collapse (≥ 50% drop)", "Severe Decline (30%–50% drop)", "Moderate Decline (15%–30% drop)"],
+            "Filter by Crash Severity:",
+            options=[
+                "🚨 All Downward Crashes (≥ 15% drop)",
+                "🔴 Critical Collapse (≥ 50% drop)",
+                "🟠 Severe Decline (30%–50% drop)",
+                "🟡 Significant Decline (15%–30% drop)"
+            ],
             index=0,
             key="drop_sev_choice"
         )
 
-    # Base mask: all machines with historical volume > 30 and drop >= 15%
-    mask = (df_fleet["Median_Bottles_Daily"] > 30.0)
+    # Base mask: strict crash filtering (no upsides)
+    mask = pd.Series(True, index=df_fleet.index)
     if "≥ 50%" in sev_choice:
-        mask = mask & (df_fleet["drop_pct"] <= -50.0)
+        mask = (df_fleet["drop_pct"] <= -50.0)
     elif "30%–50%" in sev_choice:
-        mask = mask & (df_fleet["drop_pct"] > -50.0) & (df_fleet["drop_pct"] <= -30.0)
+        mask = (df_fleet["drop_pct"] > -50.0) & (df_fleet["drop_pct"] <= -30.0)
     elif "15%–30%" in sev_choice:
-        mask = mask & (df_fleet["drop_pct"] > -30.0) & (df_fleet["drop_pct"] <= -15.0)
+        mask = (df_fleet["drop_pct"] > -30.0) & (df_fleet["drop_pct"] <= -15.0)
     else:
-        mask = mask & (df_fleet["drop_pct"] <= -15.0)
+        mask = (df_fleet["drop_pct"] <= -15.0)
 
     if search_kw:
         kw = search_kw.lower()
@@ -1292,7 +1632,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         )
         mask = mask & kw_mask
 
-    filtered_df = df_fleet[mask].sort_values("drop_pct", ascending=True).copy().reset_index(drop=True)
+    filtered_df = df_fleet[mask].sort_values(["drop_pct", "vol_lost"], ascending=[True, False]).copy().reset_index(drop=True)
 
     if filtered_df.empty:
         st.info("No machines match the selected filter criteria.")
@@ -1319,9 +1659,9 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
     with c_m1:
         st.markdown(
             f"""<div style="{card_style} border-top: 3px solid #ef4444;">
-                <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Machines with Drop</span>
+                <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Crashed Machines</span>
                 <div style="font-size: 1.55rem; font-weight: 800; color: #f87171; margin: 6px 0 2px 0;">{total_dropped:,} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">units</span></div>
-                <div style="font-size: 0.73rem; color: #64748b;">All filtered machines</div>
+                <div style="font-size: 0.73rem; color: #64748b;">Downward deficit only</div>
             </div>""", unsafe_allow_html=True
         )
     with c_m2:
@@ -1329,7 +1669,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
             f"""<div style="{card_style} border-top: 3px solid #dc2626;">
                 <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Critical Collapse (≥50%)</span>
                 <div style="font-size: 1.55rem; font-weight: 800; color: #dc2626; margin: 6px 0 2px 0;">{crit_count:,} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">units</span></div>
-                <div style="font-size: 0.73rem; color: #64748b;">Severe or complete stall</div>
+                <div style="font-size: 0.73rem; color: #64748b;">Acute offline or dead stop</div>
             </div>""", unsafe_allow_html=True
         )
     with c_m3:
@@ -1337,30 +1677,30 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
             f"""<div style="{card_style} border-top: 3px solid #f59e0b;">
                 <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Severe Decline (30–50%)</span>
                 <div style="font-size: 1.55rem; font-weight: 800; color: #fbbf24; margin: 6px 0 2px 0;">{sev_count:,} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">units</span></div>
-                <div style="font-size: 0.73rem; color: #64748b;">Significant volume loss</div>
+                <div style="font-size: 0.73rem; color: #64748b;">Major operational drop</div>
             </div>""", unsafe_allow_html=True
         )
     with c_m4:
         st.markdown(
             f"""<div style="{card_style} border-top: 3px solid #38bdf8;">
-                <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Daily Volume Lost</span>
+                <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Daily Volume Deficit</span>
                 <div style="font-size: 1.55rem; font-weight: 800; color: #38bdf8; margin: 6px 0 2px 0;">-{tot_vol_lost:,} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">b/d</span></div>
-                <div style="font-size: 0.73rem; color: #64748b;">Total network deficit</div>
+                <div style="font-size: 0.73rem; color: #64748b;">Fleet-wide lost intake</div>
             </div>""", unsafe_allow_html=True
         )
 
-    # 1. Summary Filter Info Banner matching tab theme
+    # Summary Filter Info Banner matching tab theme
     st.markdown(
         f"""
-        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-left: 4px solid #38bdf8; padding: 8px 14px; border-radius: 6px; margin: 12px 0 10px 0; font-size: 0.84rem; color: #cbd5e1;">
-            <b>Historical Performance Drops Audit:</b> <span style="color: #38bdf8; font-weight: 700;">{sev_choice}</span> &bull; 
-            Auditing <strong style="color: #f8fafc;">{len(filtered_df):,}</strong> machines whose recent collection dropped significantly vs historical baseline.
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-left: 4px solid #ef4444; padding: 8px 14px; border-radius: 6px; margin: 12px 0 10px 0; font-size: 0.84rem; color: #cbd5e1;">
+            <b>Operational Performance Drops & Crashes:</b> <span style="color: #f87171; font-weight: 700;">{sev_choice}</span> &bull; 
+            Auditing <strong style="color: #f8fafc;">{len(filtered_df):,}</strong> machines whose collection has crashed vs historical baseline (no upsides).
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    # 2. Build tailored diagnostics and drop status with concise, readable text
+    # Build tailored diagnostics and drop status with concise, readable text
     def format_drop_severity(row):
         dp = float(row.get("drop_pct", 0.0) or 0.0)
         if dp <= -50.0:
@@ -1394,8 +1734,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
     # Action button label per row: distinct and readable
     filtered_df["Action"] = filtered_df["PF"].apply(lambda pf: "Viewing 🎯" if str(pf).strip() == cur_sel else "Inspect 📊")
 
-    # 3. Clean st.dataframe: Action column is STUCK AT THE START (pinned=True)
-    # The button remains permanently anchored on the left when scrolling columns horizontally
+    # Clean st.dataframe: Action column is STUCK AT THE START (pinned=True)
     display_cols = [
         "Action",
         "Drop_Severity_Status",
@@ -1422,7 +1761,7 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
                 width=115,
                 pinned=True,
                 type="primary",
-                help="Click Inspect to load this machine's dedicated ground truth and AI forecast below",
+                help="Click Inspect to load this machine's dedicated crash telemetry and deficit breakdown below",
                 key="drop_table_inspect_btn"
             ),
             "Drop_Severity_Status": st.column_config.TextColumn("Status", width=105),
@@ -1439,24 +1778,25 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
         }
     )
 
-    # 4. Active Inspection Status Bar attached directly below table
+    # Active Inspection Status Bar attached directly below table
     cur_row = filtered_df[filtered_df["PF"] == cur_sel].iloc[0] if (filtered_df["PF"] == cur_sel).any() else filtered_df.iloc[0]
     st.markdown(
         f"""
-        <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.40); border-left: 4px solid #38bdf8; 
+        <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(239, 68, 68, 0.40); border-left: 4px solid #ef4444; 
                     padding: 10px 16px; border-radius: 6px; margin: 8px 0 14px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <div>
-                <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Actively Inspected Machine</span>
+                <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Actively Inspected Crashed Unit</span>
                 <div style="font-size: 0.95rem; font-weight: 700; color: #f8fafc; margin-top: 2px;">
                     📍 <span style="color: #38bdf8;">{cur_row['Store_Banner']}</span> ({cur_row['Comune']}, {cur_row['Regione']}) 
                     &bull; ID: <code>{cur_row['PF']}</code> 
                     &bull; Past Baseline: <b style="color: #94a3b8;">{cur_row['Median_Bottles_Daily']:.0f} b/d</b> 
                     &bull; Recent: <b style="color: #f87171;">{cur_row['Recent_30d_Median']:.0f} b/d</b> 
                     (<span style="color: #ef4444; font-weight: 800;">{cur_row['drop_pct']:.1f}%</span>)
+                    &bull; Daily Deficit: <b style="color: #ef4444;">-{cur_row['vol_lost']:.0f} b/d</b>
                 </div>
             </div>
-            <span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 5px 12px; border-radius: 4px; font-size: 0.76rem; font-weight: 800;">
-                TELEMETRY & AI FORECAST ACTIVE BELOW ⬇️
+            <span style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 5px 12px; border-radius: 4px; font-size: 0.76rem; font-weight: 800;">
+                CRASH TELEMETRY & DEFICIT ACTIVE BELOW ⬇️
             </span>
         </div>
         """,
@@ -1517,9 +1857,9 @@ def render_historical_vs_prediction_section(
 ):
     """
     Renders dark-mode adaptive analytics:
-    - For new prospective candidate sites (SPL / POT): Renders clean forward-looking AI Forecast
-      with explicit notice of zero historical records, with optional benchmark expander.
-    - For installed active units: Renders side-by-side comparative analysis of past telemetry vs future forecast.
+    - In Tab 5 (force_comparative_view=True): Dedicated Machine Crash Diagnostics & Downtime Telemetry.
+      Strictly displays machines experiencing downward crashes and zero-day outages, with no growth projections.
+    - For new prospective candidate sites (SPL / POT): Clean forward-looking AI Forecast.
     """
     if not force_comparative_view:
         st.divider()
@@ -1527,7 +1867,7 @@ def render_historical_vs_prediction_section(
     if not res:
         res = {}
 
-    # 1. Extract Prospective Model Predictions immediately
+    # Extract Prospective Model Predictions
     real = res.get("realized_forecast", {})
     preds = res.get("predictions", {})
     prob = res.get("probability_analysis", {})
@@ -1545,7 +1885,7 @@ def render_historical_vs_prediction_section(
     pred_mach = inputs.get("machine_type", "DAINT_G")
     pred_reward = res.get("commercial_rewards", {}).get("reward_type", "Standard Policy")
 
-    # If no prediction has been run yet in session, populate baseline benchmark
+    # Fallback if no prediction has been run yet in session
     if pred_daily == 0.0:
         pred_daily = 546.0
         pred_monthly = 16586.0
@@ -1569,27 +1909,26 @@ def render_historical_vs_prediction_section(
         "pred_reward": pred_reward
     }
 
-    # 2. Check machine catalogue & prospective site status
+    # Load machine catalogue & prospective site status
     all_machines = load_all_machine_options()
     mach_to_label = {m["macchina"]: m["label"] for m in all_machines}
     pf_to_label = {m["pf"]: m["label"] for m in all_machines if m.get("pf")}
     labels_list = [m["label"] for m in all_machines]
 
-    active_mach = default_pf or st.session_state.get("selected_machine") or st.session_state.get("selected_store_pf")
+    if force_comparative_view:
+        active_mach = default_pf or st.session_state.get("selected_telemetry_machine")
+    else:
+        active_mach = default_pf or st.session_state.get("selected_machine") or st.session_state.get("selected_store_pf")
 
-    # Auto-detect if location & store match an existing active machine in the fleet:
     matched_existing_rec = None
-    if (not default_pf or str(default_pf).strip() == "") and not st.session_state.get("selected_store_pf"):
+    if not force_comparative_view and (not default_pf or str(default_pf).strip() == "") and not st.session_state.get("selected_store_pf"):
         in_store = str(inputs.get("store_name", "")).strip().lower()
         in_comune = str(inputs.get("comune", res.get("location_attributes", {}).get("resolved_comune", ""))).strip().lower()
-        in_addr = str(inputs.get("address", "")).strip().lower()
-
         if in_comune and in_store:
             for m in all_machines:
                 m_com = str(m.get("comune", "")).strip().lower()
                 m_ban = str(m.get("banner", "")).strip().lower()
                 if m_com and m_com == in_comune:
-                    # Match if store name matches (e.g., 'carrefour' in 'Carrefour')
                     if (in_store in m_ban) or (m_ban in in_store):
                         matched_existing_rec = m
                         active_mach = m["macchina"]
@@ -1597,7 +1936,6 @@ def render_historical_vs_prediction_section(
                         store_status = "ATTVO"
                         break
 
-    # Detect if evaluated site is a new prospective candidate (POT / SPL) without existing telemetry
     if force_comparative_view:
         is_prospective_site = False
     else:
@@ -1727,46 +2065,64 @@ def render_historical_vs_prediction_section(
         st.plotly_chart(fig_future, use_container_width=True, theme=None, config={"displayModeBar": False, "responsive": True}, key="plotly_prospective_future_horizon")
         return
 
-    # 4. IF EXISTING ACTIVE MACHINE WITH REAL TELEMETRY:
-    # Header & Control Bar
-    st.markdown(
-        """
-        <div style="margin-bottom: 14px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-                <div>
-                    <h3 style="color: #f8fafc; margin: 0; font-size: 1.35rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                        <span>⚖️ Historical Actuals vs. Prospective AI Model Forecast</span>
-                    </h3>
-                    <p style="color: #94a3b8; font-size: 0.85rem; margin: 3px 0 0 0;">
-                        Balanced dual-lens visualizer: Real physical machine telemetry ground truth (PostgreSQL / Power BI) vs. AI model predictions.
-                    </p>
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    if matched_existing_rec:
+    # 4. IF TAB 5 (CRASH TELEMETRY) OR ACTIVE MACHINE:
+    if force_comparative_view:
         st.markdown(
-            f"""
-            <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-left: 5px solid #10b981; padding: 12px 16px; border-radius: 8px; margin-bottom: 14px;">
+            """
+            <div style="margin-bottom: 14px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
                     <div>
-                        <strong style="color: #34d399; font-size: 0.98rem;">📍 Existing Coripet Installation Auto-Detected:</strong>
-                        <span style="color: #f8fafc; font-weight: 700; margin-left: 6px;">{matched_existing_rec['label']}</span>
+                        <h3 style="color: #f8fafc; margin: 0; font-size: 1.35rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                            <span>📉 Fleet Performance Drops & Machine Crash Telemetry</span>
+                        </h3>
+                        <p style="color: #94a3b8; font-size: 0.85rem; margin: 3px 0 0 0;">
+                            Dedicated audit isolating machines experiencing acute volume collapse, zero-day outage streaks, and downward deficits (no upsides).
+                        </p>
                     </div>
-                    <span style="background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.4); padding: 3px 8px; border-radius: 5px; font-size: 0.74rem; font-weight: 700;">
-                        ACTIVE ATTVO FLEET
-                    </span>
                 </div>
-                <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 0.82rem;">
-                    This store already operates an active Coripet RVM. Below is the ground truth telemetry from PostgreSQL & Power BI compared directly with your prospective AI model prediction.
-                </p>
             </div>
             """,
             unsafe_allow_html=True
         )
+    else:
+        st.markdown(
+            """
+            <div style="margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                    <div>
+                        <h3 style="color: #f8fafc; margin: 0; font-size: 1.35rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                            <span>⚖️ Historical Actuals vs. Prospective AI Model Forecast</span>
+                        </h3>
+                        <p style="color: #94a3b8; font-size: 0.85rem; margin: 3px 0 0 0;">
+                            Balanced dual-lens visualizer: Real physical machine telemetry ground truth (PostgreSQL / Power BI) vs. AI model predictions.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        if matched_existing_rec:
+            st.markdown(
+                f"""
+                <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-left: 5px solid #10b981; padding: 12px 16px; border-radius: 8px; margin-bottom: 14px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                        <div>
+                            <strong style="color: #34d399; font-size: 0.98rem;">📍 Existing Coripet Installation Auto-Detected:</strong>
+                            <span style="color: #f8fafc; font-weight: 700; margin-left: 6px;">{matched_existing_rec['label']}</span>
+                        </div>
+                        <span style="background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.4); padding: 3px 8px; border-radius: 5px; font-size: 0.74rem; font-weight: 700;">
+                            ACTIVE ATTVO FLEET
+                        </span>
+                    </div>
+                    <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 0.82rem;">
+                        This store already operates an active Coripet RVM. Below is the ground truth telemetry from PostgreSQL & Power BI compared directly with your prospective AI model prediction.
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
     if force_comparative_view:
         chosen_drop_mid = render_performance_drops_section(all_machines, active_mach_current=active_mach)
@@ -1782,5 +2138,6 @@ def render_historical_vs_prediction_section(
         pf_to_label=pf_to_label,
         is_prospective_site=False,
         active_mach=active_mach,
-        show_selector=not force_comparative_view
+        show_selector=not force_comparative_view,
+        is_crash_mode=force_comparative_view
     )

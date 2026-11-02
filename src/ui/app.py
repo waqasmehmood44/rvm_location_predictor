@@ -3469,16 +3469,14 @@ def main():
 
     elif active_tab == TAB_HISTORICAL:
         with st.container(key="tab_container_historical"):
-            res = st.session_state.get("prediction_result")
-            sel_pf = st.session_state.get("selected_store_pf")
-            sel_st = st.session_state.get("selected_store_status")
+            sel_telemetry = st.session_state.get("selected_telemetry_machine")
             import importlib
             import src.ui.historical_vs_prediction as hvp
             importlib.reload(hvp)
             hvp.render_historical_vs_prediction_section(
-                res=res,
-                default_pf=sel_pf,
-                store_status=sel_st,
+                res=None,
+                default_pf=sel_telemetry,
+                store_status="ATTVO",
                 force_comparative_view=True
             )
 
