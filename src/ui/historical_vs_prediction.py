@@ -1258,72 +1258,47 @@ def render_fleet_benchmark_submodule(
         c_diag1, c_diag2, c_diag3 = st.columns([1.1, 1.1, 1.4])
         with c_diag1:
             st.markdown(
-                f"""
-                <div style="{card_bg} border-top: 3px solid #ef4444;">
-                    <div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Primary Failure Driver</div>
-                    <div style="font-size: 1.05rem; font-weight: 800; color: #f87171; margin: 6px 0 6px 0; line-height: 1.3;">
-                        {primary_cause_desc}
-                    </div>
-                    <div style="font-size: 0.82rem; color: #cbd5e1; line-height: 1.5; margin-top: 8px;">
-                        {cause_detail_diag}
-                    </div>
-                    <div style="margin-top: 12px; padding: 6px 10px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; font-size: 0.76rem; color: #fca5a5;">
-                        <b>Diagnostic Classification:</b> {crash_reason_title}
-                    </div>
-                </div>
-                """,
+                f'<div style="{card_bg} border-top: 3px solid #ef4444;">'
+                f'<div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Primary Failure Driver</div>'
+                f'<div style="font-size: 1.05rem; font-weight: 800; color: #f87171; margin: 6px 0 6px 0; line-height: 1.3;">{primary_cause_desc}</div>'
+                f'<div style="font-size: 0.82rem; color: #cbd5e1; line-height: 1.5; margin-top: 8px;">{cause_detail_diag}</div>'
+                f'<div style="margin-top: 12px; padding: 6px 10px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; font-size: 0.76rem; color: #fca5a5;">'
+                f'<b>Diagnostic Classification:</b> {crash_reason_title}</div>'
+                f'</div>',
                 unsafe_allow_html=True
             )
         with c_diag2:
             st.markdown(
-                f"""
-                <div style="{card_bg} border-top: 3px solid #f59e0b;">
-                    <div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Telemetry Root Cause Evidence</div>
-                    <div style="margin-top: 8px; font-size: 0.82rem; color: #cbd5e1; display: flex; flex-direction: column; gap: 8px;">
-                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px;">
-                            <span style="color: #94a3b8;">Normal Past Baseline:</span>
-                            <b style="color: #f1f5f9;">{hist_daily_med:.0f} b/d</b>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px;">
-                            <span style="color: #94a3b8;">Crashed Recent Velocity:</span>
-                            <b style="color: #f87171;">{hist_recent_30d:.0f} b/d ({crash_drop_pct:.1f}%)</b>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px;">
-                            <span style="color: #94a3b8;">Daily Volume Deficit:</span>
-                            <b style="color: #ef4444;">-{daily_vol_lost:.0f} b/d (-{monthly_vol_lost:,.0f}/mo)</b>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px;">
-                            <span style="color: #94a3b8;">Dead Days (Zero Intake):</span>
-                            <b style="color: {'#ef4444' if hist_zero_days > 10 else '#fbbf24'};">{hist_zero_days} days ({hist_zero_pct:.1f}% downtime)</b>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="color: #94a3b8;">Footfall & User Ratio:</span>
-                            <b style="color: #38bdf8;">{hist_visits:.0f} users/d &bull; {hist_bpu:.1f} b/user</b>
-                        </div>
-                    </div>
-                </div>
-                """,
+                f'<div style="{card_bg} border-top: 3px solid #f59e0b;">'
+                f'<div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Telemetry Root Cause Evidence</div>'
+                f'<div style="margin-top: 8px; font-size: 0.82rem; color: #cbd5e1; display: flex; flex-direction: column; gap: 8px;">'
+                f'<div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px;">'
+                f'<span style="color: #94a3b8;">Normal Past Baseline:</span><b style="color: #f1f5f9;">{hist_daily_med:.0f} b/d</b></div>'
+                f'<div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px;">'
+                f'<span style="color: #94a3b8;">Crashed Recent Velocity:</span><b style="color: #f87171;">{hist_recent_30d:.0f} b/d ({crash_drop_pct:.1f}%)</b></div>'
+                f'<div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px;">'
+                f'<span style="color: #94a3b8;">Daily Volume Deficit:</span><b style="color: #ef4444;">-{daily_vol_lost:.0f} b/d (-{monthly_vol_lost:,.0f}/mo)</b></div>'
+                f'<div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px;">'
+                f'<span style="color: #94a3b8;">Dead Days (Zero Intake):</span><b style="color: {"#ef4444" if hist_zero_days > 10 else "#fbbf24"};">{hist_zero_days} days ({hist_zero_pct:.1f}% downtime)</b></div>'
+                f'<div style="display: flex; justify-content: space-between;">'
+                f'<span style="color: #94a3b8;">Footfall & User Ratio:</span><b style="color: #38bdf8;">{hist_visits:.0f} users/d &bull; {hist_bpu:.1f} b/user</b></div>'
+                f'</div>'
+                f'</div>',
                 unsafe_allow_html=True
             )
         with c_diag3:
             steps_html = "".join([
-                f"""
-                <div style="margin-bottom: 8px;">
-                    <span style="font-weight: 700; color: #4ade80; font-size: 0.80rem;">{st_title}</span>
-                    <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 2px; line-height: 1.4;">{st_desc}</div>
-                </div>
-                """
+                f'<div style="margin-bottom: 10px;">'
+                f'<div style="font-weight: 700; color: #4ade80; font-size: 0.82rem;">{st_title}</div>'
+                f'<div style="font-size: 0.80rem; color: #cbd5e1; margin-top: 2px; line-height: 1.45;">{st_desc}</div>'
+                f'</div>'
                 for st_title, st_desc in rem_steps
             ])
             st.markdown(
-                f"""
-                <div style="{card_bg} border-top: 3px solid #10b981;">
-                    <div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">{rem_title}</div>
-                    <div style="margin-top: 8px;">
-                        {steps_html}
-                    </div>
-                </div>
-                """,
+                f'<div style="{card_bg} border-top: 3px solid #10b981;">'
+                f'<div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">{rem_title}</div>'
+                f'<div style="margin-top: 8px;">{steps_html}</div>'
+                f'</div>',
                 unsafe_allow_html=True
             )
 
