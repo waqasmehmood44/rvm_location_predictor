@@ -270,34 +270,49 @@ def predict_machine_forecast(store_name: str, address: str, cap: str, comune: st
 @st.cache_data(ttl=300, show_spinner=False)
 def fetch_machine_historical_profile(machine_id: str) -> Optional[Dict[str, Any]]:
     """
-    Fetches chronological historical profile strictly for the last 2 years from PostgreSQL,
-    always keyed and filtered strictly on the PHYSICAL MACHINE (macchina).
+    Fetches chronological historical profile strictly for the last 2 years from database,
+    covering the full 24-month horizon for the physical location/machine across hardware swaps.
     """
     engine = get_db_engine()
-    query_mach = text("""
-        SELECT giorno_dt, bottiglie, presenze, cliente, comune, regione, tipomacchina, macchina, codicemacchinaprod, pf
-        FROM master_daily_rvm
-        WHERE macchina = :m_id
-        ORDER BY giorno_dt ASC;
-    """)
+    clean_id = str(machine_id).strip()
+
+    resolved_pf = None
+    if clean_id.startswith("PF") or clean_id.startswith("pf"):
+        resolved_pf = clean_id
+
     with engine.connect() as conn:
-        df = pd.read_sql(query_mach, conn, params={"m_id": machine_id})
-        
-        # Fallback if machine_id was passed as a PF or manufacturer serial
-        if df.empty:
-            query_fallback = text("""
+        if not resolved_pf:
+            # Check if this machine or serial maps to a primary PF in master_daily_rvm
+            q_find_pf = text("""
+                SELECT pf FROM master_daily_rvm 
+                WHERE (macchina = :m_id OR codicemacchinaprod = :m_id) AND pf IS NOT NULL AND pf != ''
+                ORDER BY giorno_dt DESC LIMIT 1
+            """)
+            try:
+                row = conn.execute(q_find_pf, {"m_id": clean_id}).fetchone()
+                if row and row[0]:
+                    resolved_pf = str(row[0]).strip()
+            except Exception:
+                pass
+
+        # If a valid PF exists, query the full location history across hardware replacements
+        if resolved_pf:
+            query_loc = text("""
                 SELECT giorno_dt, bottiglie, presenze, cliente, comune, regione, tipomacchina, macchina, codicemacchinaprod, pf
                 FROM master_daily_rvm
-                WHERE pf = :m_id OR codicemacchinaprod = :m_id
+                WHERE pf = :pf OR macchina = :m_id
                 ORDER BY giorno_dt ASC;
             """)
-            df_cand = pd.read_sql(query_fallback, conn, params={"m_id": machine_id})
-            if not df_cand.empty:
-                latest_m = df_cand.sort_values("giorno_dt").iloc[-1]["macchina"]
-                if pd.notna(latest_m) and latest_m != "":
-                    df = df_cand[df_cand["macchina"] == latest_m].reset_index(drop=True)
-                else:
-                    df = df_cand
+            df = pd.read_sql(query_loc, conn, params={"pf": resolved_pf, "m_id": clean_id})
+        else:
+            # Query strictly by machine code or serial
+            query_mach = text("""
+                SELECT giorno_dt, bottiglie, presenze, cliente, comune, regione, tipomacchina, macchina, codicemacchinaprod, pf
+                FROM master_daily_rvm
+                WHERE macchina = :m_id OR codicemacchinaprod = :m_id OR pf = :m_id
+                ORDER BY giorno_dt ASC;
+            """)
+            df = pd.read_sql(query_mach, conn, params={"m_id": clean_id})
 
     if df.empty:
         return None
