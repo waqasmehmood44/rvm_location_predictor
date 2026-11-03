@@ -1026,12 +1026,16 @@ def render_fleet_benchmark_submodule(
         elif crash_drop_pct <= -30.0:
             verdict_badge = f'<span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5); padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.82rem;">🟠 Severe Downward Decline ({crash_drop_pct:.1f}%)</span>'
             verdict_border = "#f59e0b"
-        else:
+        elif crash_drop_pct < -5.0:
             verdict_badge = f'<span style="background: rgba(234, 179, 8, 0.2); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.5); padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.82rem;">🟡 Downward Deficit ({crash_drop_pct:.1f}%)</span>'
             verdict_border = "#eab308"
+        else:
+            verdict_badge = f'<span style="background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.5); padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.82rem;">🟢 Outperforming Baseline (+{crash_drop_pct:.1f}%)</span>'
+            verdict_border = "#22c55e"
 
         header_title = f"Crash Diagnostics: {hist['banner']} — {hist['comune']} ({hist['regione']})"
-        header_subtitle = f"Physical Machine: <code>{hist['macchina']}</code>{serial_desc}{site_desc} &bull; Model: <b>{hist['model']}</b> &bull; Baseline: <b>{hist_daily_med:.0f} b/d</b> &bull; Recent 30D: <b style=\"color: #f87171;\">{hist_recent_30d:.0f} b/d</b> &bull; Net Loss: <b style=\"color: #ef4444;\">{crash_drop_pct:.1f}% (-{daily_vol_lost:.0f} b/d)</b> &bull; Logged: {f_date_str} to {l_date_str}"
+        net_text = f"Net Loss: <b style=\"color: #ef4444;\">{crash_drop_pct:.1f}% (-{daily_vol_lost:.0f} b/d)</b>" if crash_drop_pct < 0 else f"Velocity Trend: <b style=\"color: #4ade80;\">+{crash_drop_pct:.1f}% (+{hist_recent_30d - hist_daily_med:.0f} b/d)</b>"
+        header_subtitle = f"Physical Machine: <code>{hist['macchina']}</code>{serial_desc}{site_desc} &bull; Model: <b>{hist['model']}</b> &bull; Baseline: <b>{hist_daily_med:.0f} b/d</b> &bull; Recent 30D: <b style=\"color: {'#f87171' if crash_drop_pct < 0 else '#4ade80'};\">{hist_recent_30d:.0f} b/d</b> &bull; {net_text} &bull; Logged: {f_date_str} to {l_date_str}"
 
         st.markdown(
             f"""
