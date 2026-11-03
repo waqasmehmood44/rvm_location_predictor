@@ -1033,40 +1033,33 @@ def render_fleet_benchmark_submodule(
             verdict_badge = f'<span style="background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.5); padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.82rem;">🟢 Outperforming Baseline (+{crash_drop_pct:.1f}%)</span>'
             verdict_border = "#22c55e"
 
-        header_title = f"Crash Diagnostics: {hist['banner']} — {hist['comune']} ({hist['regione']})"
-        net_text = f"Net Loss: <b style=\"color: #ef4444;\">{crash_drop_pct:.1f}% (-{daily_vol_lost:.0f} b/d)</b>" if crash_drop_pct < 0 else f"Velocity Trend: <b style=\"color: #4ade80;\">+{crash_drop_pct:.1f}% (+{hist_recent_30d - hist_daily_med:.0f} b/d)</b>"
-        header_subtitle = f"Physical Machine: <code>{hist['macchina']}</code>{serial_desc}{site_desc} &bull; Model: <b>{hist['model']}</b> &bull; Baseline: <b>{hist_daily_med:.0f} b/d</b> &bull; Recent 30D: <b style=\"color: {'#f87171' if crash_drop_pct < 0 else '#4ade80'};\">{hist_recent_30d:.0f} b/d</b> &bull; {net_text} &bull; Logged: {f_date_str} to {l_date_str}"
-
+        header_title = f"{hist['banner']} — {hist['comune']} ({hist['regione']})"
         st.markdown(
             f"""
-            <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%); border: 1px solid rgba(255, 255, 255, 0.1); border-left: 5px solid {verdict_border}; padding: 14px 18px; border-radius: 10px; margin-bottom: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.25);">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                    <div>
-                        <strong style="font-size: 1.10rem; color: #f8fafc;">{header_title}</strong>
-                        <div style="font-size: 0.82rem; color: #94a3b8; margin-top: 3px;">
-                            {header_subtitle}
-                        </div>
+            <div style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.08); border-left: 4px solid {verdict_border}; padding: 12px 18px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <div>
+                    <strong style="font-size: 1.15rem; color: #f8fafc;">{header_title}</strong>
+                    <div style="font-size: 0.82rem; color: #94a3b8; margin-top: 2px;">
+                        Machine ID: <code>{hist.get('pf') or hist['macchina']}</code> &bull; Model: <b>{hist['model']}</b> &bull; Operating Window: {f_date_str} to {l_date_str}
                     </div>
-                    <div>{verdict_badge}</div>
                 </div>
+                <div>{verdict_badge}</div>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-        # 4 Crash Metrics KPI Cards
+        # 4 Simple Numbers (Core KPIs)
         c_kpi1, c_kpi2, c_kpi3, c_kpi4 = st.columns(4)
         with c_kpi1:
             st.markdown(
                 f"""
-                <div style="{card_bg} border-top: 3px solid #ef4444;">
-                    <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Past Baseline vs Recent 30D</span>
-                    <div style="font-size: 1.55rem; font-weight: 800; color: #f87171; margin: 6px 0 2px 0;">
-                        {hist_recent_30d:.0f} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">b/d</span>
+                <div style="{card_bg} border-top: 3px solid #64748b;">
+                    <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Past Baseline</span>
+                    <div style="font-size: 1.65rem; font-weight: 800; color: #f1f5f9; margin: 4px 0 2px 0;">
+                        {hist_daily_med:.0f} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">b/d</span>
                     </div>
-                    <div style="font-size: 0.73rem; color: #64748b;">
-                        Baseline: <b style="color: #94a3b8;">{hist_daily_med:.0f} b/d</b> &bull; Drop: <b style="color: #ef4444;">{crash_drop_pct:.1f}%</b>
-                    </div>
+                    <div style="font-size: 0.73rem; color: #64748b;">Historical normal run-rate</div>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -1074,14 +1067,12 @@ def render_fleet_benchmark_submodule(
         with c_kpi2:
             st.markdown(
                 f"""
-                <div style="{card_bg} border-top: 3px solid #dc2626;">
-                    <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Daily Volume Deficit</span>
-                    <div style="font-size: 1.55rem; font-weight: 800; color: #dc2626; margin: 6px 0 2px 0;">
-                        -{daily_vol_lost:,.0f} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">b/d</span>
+                <div style="{card_bg} border-top: 3px solid #ef4444;">
+                    <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Current Velocity</span>
+                    <div style="font-size: 1.65rem; font-weight: 800; color: #f87171; margin: 4px 0 2px 0;">
+                        {hist_recent_30d:.0f} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">b/d</span>
                     </div>
-                    <div style="font-size: 0.73rem; color: #64748b;">
-                        Monthly Deficit: <b style="color: #f87171;">-{monthly_vol_lost:,.0f} b/mo</b>
-                    </div>
+                    <div style="font-size: 0.73rem; color: #ef4444; font-weight: 700;">{crash_drop_pct:.1f}% drop vs baseline</div>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -1089,14 +1080,12 @@ def render_fleet_benchmark_submodule(
         with c_kpi3:
             st.markdown(
                 f"""
-                <div style="{card_bg} border-top: 3px solid #f59e0b;">
-                    <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Downtime & Outage Rate</span>
-                    <div style="font-size: 1.55rem; font-weight: 800; color: {'#ef4444' if hist_zero_pct > 10 else '#fbbf24'}; margin: 6px 0 2px 0;">
-                        {hist_zero_pct:.1f}% <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">downtime</span>
+                <div style="{card_bg} border-top: 3px solid #dc2626;">
+                    <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Daily Volume Lost</span>
+                    <div style="font-size: 1.65rem; font-weight: 800; color: #dc2626; margin: 4px 0 2px 0;">
+                        -{daily_vol_lost:.0f} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">b/d</span>
                     </div>
-                    <div style="font-size: 0.73rem; color: #64748b;">
-                        Dead Days: <b style="color: #f87171;">{hist_zero_days:,} days</b> &bull; Total: <b>{hist['total_days']:,} d</b>
-                    </div>
+                    <div style="font-size: 0.73rem; color: #64748b;">-{monthly_vol_lost:,.0f} bottles/month</div>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -1104,20 +1093,18 @@ def render_fleet_benchmark_submodule(
         with c_kpi4:
             st.markdown(
                 f"""
-                <div style="{card_bg} border-top: 3px solid #38bdf8;">
-                    <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Active Footfall & Hardware</span>
-                    <div style="font-size: 1.55rem; font-weight: 800; color: #38bdf8; margin: 6px 0 2px 0;">
-                        {hist_visits:.0f} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">u/d</span>
+                <div style="{card_bg} border-top: 3px solid #f59e0b;">
+                    <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Downtime Rate</span>
+                    <div style="font-size: 1.65rem; font-weight: 800; color: {'#ef4444' if hist_zero_pct > 10 else '#fbbf24'}; margin: 4px 0 2px 0;">
+                        {hist_zero_pct:.1f}%
                     </div>
-                    <div style="font-size: 0.73rem; color: #64748b;">
-                        Intensity: <b style="color: #93c5fd;">{hist_bpu:.1f} b/u</b> &bull; Model: <b style="color: #cbd5e1;">{hist['model']}</b>
-                    </div>
+                    <div style="font-size: 0.73rem; color: #64748b;">{hist_zero_days} dead days ({hist['total_days']} total)</div>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
-        # Look up certified diagnostic root cause from certified fleet
+        # 1 Clear Statement Reason & Required Action
         df_crash_meta = load_performance_drop_fleet()
         matched_crash = None
         if not df_crash_meta.empty and "PF" in df_crash_meta.columns:
@@ -1126,192 +1113,62 @@ def render_fleet_benchmark_submodule(
                 matched_crash = m_match.iloc[0]
 
         crash_reason_title = matched_crash.get("Root_Cause_Diagnostic", "Defective Hardware / Prolonged Offline Outage") if matched_crash is not None else "Defective Hardware / Prolonged Offline Outage"
-        crash_reason_text = matched_crash.get("Root_Cause_Detail", "") if matched_crash is not None else ""
-        if not crash_reason_text:
-            if hist_zero_days >= 10:
-                crash_reason_text = f"Machine logged {hist_zero_days} zero-collection days ({hist_zero_pct:.1f}% downtime). Unit is offline or suffering chronic component/sensor failure."
-            elif crash_drop_pct <= -50.0:
-                crash_reason_text = f"Collection suffered a severe collapse of {abs(crash_drop_pct):.1f}% vs baseline (falling from {hist_daily_med:.0f} to {hist_recent_30d:.0f} b/d). Operational inspection required."
-            else:
-                crash_reason_text = f"Collection declined by {abs(crash_drop_pct):.1f}% vs historical baseline, creating an ongoing daily volume deficit of -{daily_vol_lost:.0f} b/d."
+
+        if "Outage" in crash_reason_title or "Defective" in crash_reason_title or hist_zero_days >= 10:
+            concise_reason = "Defective Hardware / Offline Outage"
+            concise_statement = f"Machine has logged {hist_zero_days} dead days ({hist_zero_pct:.1f}% downtime). Unit is offline due to chronic optical scanner, motor, or modem failure."
+            concise_action = "Dispatch field technician to inspect optical sensors, clear mechanical chute jam, and reset the 4G/LTE modem gateway."
+        elif "Capacity" in crash_reason_title or "Choke" in crash_reason_title or (hist_mach in ["DAINT_A-bis", "DAINT_B-bis", "Eurven Greeny"] and hist_daily_med >= 200):
+            concise_reason = "Bin Capacity Saturation ('Bin Full' Stalls)"
+            concise_statement = f"Model {hist_mach} has limited bin storage. High shopper demand fills it rapidly, causing repeated 'Bin Full' lockouts until staff empty it."
+            concise_action = "Upgrade machine chassis to DAINT_G (4,500 bottles) or mandate scheduled twice-daily bag swaps with store staff."
+        elif "Footfall" in crash_reason_title or (hist_visits < 15 and hist_bpu >= 10.0):
+            concise_reason = "Supermarket Footfall Decline"
+            concise_statement = f"Recycler customer visits dropped to {hist_visits:.0f} users/day. Overall shopper footfall at this supermarket location has contracted."
+            concise_action = "Audit store footfall with store manager and place high-visibility directional signage at checkout and entrance doors."
+        elif "Promotion" in crash_reason_title or "Reward" in crash_reason_title or hist_bpu < 8.0:
+            concise_reason = "Loyalty Incentive / Promotion Expired"
+            concise_statement = f"Recycling volume dropped to {hist_bpu:.1f} bottles/user. Shoppers stopped bringing bottles because the store discount coupon promotion expired."
+            concise_action = "Renew store coupon partnership (e.g. 50 bottles = €2 discount) and send targeted push notifications via the Coripet app."
+        else:
+            concise_reason = "Operational Trajectory Deficit"
+            concise_statement = f"Daily collection dropped by {abs(crash_drop_pct):.1f}% (from {hist_daily_med:.0f} to {hist_recent_30d:.0f} b/d). Possible machine relocation to a low-visibility area."
+            concise_action = "Inspect physical site positioning to ensure the machine is not obstructed by store merchandise or pallets."
 
         st.markdown(
             f"""
-            <div style="background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(239, 68, 68, 0.40); border-left: 5px solid #ef4444; border-radius: 8px; padding: 16px 20px; margin: 12px 0 16px 0; box-shadow: 0 4px 14px rgba(0,0,0,0.25);">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-weight: 800; font-size: 1.02rem; color: #f87171;">
-                        🔍 Identified Machine Crash Reason & Operational Root Cause
+            <div style="background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(239, 68, 68, 0.35); border-left: 4px solid #ef4444; border-radius: 8px; padding: 14px 18px; margin: 12px 0 16px 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+                    <span style="font-size: 0.74rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">
+                        Operational Diagnosis
                     </span>
-                    <span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.80rem;">
-                        {crash_reason_title}
+                    <span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); padding: 3px 10px; border-radius: 5px; font-weight: 800; font-size: 0.80rem;">
+                        🔴 {concise_reason}
                     </span>
                 </div>
-                <div style="font-size: 0.90rem; color: #f1f5f9; line-height: 1.6; margin-bottom: 8px;">
-                    <b>Field Diagnosis:</b> {crash_reason_text}
+                <div style="font-size: 0.95rem; font-weight: 700; color: #f8fafc; line-height: 1.5; margin-bottom: 8px;">
+                    {concise_statement}
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; font-size: 0.82rem; color: #94a3b8; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 10px;">
-                    <div>Past Normal Baseline: <b style="color: #cbd5e1;">{hist_daily_med:.0f} b/d</b></div>
-                    <div>Current Crash Level: <b style="color: #f87171;">{hist_recent_30d:.0f} b/d ({crash_drop_pct:.1f}%)</b></div>
-                    <div>Daily Deficit: <b style="color: #ef4444;">-{daily_vol_lost:.0f} b/d</b></div>
-                    <div>Outage Dead Days: <b style="color: {'#ef4444' if hist_zero_days > 10 else '#fbbf24'};">{hist_zero_days} days ({hist_zero_pct:.1f}% downtime)</b></div>
+                <div style="font-size: 0.85rem; color: #4ade80; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); line-height: 1.5;">
+                    <b>Required Action:</b> {concise_action}
                 </div>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-        # Dedicated Crash Trajectory Visualizer: Daily Rolling Trend Collapse & Outages (Full Width)
-        st.markdown("#### 📉 Machine Crash Diagnostics & Deficit Breakdown")
+        # Crash Trajectory Graph (Clean Full Width)
+        st.markdown("#### 📉 Crash Trajectory: Daily Rolling Velocity & Outages (Last 12 Months)")
         max_daily_roll = float(hist["df_daily"]["roll_30d"].max()) if not hist["df_daily"].empty else float(hist["median_daily"])
         if not hist["df_daily"].empty and "roll_7d" in hist["df_daily"].columns:
             max_7d_roll = float(hist["df_daily"]["roll_7d"].max())
             max_daily_roll = max(max_daily_roll, max_7d_roll)
         common_y_max = float(max(max_daily_roll, hist["median_daily"], 100.0) * 1.15)
 
-        st.markdown(
-            f"""
-            <div style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.08); border-top: 3px solid #ef4444; border-radius: 10px; padding: 14px 18px; margin-bottom: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                    <span style="font-size: 1.05rem; font-weight: 800; color: #f87171;">
-                        📉 Crash Trajectory: Daily Rolling Velocity & Outages (Last 12 Months)
-                    </span>
-                    <span style="font-size: 0.74rem; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); padding: 3px 9px; border-radius: 4px; font-weight: 700;">
-                        CRASH DEFICIT TELEMETRY (b/d)
-                    </span>
-                </div>
-                <div style="font-size: 0.82rem; color: #94a3b8; margin-top: 6px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                    <span>Past Normal Baseline: <b style="color: #fbbf24;">{hist_daily_med:.0f} b/d</b></span>
-                    <span>Recent 30-Day Velocity: <b style="color: #f87171;">{hist_recent_30d:.0f} b/d ({crash_drop_pct:.1f}%)</b></span>
-                    <span>Daily Volume Lost: <b style="color: #ef4444;">-{daily_vol_lost:.0f} b/d</b></span>
-                    <span>Outage Downtime: <b style="color: {'#ef4444' if hist_zero_pct > 5 else '#34d399'};">{hist_zero_days} dead days ({hist_zero_pct:.1f}%)</b></span>
-                    <span>Power BI Historical Mean: <b style="color: #38bdf8;">{hist_daily_mean:.0f} b/d</b></span>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        fig_crash = build_crash_daily_trajectory_figure(hist, y_max=common_y_max, chart_height=420)
+        fig_crash = build_crash_daily_trajectory_figure(hist, y_max=common_y_max, chart_height=380)
         st.plotly_chart(fig_crash, use_container_width=True, theme=None, config={"displayModeBar": False, "responsive": True}, key=f"plotly_crash_trajectory_{hist['macchina']}")
 
-        # =====================================================================
-        # 1. ROOT-CAUSE DIAGNOSTIC BREAKDOWN & FIELD REMEDIATION ANALYSIS
-        # =====================================================================
-        st.markdown("<hr style='border: 0; border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 28px 0 20px 0;'>", unsafe_allow_html=True)
-        st.markdown("#### 🩺 Multi-Factor Root Cause Diagnostic & Field Remediation Analysis")
-
-        # Determine detailed remediation steps based on the crash reason
-        rem_title = "Field Remediation & Technical Action Plan"
-        rem_steps = []
-        if "Outage" in crash_reason_title or "Defective" in crash_reason_title or hist_zero_days >= 10:
-            primary_cause_desc = "Chronic Unserviced Hardware Downtime & Sensor Failure"
-            cause_detail_diag = (
-                f"Physical machine <code>{hist['macchina']}</code> has recorded <b>{hist_zero_days} zero-intake days ({hist_zero_pct:.1f}% downtime)</b>. "
-                "The system is stuck offline, experiencing recurring optical barcode scanner blindness, compaction motor stall, or SIM gateway disconnection."
-            )
-            rem_steps = [
-                ("1. Immediate Field Technician Dispatch", "Issue urgent field ticket to inspect optical scanning heads, mechanical chute clearance, and reset the 4G/LTE modem gateway."),
-                ("2. Component Overhaul & Cleaning", "Clean or replace soiled barcode lenses, clear jammed flappers, and test power supply rails for intermittent dropouts."),
-                ("3. Telemetry Clearance Sign-Off", "Require store manager sign-off after validating 48 consecutive hours of active bottle counts before closing the maintenance ticket.")
-            ]
-        elif "Capacity" in crash_reason_title or "Choke" in crash_reason_title or (hist_mach in ["DAINT_A-bis", "DAINT_B-bis", "Eurven Greeny"] and hist_daily_med >= 200):
-            primary_cause_desc = "Physical Bin Capacity Saturation ('Bin Full' Stalls)"
-            cause_detail_diag = (
-                f"The installed unit model <b>{hist_mach}</b> has a restricted storage bin capacity (limit: <b>{hw_caps.get(hist_mach, 500):,} bottles</b>). "
-                f"Shopper collection velocity easily saturates this limited bin, forcing the machine into an automated 'Bin Full' lockout until store personnel replace the bag."
-            )
-            rem_steps = [
-                ("1. Hardware Chassis Upgrade", "Replace the compact chassis with a high-capacity <b>DAINT_G (4,500 bottles)</b> or external roll-container compaction module."),
-                ("2. Dynamic Store Staff Alerts", "Configure automated SMS/push alerts to store floor associates when the internal bin reaches 80% volume threshold."),
-                ("3. Mandate Scheduled Bag Swaps", "Incorporate mandatory RVM bin inspection into store opening and afternoon restocking operational checklists.")
-            ]
-        elif "Footfall" in crash_reason_title or (hist_visits < 15 and hist_bpu >= 10.0):
-            primary_cause_desc = "Retail Supermarket Footfall Collapse / Anchor Traffic Plunge"
-            cause_detail_diag = (
-                f"Customer recycling visits plunged down to <b>{hist_visits:.0f} users/day</b> (while dedicated users still recycle <b>{hist_bpu:.1f} b/user</b>). "
-                "This indicates that overall retail customer footfall at this store location has contracted severely due to local roadworks, store remodeling, or loss of an anchor tenant."
-            )
-            rem_steps = [
-                ("1. Retail Floor Traffic Audit", "Consult store management to determine if the drop in customer traffic is store-wide or localized to specific departments."),
-                ("2. In-Store Cross-Promotion", "Deploy high-visibility banners at checkout lanes and supermarket parking entrances directing customers to the RVM."),
-                ("3. Catchment Re-allocation", "If supermarket customer volume does not rebound within 60 days, initiate relocation process to a higher-density retail center.")
-            ]
-        elif "Promotion" in crash_reason_title or "Reward" in crash_reason_title or hist_bpu < 8.0:
-            primary_cause_desc = "Loyalty Incentive Exhaustion / Expired Reward Promotion"
-            cause_detail_diag = (
-                f"Recycling intensity per user collapsed to <b>{hist_bpu:.1f} bottles/user</b>. "
-                "Shoppers have lost financial or promotional motivation to bring empty PET bottles because the retailer's coupon promotion expired, or reward points devalued."
-            )
-            rem_steps = [
-                ("1. Refresh Retailer Coupon Agreement", "Negotiate an updated retail discount partnership with the chain (e.g. 50 bottles = €2 discount coupon on grocery purchases)."),
-                ("2. Coripet App Targeted Push", "Broadcast geotargeted bonus point notifications to registered Coripet mobile app users within 5 km of this machine."),
-                ("3. In-Aisle Shelf Wobblers", "Place promotional shelf markers in the bottled water and carbonated soft drink aisles reminding shoppers of points per bottle.")
-            ]
-        else:
-            primary_cause_desc = "Sustained Operational Trajectory Deficit / Visibility Impairment"
-            cause_detail_diag = (
-                f"Daily collection velocity dropped by <b>{abs(crash_drop_pct):.1f}%</b> (from {hist_daily_med:.0f} b/d to {hist_recent_30d:.0f} b/d), "
-                f"causing an ongoing daily deficit of <b>-{daily_vol_lost:.0f} b/d</b>. Potential machine relocation to a low-visibility corridor or competitor installation nearby."
-            )
-            rem_steps = [
-                ("1. Machine Placement & Visibility Audit", "Inspect physical installation site. Ensure machine has not been moved behind pallets, service desks, or obscure loading zones."),
-                ("2. Competitive & Environmental Scan", "Check surrounding area for newly installed competing reverse vending machines or changes in municipal curb collection."),
-                ("3. Comprehensive Mechanical Health Check", "Perform full preventive maintenance cycle to calibrate internal weighing and camera recognition modules.")
-            ]
-
-        # Diagnostic Summary Grid: 3 Cards (Driver, Evidence, Action Plan)
-        c_diag1, c_diag2, c_diag3 = st.columns([1.1, 1.1, 1.4])
-        with c_diag1:
-            st.markdown(
-                f'<div style="{card_bg} border-top: 3px solid #ef4444;">'
-                f'<div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Primary Failure Driver</div>'
-                f'<div style="font-size: 1.05rem; font-weight: 800; color: #f87171; margin: 6px 0 6px 0; line-height: 1.3;">{primary_cause_desc}</div>'
-                f'<div style="font-size: 0.82rem; color: #cbd5e1; line-height: 1.5; margin-top: 8px;">{cause_detail_diag}</div>'
-                f'<div style="margin-top: 12px; padding: 6px 10px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; font-size: 0.76rem; color: #fca5a5;">'
-                f'<b>Diagnostic Classification:</b> {crash_reason_title}</div>'
-                f'</div>',
-                unsafe_allow_html=True
-            )
-        with c_diag2:
-            st.markdown(
-                f'<div style="{card_bg} border-top: 3px solid #f59e0b;">'
-                f'<div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Telemetry Root Cause Evidence</div>'
-                f'<div style="margin-top: 8px; font-size: 0.82rem; color: #cbd5e1; display: flex; flex-direction: column; gap: 8px;">'
-                f'<div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px;">'
-                f'<span style="color: #94a3b8;">Normal Past Baseline:</span><b style="color: #f1f5f9;">{hist_daily_med:.0f} b/d</b></div>'
-                f'<div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px;">'
-                f'<span style="color: #94a3b8;">Crashed Recent Velocity:</span><b style="color: #f87171;">{hist_recent_30d:.0f} b/d ({crash_drop_pct:.1f}%)</b></div>'
-                f'<div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px;">'
-                f'<span style="color: #94a3b8;">Daily Volume Deficit:</span><b style="color: #ef4444;">-{daily_vol_lost:.0f} b/d (-{monthly_vol_lost:,.0f}/mo)</b></div>'
-                f'<div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px;">'
-                f'<span style="color: #94a3b8;">Dead Days (Zero Intake):</span><b style="color: {"#ef4444" if hist_zero_days > 10 else "#fbbf24"};">{hist_zero_days} days ({hist_zero_pct:.1f}% downtime)</b></div>'
-                f'<div style="display: flex; justify-content: space-between;">'
-                f'<span style="color: #94a3b8;">Footfall & User Ratio:</span><b style="color: #38bdf8;">{hist_visits:.0f} users/d &bull; {hist_bpu:.1f} b/user</b></div>'
-                f'</div>'
-                f'</div>',
-                unsafe_allow_html=True
-            )
-        with c_diag3:
-            steps_html = "".join([
-                f'<div style="margin-bottom: 10px;">'
-                f'<div style="font-weight: 700; color: #4ade80; font-size: 0.82rem;">{st_title}</div>'
-                f'<div style="font-size: 0.80rem; color: #cbd5e1; margin-top: 2px; line-height: 1.45;">{st_desc}</div>'
-                f'</div>'
-                for st_title, st_desc in rem_steps
-            ])
-            st.markdown(
-                f'<div style="{card_bg} border-top: 3px solid #10b981;">'
-                f'<div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">{rem_title}</div>'
-                f'<div style="margin-top: 8px;">{steps_html}</div>'
-                f'</div>',
-                unsafe_allow_html=True
-            )
-
-        # =====================================================================
-        # 2. AI MODEL PREDICTION & FORWARD 12-MONTH RECOVERY HORIZON GRAPH
-        # =====================================================================
-        st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
-        st.markdown("#### 🔮 Forward AI Model Prediction & 12-Month Target Recovery Horizon")
-
+        # Forward AI Model Prediction (Clean & Simplified)
         s_ban = (selected_rec.get("banner") if selected_rec else None) or hist.get("banner", "Store")
         s_addr = (selected_rec.get("indirizzo") if selected_rec else None) or hist.get("indirizzo") or hist.get("comune", "Italia")
         s_cap = (selected_rec.get("cap") if selected_rec else None) or hist.get("cap", "00100")
@@ -1319,7 +1176,7 @@ def render_fleet_benchmark_submodule(
         s_mod = (selected_rec.get("model") if selected_rec else None) or hist.get("model", "DAINT_G")
         s_pf = (selected_rec.get("pf") if selected_rec else None) or hist.get("pf") or hist.get("macchina")
 
-        with st.spinner(f"Computing forward AI Model Prospective Recovery Target for {s_ban} ({s_com})..."):
+        with st.spinner(f"Computing AI Model Target for {s_ban}..."):
             mach_res = predict_machine_forecast(s_ban, s_addr, s_cap, s_com, s_mod, pf=s_pf)
 
         if mach_res:
@@ -1335,6 +1192,9 @@ def render_fleet_benchmark_submodule(
             p10_d_val = float(prob.get("downside_floor_p10_daily", p_daily * 0.82))
             p90_d_val = float(prob.get("upside_peak_p90_daily", p_daily * 1.25))
 
+            reclaimable_daily = max(0.0, p_daily - hist_recent_30d)
+            reclaimable_annual = reclaimable_daily * 365
+
             pred_summary = {
                 "pred_daily": p_daily,
                 "pred_monthly": p_monthly,
@@ -1347,101 +1207,41 @@ def render_fleet_benchmark_submodule(
                 "pred_reward": res.get("commercial_rewards", {}).get("reward_type", "Standard Policy")
             }
 
-            reclaimable_daily = max(0.0, p_daily - hist_recent_30d)
-            reclaimable_annual = reclaimable_daily * 365
-            recovery_gain_pct = ((p_daily - hist_recent_30d) / max(1.0, hist_recent_30d)) * 100.0
+            st.markdown("<hr style='border: 0; border-top: 1px solid rgba(255, 255, 255, 0.08); margin: 24px 0 16px 0;'>", unsafe_allow_html=True)
+            st.markdown("#### 🔮 AI Model Recovery Target: Next 12 Months (Post-Repair Potential)")
 
-            # 4 Recovery Metric Cards
-            c_rec1, c_rec2, c_rec3, c_rec4 = st.columns(4)
-            with c_rec1:
-                st.markdown(
-                    f"""
-                    <div style="{card_bg} border-top: 3px solid #ef4444;">
-                        <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Current Crash Run Rate</span>
-                        <div style="font-size: 1.55rem; font-weight: 800; color: #f87171; margin: 6px 0 2px 0;">
-                            {hist_recent_30d:.0f} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">b/d</span>
-                        </div>
-                        <div style="font-size: 0.73rem; color: #64748b;">
-                            Drop vs Baseline: <b style="color: #ef4444;">{crash_drop_pct:.1f}%</b> &bull; Baseline: <b>{hist_daily_med:.0f} b/d</b>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-            with c_rec2:
+            c_fut1, c_fut2 = st.columns(2)
+            with c_fut1:
                 st.markdown(
                     f"""
                     <div style="{card_bg} border-top: 3px solid #22c55e;">
                         <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">AI Model Target Potential</span>
-                        <div style="font-size: 1.55rem; font-weight: 800; color: #22c55e; margin: 6px 0 2px 0;">
+                        <div style="font-size: 1.65rem; font-weight: 800; color: #22c55e; margin: 4px 0 2px 0;">
                             {p_daily:.0f} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">b/d</span>
                         </div>
-                        <div style="font-size: 0.73rem; color: #64748b;">
-                            Monthly Target: <b style="color: #4ade80;">{p_monthly:,.0f} b/mo</b> &bull; Annual: <b>~{p_annual:,}</b>
-                        </div>
+                        <div style="font-size: 0.73rem; color: #64748b;">Target: {p_monthly:,.0f} bottles/mo (Range: {p10_d_val:.0f} – {p90_d_val:.0f} b/d)</div>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
-            with c_rec3:
+            with c_fut2:
                 st.markdown(
                     f"""
                     <div style="{card_bg} border-top: 3px solid #38bdf8;">
                         <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Reclaimable Deficit Volume</span>
-                        <div style="font-size: 1.55rem; font-weight: 800; color: #38bdf8; margin: 6px 0 2px 0;">
+                        <div style="font-size: 1.65rem; font-weight: 800; color: #38bdf8; margin: 4px 0 2px 0;">
                             +{reclaimable_daily:.0f} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">b/d</span>
                         </div>
-                        <div style="font-size: 0.73rem; color: #64748b;">
-                            Annual Recovery: <b style="color: #38bdf8;">+{reclaimable_annual:,.0f} b/yr</b> (+{recovery_gain_pct:.0f}% upside)
-                        </div>
+                        <div style="font-size: 0.73rem; color: #64748b;">Annual Recoverable Opportunity: +{reclaimable_annual:,.0f} bottles/year</div>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
-            with c_rec4:
-                st.markdown(
-                    f"""
-                    <div style="{card_bg} border-top: 3px solid #a855f7;">
-                        <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Model Confidence Interval (P10–P90)</span>
-                        <div style="font-size: 1.35rem; font-weight: 800; color: #c084fc; margin: 8px 0 4px 0;">
-                            {p10_d_val:.0f} – {p90_d_val:.0f} <span style="font-size: 0.80rem; font-weight: 500; color: #94a3b8;">b/d</span>
-                        </div>
-                        <div style="font-size: 0.73rem; color: #64748b;">
-                            Footfall Target: <b>{p_visits:.0f} u/d</b> &bull; Intensity: <b>{p_bpu:.1f} b/u</b>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-            # Future Forecast Chart Banner
-            st.markdown(
-                f"""
-                <div style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.08); border-top: 3px solid #16a34a; border-radius: 10px; padding: 14px 18px; margin-top: 14px; margin-bottom: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                        <span style="font-size: 1.05rem; font-weight: 800; color: #4ade80;">
-                            🔮 Future Model Recovery Forecast: Bottles per Day (Next 12 Months)
-                        </span>
-                        <span style="font-size: 0.74rem; background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.35); padding: 3px 9px; border-radius: 4px; font-weight: 700;">
-                            AI MODEL RECOVERY TARGET (b/d)
-                        </span>
-                    </div>
-                    <div style="font-size: 0.82rem; color: #94a3b8; margin-top: 6px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                        <span>Current Crash Level: <b style="color: #f87171;">{hist_recent_30d:.0f} b/d</b></span>
-                        <span>Model Target Rate: <b style="color: #22c55e;">{p_daily:.0f} b/d</b></span>
-                        <span>P10 Floor: <b style="color: #60a5fa;">{p10_d_val:.0f} b/d</b></span>
-                        <span>P90 Peak: <b style="color: #c084fc;">{p90_d_val:.0f} b/d</b></span>
-                        <span>Reclaimable Deficit: <b style="color: #38bdf8;">+{reclaimable_daily:.0f} b/d (+{reclaimable_annual:,.0f}/yr)</b></span>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
 
             fig_future = build_future_daily_bottles_figure(
                 res=mach_res,
                 pred_summary=pred_summary,
-                chart_height=420,
+                chart_height=380,
                 crash_recent_daily=hist_recent_30d,
                 hist_baseline_daily=hist_daily_med
             )
@@ -1453,14 +1253,11 @@ def render_fleet_benchmark_submodule(
                 key=f"plotly_crash_future_recovery_{hist['macchina']}"
             )
 
-            # Executive Takeaway Note
             st.markdown(
                 f"""
-                <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.25); border-left: 4px solid #22c55e; border-radius: 8px; padding: 12px 16px; margin-top: 10px; margin-bottom: 16px; font-size: 0.84rem; color: #cbd5e1; line-height: 1.5;">
-                    <b style="color: #4ade80;">💡 AI Recovery Outlook & Operational Recommendation:</b>
-                    Once the field remediation protocol is executed (resolving the primary driver: <i>{primary_cause_desc}</i>),
-                    the machine is projected to recover from its current crash velocity of <b>{hist_recent_30d:.0f} b/d</b> back to its underwritten target run-rate of <b>{p_daily:.0f} b/d</b>,
-                    reclaiming up to <b>+{reclaimable_annual:,.0f} bottles annually</b> for the Coripet network.
+                <div style="background: rgba(34, 197, 94, 0.08); border-left: 4px solid #22c55e; border-radius: 6px; padding: 10px 14px; margin-top: 8px; font-size: 0.84rem; color: #cbd5e1; line-height: 1.5;">
+                    <b style="color: #4ade80;">💡 Recovery Outlook:</b>
+                    Once the technical repair is completed, this site is projected to recover from its current <b>{hist_recent_30d:.0f} b/d</b> crash level back to <b>{p_daily:.0f} b/d</b>, reclaiming <b>+{reclaimable_annual:,.0f} bottles annually</b>.
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -2204,25 +2001,19 @@ def render_performance_drops_section(all_machines: List[Dict[str, str]], active_
     cur_row = filtered_df[filtered_df["PF"] == cur_sel].iloc[0] if (filtered_df["PF"] == cur_sel).any() else filtered_df.iloc[0]
     st.markdown(
         f"""
-        <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(239, 68, 68, 0.40); border-left: 4px solid #ef4444; 
-                    padding: 10px 16px; border-radius: 6px; margin: 8px 0 14px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-            <div>
-                <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Actively Inspected Crashed Unit</span>
-                <div style="font-size: 0.95rem; font-weight: 700; color: #f8fafc; margin-top: 2px;">
-                    📍 <span style="color: #38bdf8; user-select: all; -webkit-user-select: all;">{cur_row['Store_Banner']}</span> &bull; 
-                    <i style="color: #cbd5e1; user-select: all; -webkit-user-select: all;">{cur_row.get('Descrizione', '')}</i> 
-                    (<span style="user-select: all; -webkit-user-select: all;">{cur_row['Comune']}, {cur_row['Regione']}</span>) 
-                    &bull; ID: <code style="user-select: all; -webkit-user-select: all; cursor: pointer;" title="Double-click or drag to copy ID">{cur_row['PF']}</code> 
-                    &bull; API: <span style="color: #22c55e; font-weight: 700;">🟢 ATTVO</span> <span style="color: #94a3b8; font-size: 0.80rem;">(Thru {cur_row.get('DataFineRange', '')})</span>
-                    &bull; Baseline: <b style="color: #94a3b8;">{cur_row['Median_Bottles_Daily']:.0f} b/d</b> 
-                    &bull; Recent: <b style="color: #f87171;">{cur_row['Recent_30d_Median']:.0f} b/d</b> 
-                    (<span style="color: #ef4444; font-weight: 800;">{cur_row['drop_pct']:.1f}%</span>)
-                    &bull; Deficit: <b style="color: #ef4444;">-{cur_row['vol_lost']:.0f} b/d</b>
-                    &bull; Cause: <span style="color: #fbbf24; font-weight: 700;">{cur_row['Root_Cause_Diagnostic']}</span>
-                </div>
+        <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(239, 68, 68, 0.35); border-left: 4px solid #ef4444; 
+                    padding: 8px 14px; border-radius: 6px; margin: 6px 0 10px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div style="font-size: 0.88rem; color: #f8fafc;">
+                <span style="color: #94a3b8; font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">Inspected Unit:</span>
+                <b style="color: #38bdf8; margin-left: 6px; user-select: all;">{cur_row['Store_Banner']}</b>
+                <span style="color: #cbd5e1; user-select: all;">— {cur_row.get('Descrizione', '')} ({cur_row['Comune']})</span>
+                <span style="color: #64748b; margin: 0 5px;">&bull;</span>
+                ID: <code style="user-select: all;">{cur_row['PF']}</code>
+                <span style="color: #64748b; margin: 0 5px;">&bull;</span>
+                <span style="color: #ef4444; font-weight: 700;">Drop: {cur_row['drop_pct']:.1f}% (-{cur_row['vol_lost']:.0f} b/d)</span>
             </div>
-            <span style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 5px 12px; border-radius: 4px; font-size: 0.76rem; font-weight: 800;">
-                CRASH TELEMETRY & ROOT CAUSE ACTIVE BELOW ⬇️
+            <span style="color: #f87171; font-size: 0.76rem; font-weight: 700;">
+                Detailed Telemetry Below ⬇️
             </span>
         </div>
         """,
