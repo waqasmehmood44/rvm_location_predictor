@@ -781,7 +781,7 @@ def render_machine_history_tab():
     avg_yield = df_all["predicted_daily_bottles"].mean() if "predicted_daily_bottles" in df_all else 0.0
     highest_machine = df_all.sort_values(by="predicted_daily_bottles", ascending=False).iloc[0] if not df_all.empty else None
 
-    kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
+    kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns([1.0, 1.0, 1.2, 1.1, 1.7])
     with kpi1:
         st.markdown(
             f"""
@@ -829,14 +829,17 @@ def render_machine_history_tab():
             unsafe_allow_html=True
         )
     with kpi5:
-        top_name = highest_machine["store_name"] if highest_machine is not None else "-"
-        top_val = highest_machine["predicted_daily_bottles"] if highest_machine is not None else 0.0
+        top_name = str(highest_machine["store_name"]) if highest_machine is not None else "-"
+        top_val = float(highest_machine["predicted_daily_bottles"]) if highest_machine is not None else 0.0
+        top_pf = str(highest_machine["punto_fisico"]) if highest_machine is not None else ""
         st.markdown(
             f"""
-            <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 14px 16px;">
+            <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(236, 72, 153, 0.25); border-radius: 10px; padding: 14px 16px;">
                 <div style="color: #94a3b8; font-size: 0.78rem; font-weight: 600; text-transform: uppercase;">Peak Volume Machine</div>
-                <div style="font-size: 1.15rem; font-weight: 800; color: #ec4899; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{top_name}">{top_name}</div>
-                <div style="color: #f43f5e; font-size: 0.85rem; font-weight: 700; margin-top: 2px;">{top_val:,.1f} b/d peak</div>
+                <div style="font-size: 1.65rem; font-weight: 800; color: #ec4899; margin-top: 4px;">{top_val:,.1f} <span style="font-size: 0.85rem; font-weight: 700;">b/d</span></div>
+                <div style="color: #cbd5e1; font-size: 0.76rem; font-weight: 600; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{top_name} ({top_pf})">
+                    🏆 {top_name}
+                </div>
             </div>
             """,
             unsafe_allow_html=True
@@ -845,7 +848,7 @@ def render_machine_history_tab():
     st.markdown("<div style='margin-top: 18px;'></div>", unsafe_allow_html=True)
 
     # 3. Interactive Filtering Bar
-    f_col1, f_col2, f_col3, f_col4, f_col5 = st.columns([2.5, 1.2, 1.4, 2.0, 1.0])
+    f_col1, f_col2, f_col3, f_col4, f_col5 = st.columns([2.6, 1.2, 1.4, 2.2, 1.1])
     with f_col1:
         search_kw = st.text_input(
             "Search Machine History",
