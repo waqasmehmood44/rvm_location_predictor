@@ -319,15 +319,34 @@ def save_machine_inspection_record(
     final_rew_mult = float(rewards.get("multiplier_bottles") or 1.0)
     final_near_km = float(catchment.get("coripet_network", {}).get("nearest_coripet_km") or 0.0)
 
-    # Seasonality & monthly profile extraction
-    rolling_profile = (
-        lifecycle_h.get("underwritten_operational_profile")
-        or lifecycle_h.get("rolling_15_month_profile")
-        or preds.get("underwritten_monthly_profile")
-        or preds.get("monthly_collection_profile")
-        or preds.get("monthly_predictions")
-        or []
-    )
+    # Seasonality & monthly profile extraction (Strictly 15-month: 3M Setup Ramp + 12M Mature Horizon)
+    rolling_profile = lifecycle_h.get("year1_rolling_profile")
+    if not rolling_profile or len(rolling_profile) < 15:
+        try:
+            from src.model.predict import calculate_lifecycle_horizon
+            monthly_col = preds.get("underwritten_monthly_profile") or preds.get("monthly_collection_profile") or []
+            lh = calculate_lifecycle_horizon(
+                underwritten_monthly_profile=monthly_col,
+                expected_daily_bottiglie=final_b_day,
+                expected_annual_bottiglie=final_b_day * 365.0,
+                expected_daily_presenze=final_visits,
+                go_live_month=lifecycle_h.get("launch_month_num", inputs.get("go_live_month", today_dt.month)),
+                go_live_year=lifecycle_h.get("launch_year", inputs.get("go_live_year", today_dt.year)),
+                enable_rampup=True
+            )
+            rolling_profile = lh.get("year1_rolling_profile", [])
+            pred_dict["lifecycle_horizon"] = lh
+        except Exception:
+            pass
+
+    if not rolling_profile:
+        rolling_profile = (
+            preds.get("underwritten_monthly_profile")
+            or preds.get("monthly_collection_profile")
+            or preds.get("monthly_predictions")
+            or []
+        )
+
     try:
         seasonality_json_str = json.dumps(rolling_profile, default=_safe_json_encoder, ensure_ascii=False)
     except Exception:
@@ -500,15 +519,13 @@ def fetch_inspection_history(
 # 4. CHART BUILDER: HISTORICAL SEASONALITY PROJECTION
 # =========================================================================
 
-def render_history_seasonality_chart(seasonality_data: Any, daily_baseline: float = 0.0) -> go.Figure:
+def parse_and_expand_15m_profile(seasonality_data: Any, daily_baseline: float = 0.0) -> List[Dict[str, Any]]:
     """
-    Renders an interactive 12-month calendar seasonality chart for a historical inspection record.
+    Parses stored seasonality JSON and guarantees a full 15-month operational profile
+    (3-Month Setup & Adoption Ramp-Up M01..M03 + 12-Month Mature Operational Seasonality Horizon M04..M15).
+    Strictly generated from stored historical record data, with no live API calls.
     """
-    months = []
-    targets = []
-    daily_rates = []
-    ramp_flags = []
-
+    profile_list = []
     if isinstance(seasonality_data, str) and seasonality_data:
         try:
             seasonality_data = json.loads(seasonality_data)
@@ -518,70 +535,180 @@ def render_history_seasonality_chart(seasonality_data: Any, daily_baseline: floa
     if isinstance(seasonality_data, list) and seasonality_data:
         for idx, item in enumerate(seasonality_data):
             if isinstance(item, dict):
-                m_lbl = item.get("month_name") or item.get("lifecycle_label") or f"M{idx+1:02d}"
-                d_val = float(item.get("daily_bottiglie_median") or item.get("daily_bottiglie") or 0.0)
-                t_val = int(item.get("monthly_target_bottiglie_median") or item.get("monthly_target_bottiglie") or round(d_val * 30.4))
-                is_ramp = bool(item.get("is_rampup", idx < 3))
-                months.append(m_lbl)
-                daily_rates.append(d_val)
-                targets.append(t_val)
-                ramp_flags.append(is_ramp)
+                profile_list.append(item)
+
+    # If profile already has all 15 months, return them directly
+    if len(profile_list) >= 15:
+        return profile_list[:15]
+
+    month_names = {1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun", 7: "Jul", 8: "Aug", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"}
+    seasonality_weights = {
+        1: 0.88, 2: 0.92, 3: 0.98, 4: 1.02, 5: 1.10, 6: 1.25,
+        7: 1.35, 8: 1.32, 9: 1.08, 10: 0.98, 11: 0.90, 12: 0.94
+    }
+
+    # Extract any month baseline provided in profile_list
+    month_val_map = {}
+    if profile_list:
+        for p in profile_list:
+            m_num = p.get("calendar_month_num")
+            if not m_num:
+                m_str = str(p.get("month_name", "")).lower()[:3]
+                for k, v in month_names.items():
+                    if v.lower() == m_str:
+                        m_num = k
+                        break
+            if m_num:
+                d_val = float(p.get("daily_bottiglie_median") or p.get("daily_bottiglie") or 0.0)
+                if d_val > 0:
+                    month_val_map[m_num] = d_val
+
+    # Anchor launch calendar from current date
+    from datetime import date
+    today = date.today()
+    curr_m = today.month
+    curr_y = today.year
+
+    ramp_factors = [0.65, 0.80, 0.92]  # Month 1: 65% discovery, Month 2: 80% habit, Month 3: 92% consolidation
+    result_15m = []
+
+    for k in range(1, 16):
+        cal_m = (curr_m + k - 2) % 12 + 1
+        cal_y = curr_y + ((curr_m + k - 2) // 12)
+        m_name = month_names[cal_m]
+
+        if cal_m in month_val_map:
+            season_d = month_val_map[cal_m]
+        else:
+            w = seasonality_weights.get(cal_m, 1.0)
+            season_d = (daily_baseline * w) if daily_baseline > 0 else (500.0 * w)
+
+        is_ramp = (k <= 3)
+        if is_ramp:
+            mat_factor = ramp_factors[k - 1]
+            daily_b = round(season_d * mat_factor, 1)
+            stage_desc = f"Ramp-Up ({int(mat_factor*100)}% Adoption)"
+            badge = "🛠️ Setup Ramp"
+        else:
+            mat_factor = 1.0
+            daily_b = round(season_d, 1)
+            stage_desc = f"Mature Horizon (Month {k-3})"
+            badge = f"🟢 Mature Op M{k-3:02d}"
+
+        monthly_target = int(round(daily_b * 30.4))
+
+        result_15m.append({
+            "lifecycle_label": f"M{k:02d} ({m_name} '{str(cal_y)[2:]})",
+            "operational_month": f"M{k:02d}",
+            "calendar_month_name": m_name,
+            "calendar_year": cal_y,
+            "horizon_badge": badge,
+            "maturity_factor": mat_factor,
+            "maturity_pct": f"{int(round(mat_factor * 100))}%",
+            "daily_bottiglie": daily_b,
+            "daily_bottiglie_median": daily_b,
+            "monthly_target_bottiglie": monthly_target,
+            "monthly_target_bottiglie_median": monthly_target,
+            "is_rampup": is_ramp,
+            "lifecycle_stage": stage_desc,
+        })
+
+    return result_15m
+
+
+def render_history_seasonality_chart(seasonality_data: Any, daily_baseline: float = 0.0) -> Tuple[go.Figure, List[Dict[str, Any]]]:
+    """
+    Renders an interactive 15-month operational lifecycle & intake profile for a historical inspection record.
+    Displays projected daily intake bottles (b/d) across all 15 operational months:
+    - Months 1 to 3: Setup & customer adoption ramp-up (M01-M03 in soft/medium green)
+    - Months 4 to 15: Seasonality-wise mature operational intake (M04-M15 in deep bold green)
+    Strictly isolated to stored historical data with no live predictor calls.
+    Returns (plotly_figure, profile_15m_rows).
+    """
+    profile_15m = parse_and_expand_15m_profile(seasonality_data, daily_baseline)
+
+    x_labels = []
+    daily_rates = []
+    targets = []
+    bar_colors = []
+    hover_texts = []
+
+    for idx, item in enumerate(profile_15m):
+        lbl = item.get("lifecycle_label") or f"M{idx+1:02d}"
+        d_val = float(item.get("daily_bottiglie_median") or item.get("daily_bottiglie") or 0.0)
+        t_val = int(item.get("monthly_target_bottiglie_median") or item.get("monthly_target_bottiglie") or round(d_val * 30.4))
+        is_ramp = bool(item.get("is_rampup", idx < 3))
+        mat_pct = item.get("maturity_pct", "100%")
+        stage = item.get("lifecycle_stage", "Operational Run")
+
+        x_labels.append(lbl)
+        daily_rates.append(d_val)
+        targets.append(t_val)
+
+        if is_ramp:
+            if idx == 0:
+                bar_colors.append("#81c784")  # Soft green for discovery month M01 (65%)
+            else:
+                bar_colors.append("#4caf50")  # Medium green for habit consolidation M02-M03 (80-92%)
+        else:
+            bar_colors.append("#1b5e20")  # Deep bold forest green for 12 Mature Months M04-M15
+
+        hover_texts.append(
+            f"<b>{lbl}</b><br>"
+            f"Daily Velocity: <b>{d_val:.1f} b/d</b><br>"
+            f"Monthly Target: <b>{t_val:,} b/mo</b><br>"
+            f"Adoption Maturity: <b>{mat_pct}</b> ({stage})"
+        )
 
     fig = go.Figure()
 
-    if not months:
-        # Fallback generated 12-month profile if no profile was stored
-        month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-        factors = [0.85, 0.90, 1.00, 1.05, 1.15, 1.30, 1.40, 1.35, 1.10, 0.95, 0.88, 0.92]
-        months = month_names
-        daily_rates = [round(daily_baseline * f, 1) for f in factors]
-        targets = [int(round(d * 30.4)) for d in daily_rates]
-        ramp_flags = [False] * 12
-
-    # Bar chart for monthly target volume
-    bar_colors = ["#f59e0b" if is_ramp else "#3b82f6" for is_ramp in ramp_flags]
+    # 1. Main Daily Intake Bars (showing Daily Bottles b/d)
     fig.add_trace(go.Bar(
-        x=months,
-        y=targets,
-        name="Monthly Target (b/mo)",
-        marker=dict(color=bar_colors, opacity=0.85),
-        yaxis="y",
-        hovertemplate="<b>%{x}</b><br>Monthly Target: %{y:,} bottles<extra></extra>"
-    ))
-
-    # Line chart for daily run rate
-    fig.add_trace(go.Scatter(
-        x=months,
+        x=x_labels,
         y=daily_rates,
-        name="Daily Velocity (b/d)",
-        mode="lines+markers",
-        line=dict(color="#10b981", width=3),
-        marker=dict(size=7, color="#10b981"),
-        yaxis="y2",
-        hovertemplate="<b>%{x}</b><br>Daily Intake: %{y:.1f} b/d<extra></extra>"
+        name="Projected Daily Intake (b/d)",
+        marker=dict(color=bar_colors, opacity=0.90),
+        text=[f"{int(round(v))}" for v in daily_rates],
+        textposition="auto",
+        hovertext=hover_texts,
+        hoverinfo="text",
     ))
 
-    # Baseline horizontal dash
-    if daily_baseline > 0:
+    # 2. Smooth Daily Run Rate Trend Line
+    fig.add_trace(go.Scatter(
+        x=x_labels,
+        y=daily_rates,
+        name="Daily Velocity Trend (b/d)",
+        mode="lines+markers",
+        line=dict(color="#10b981", width=2.8, shape="spline"),
+        marker=dict(size=6, color="#34d399"),
+        hovertext=hover_texts,
+        hoverinfo="text",
+    ))
+
+    # 3. Steady-State Benchmark Line (mature 12M average)
+    mature_vals = daily_rates[3:] if len(daily_rates) >= 4 else daily_rates
+    benchmark_val = float(np.mean(mature_vals)) if mature_vals else daily_baseline
+    if benchmark_val > 0:
         fig.add_hline(
-            y=daily_baseline,
-            yref="y2",
+            y=benchmark_val,
             line_dash="dash",
-            line_color="#f59e0b",
-            annotation_text=f"Predicted Mean ({daily_baseline:.0f} b/d)",
+            line_color="#38bdf8",
+            line_width=2.0,
+            annotation_text=f"Confirmed 12M Mature Steady-State ({benchmark_val:.0f} b/d)",
             annotation_position="bottom right",
-            annotation_font=dict(color="#f59e0b", size=10)
+            annotation_font=dict(color="#38bdf8", size=10)
         )
 
     fig.update_layout(
         title=dict(
-            text="📅 12-Month Calendar Intake & Seasonality Distribution",
+            text="📈 15-Month Operational Lifecycle & Intake Profile: Daily Velocity (b/d) & Seasonality",
             font=dict(size=14, color="#f8fafc", family="Inter, sans-serif")
         ),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(15, 23, 42, 0.65)",
-        height=320,
-        margin=dict(l=45, r=45, t=45, b=35),
+        height=340,
+        margin=dict(l=45, r=25, t=50, b=35),
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -591,24 +718,19 @@ def render_history_seasonality_chart(seasonality_data: Any, daily_baseline: floa
             font=dict(color="#94a3b8", size=11)
         ),
         xaxis=dict(
+            title=dict(text="Operational Horizon Month (3M Setup Ramp + 12M Seasonality Mature Horizon)", font=dict(color="#94a3b8", size=10)),
             showgrid=False,
-            tickfont=dict(color="#cbd5e1", size=10)
+            tickfont=dict(color="#cbd5e1", size=9)
         ),
         yaxis=dict(
-            title=dict(text="Monthly Target (b/mo)", font=dict(color="#3b82f6", size=11)),
+            title=dict(text="Daily Bottles (b/d)", font=dict(color="#10b981", size=11)),
             tickfont=dict(color="#94a3b8", size=10),
             showgrid=True,
             gridcolor="rgba(255, 255, 255, 0.06)",
-        ),
-        yaxis2=dict(
-            title=dict(text="Daily Bottles (b/d)", font=dict(color="#10b981", size=11)),
-            tickfont=dict(color="#94a3b8", size=10),
-            overlaying="y",
-            side="right",
-            showgrid=False
         )
     )
-    return fig
+
+    return fig, profile_15m
 
 
 # =========================================================================
@@ -1011,7 +1133,7 @@ def render_machine_history_tab():
                 )
 
                 # Seasonality Chart for the latest audit of this machine
-                chart = render_history_seasonality_chart(latest_row.get("seasonality_json"), daily_baseline=latest_yield)
+                chart, _ = render_history_seasonality_chart(latest_row.get("seasonality_json"), daily_baseline=latest_yield)
                 st.plotly_chart(chart, use_container_width=True, key=f"plot_grp_{pf_key}_{latest_row['id']}")
 
                 # Table of all historical inspection dates for this machine
@@ -1059,12 +1181,31 @@ def _render_record_details_card(row: pd.Series):
     with d4:
         st.metric("Confidence Interval", f"{row['p10_floor']:,.0f} - {row['p90_peak']:,.0f} b/d", delta=f"Score: {row['confidence_score']:.1%}")
 
-    # Seasonality Projection Plotly Graph
-    season_fig = render_history_seasonality_chart(
+    # 15-Month Operational Lifecycle & Seasonality Projection Plotly Graph
+    season_fig, profile_15m = render_history_seasonality_chart(
         row.get("seasonality_json"),
         daily_baseline=float(row["predicted_daily_bottles"])
     )
     st.plotly_chart(season_fig, use_container_width=True, key=f"hist_season_fig_{row['id']}")
+
+    # 15-Month Lifecycle Breakdown Table
+    if profile_15m:
+        with st.expander("📊 View Detailed 15-Month Intake & Seasonality Target Table", expanded=True):
+            m_rows = []
+            for idx, m in enumerate(profile_15m):
+                d_val = float(m.get("daily_bottiglie_median") or m.get("daily_bottiglie") or 0.0)
+                t_val = int(m.get("monthly_target_bottiglie_median") or m.get("monthly_target_bottiglie") or round(d_val * 30.4))
+                is_ramp = bool(m.get("is_rampup", idx < 3))
+                horizon_badge = "🛠️ Setup Ramp" if is_ramp else f"🟢 Mature Op M{idx-2:02d}"
+                m_rows.append({
+                    "Operational Month": m.get("lifecycle_label", f"M{idx+1:02d}"),
+                    "Horizon Phase": horizon_badge,
+                    "Projected Daily (b/d)": f"{d_val:,.1f} b/d",
+                    "Monthly Target (b/mo)": f"{t_val:,} b/mo",
+                    "Adoption Maturity": m.get("maturity_pct", "100%"),
+                    "Lifecycle Stage": m.get("lifecycle_stage", "Operational Run")
+                })
+            st.dataframe(pd.DataFrame(m_rows), use_container_width=True, hide_index=True)
 
     # Store & Nielsen Attributes
     st.markdown(
