@@ -18,6 +18,8 @@ from sqlalchemy import text, create_engine
 import plotly.graph_objects as go
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
+from dotenv import load_dotenv
+load_dotenv(ROOT_DIR / ".env")
 
 
 # =========================================================================
