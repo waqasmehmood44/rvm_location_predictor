@@ -46,3 +46,4 @@ CREATE TABLE IF NOT EXISTS `machine_prediction_history` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS=1;
+
