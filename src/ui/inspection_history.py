@@ -595,15 +595,13 @@ def render_history_seasonality_chart(seasonality_data: Any, daily_baseline: floa
             tickfont=dict(color="#cbd5e1", size=10)
         ),
         yaxis=dict(
-            title="Monthly Target (b/mo)",
-            titlefont=dict(color="#3b82f6", size=11),
+            title=dict(text="Monthly Target (b/mo)", font=dict(color="#3b82f6", size=11)),
             tickfont=dict(color="#94a3b8", size=10),
             showgrid=True,
             gridcolor="rgba(255, 255, 255, 0.06)",
         ),
         yaxis2=dict(
-            title="Daily Bottles (b/d)",
-            titlefont=dict(color="#10b981", size=11),
+            title=dict(text="Daily Bottles (b/d)", font=dict(color="#10b981", size=11)),
             tickfont=dict(color="#94a3b8", size=10),
             overlaying="y",
             side="right",
