@@ -2399,6 +2399,37 @@ def render_machine_directory(
                 if st.button("Results 📊", key=btn_key, type="primary", use_container_width=True, help=f"Open prospective forecast dashboard for {store}"):
                     clean_addr_val = addr if addr and addr.lower() != "nan" else "Piazza del Comune 1"
                     full_p_res = results_map.get(pf_code, {}).get("FullResult")
+                    
+                    # Store inspection record into database (with same-day duplicate restriction)
+                    try:
+                        from src.ui.inspection_history import save_machine_inspection_record
+                        saved_ok, save_msg = save_machine_inspection_record(
+                            status_source=status_label,
+                            pf_code=pf_code,
+                            store_name=store,
+                            address=clean_addr_val,
+                            cap=cap_val,
+                            comune=comune_val,
+                            provincia=prov_val,
+                            regione=reg_val,
+                            machine_type=mach_model,
+                            filiera=filiera_val,
+                            prediction_res=full_p_res,
+                            b_day=b_day,
+                            m_day=m_day,
+                            tier_label=tier_label,
+                            n_fmt=n_fmt,
+                            n_sqm=n_sqm,
+                            n_casse=n_casse,
+                            rew_type=rew_type,
+                        )
+                        if saved_ok:
+                            st.session_state["history_save_toast"] = {"msg": f"💾 Saved inspection record for {store} ({pf_code})!", "icon": "✅"}
+                        else:
+                            st.session_state["history_save_toast"] = {"msg": f"ℹ️ {save_msg}", "icon": "ℹ️"}
+                    except Exception as e:
+                        st.session_state["history_save_toast"] = {"msg": f"⚠️ Inspection save notice: {e}", "icon": "⚠️"}
+
                     st.session_state["pending_load_machine"] = {
                         "store_name": store,
                         "address": clean_addr_val,
@@ -2860,8 +2891,15 @@ def main():
             st.session_state["auto_reward"] = None
             st.session_state["prediction_result"] = None
             st.toast(f"📥 Populated {load_data['store_name']} ({load_data['pf_code']}) into Site Setup! Click Step 1 in the sidebar to proceed.", icon="📍")
+        if "history_save_toast" in st.session_state:
+            h_toast = st.session_state.pop("history_save_toast")
+            st.toast(h_toast["msg"], icon=h_toast.get("icon", "💾"))
         st.session_state["step1_validation_error"] = False
         st.session_state["step1_missing_fields"] = []
+
+    if "history_save_toast" in st.session_state:
+        h_toast = st.session_state.pop("history_save_toast")
+        st.toast(h_toast["msg"], icon=h_toast.get("icon", "💾"))
 
     if "wizard_step" not in st.session_state:
         st.session_state["wizard_step"] = 1
@@ -3404,9 +3442,10 @@ def main():
     TAB_MAIN = "🎯 Prospective Predictor"
     TAB_SPL = "📋 SPL Machines"
     TAB_POT = "💡 POT Machines"
+    TAB_HISTORY = "📜 Machine History"
     TAB_OUTLIERS = "🔍 Outlier & Defect Simulator"
     TAB_HISTORICAL = "📉 Performance Drops & Telemetry"
-    NAV_TABS = [TAB_MAIN, TAB_SPL, TAB_POT, TAB_OUTLIERS, TAB_HISTORICAL]
+    NAV_TABS = [TAB_MAIN, TAB_SPL, TAB_POT, TAB_HISTORY, TAB_OUTLIERS, TAB_HISTORICAL]
 
     if "pending_nav_tab" in st.session_state:
         st.session_state["active_nav_tab"] = st.session_state.pop("pending_nav_tab")
@@ -3488,6 +3527,13 @@ def main():
             with st.spinner("📡 Fetching live POT machines from Coripet API..."):
                 df_pot, src_pot, dt_pot = get_machines_by_status("POT", current_only=True)
             render_machine_directory(df_pot, "POT", predictor, data_source=src_pot, current_date_str=dt_pot)
+
+    elif active_tab == TAB_HISTORY:
+        with st.container(key="tab_container_history"):
+            import importlib
+            import src.ui.inspection_history as inh
+            importlib.reload(inh)
+            inh.render_machine_history_tab()
 
     elif active_tab == TAB_OUTLIERS:
         with st.container(key="tab_container_outliers"):
