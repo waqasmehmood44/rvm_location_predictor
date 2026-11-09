@@ -1173,7 +1173,7 @@ components.html(
 )
 
 
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def load_production_predictor():
     """Loads production RVM prospective location predictor and models."""
     try:
@@ -2843,7 +2843,32 @@ def main():
     with hdr_right:
         render_translation_widget()
 
-    predictor, is_production, err_msg = load_production_predictor()
+    # Clean, branded loading state: replaces any previous run elements immediately
+    loading_placeholder = st.empty()
+    with loading_placeholder.container():
+        st.markdown(
+            """
+            <div style="background: linear-gradient(145deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.90) 100%);
+                        border: 1px solid rgba(34, 197, 94, 0.35); border-radius: 14px; padding: 42px 32px;
+                        text-align: center; margin: 35px auto 40px auto; max-width: 620px; box-shadow: 0 12px 35px rgba(0,0,0,0.35);">
+                <div style="font-size: 3.2rem; margin-bottom: 12px;">♻️</div>
+                <h3 style="color: #22c55e; font-size: 1.35rem; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.3px;">
+                    Loading Coripet Intelligent Prediction Engine...
+                </h3>
+                <p style="color: #94a3b8; font-size: 0.88rem; line-height: 1.5; margin: 0 0 16px 0;">
+                    Initializing certified AI ensembles, Nielsen census footprint, and spatial network models.
+                </p>
+                <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(34, 197, 94, 0.12);
+                            border: 1px solid rgba(34, 197, 94, 0.30); padding: 5px 16px; border-radius: 20px;
+                            font-size: 0.78rem; color: #4ade80; font-weight: 600;">
+                    <span>🔒 Authenticated</span> &bull; <span>Preparing Decision Workspace</span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        predictor, is_production, err_msg = load_production_predictor()
+    loading_placeholder.empty()
 
     if not is_production:
         st.warning(

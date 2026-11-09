@@ -76,3 +76,4 @@ INSERT INTO `machine_prediction_history` (
 );
 
 SET FOREIGN_KEY_CHECKS=1;
+

@@ -217,68 +217,71 @@ def require_auth() -> bool:
         unsafe_allow_html=True
     )
 
-    col_l, col_center, col_r = st.columns([1.2, 2.6, 1.2])
-    with col_center:
-        st.markdown(
-            """
-            <div class="login-unified-card">
-                <div style="text-align: center; margin-bottom: 22px;">
-                    <div style="font-size: 2.8rem; margin-bottom: 6px;">♻️</div>
-                    <h2 style="margin: 0; font-size: 1.55rem; font-weight: 800; letter-spacing: -0.4px; color: inherit;">
-                        Coripet RVM Predictor
-                    </h2>
-                    <p style="margin: 6px 0 0 0; opacity: 0.70; font-size: 0.88rem; font-weight: 500;">
-                        🔒 Secure Administrative Access Portal
-                    </p>
-                </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        with st.form("admin_login_form", clear_on_submit=False, border=False):
-            st.markdown("<p style='margin: 0 0 4px 0; font-weight: 600; font-size: 0.85rem; opacity: 0.85;'>Username</p>", unsafe_allow_html=True)
-            user_input = st.text_input(
-                "Username",
-                placeholder="Enter admin username...",
-                key="login_user_field",
-                label_visibility="collapsed"
-            ).strip()
-
-            st.markdown("<p style='margin: 12px 0 4px 0; font-weight: 600; font-size: 0.85rem; opacity: 0.85;'>Password</p>", unsafe_allow_html=True)
-            pass_input = st.text_input(
-                "Password",
-                type="password",
-                placeholder="Enter admin password...",
-                key="login_pass_field",
-                label_visibility="collapsed"
+    login_placeholder = st.empty()
+    with login_placeholder.container():
+        col_l, col_center, col_r = st.columns([1.2, 2.6, 1.2])
+        with col_center:
+            st.markdown(
+                """
+                <div class="login-unified-card">
+                    <div style="text-align: center; margin-bottom: 22px;">
+                        <div style="font-size: 2.8rem; margin-bottom: 6px;">♻️</div>
+                        <h2 style="margin: 0; font-size: 1.55rem; font-weight: 800; letter-spacing: -0.4px; color: inherit;">
+                            Coripet RVM Predictor
+                        </h2>
+                        <p style="margin: 6px 0 0 0; opacity: 0.70; font-size: 0.88rem; font-weight: 500;">
+                            🔒 Secure Administrative Access Portal
+                        </p>
+                    </div>
+                """,
+                unsafe_allow_html=True
             )
 
-            st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
-            submitted = st.form_submit_button(
-                "🔐 Sign In to Console",
-                type="primary",
-                use_container_width=True
-            )
+            with st.form("admin_login_form", clear_on_submit=False, border=False):
+                st.markdown("<p style='margin: 0 0 4px 0; font-weight: 600; font-size: 0.85rem; opacity: 0.85;'>Username</p>", unsafe_allow_html=True)
+                user_input = st.text_input(
+                    "Username",
+                    placeholder="Enter admin username...",
+                    key="login_user_field",
+                    label_visibility="collapsed"
+                ).strip()
 
-            if submitted:
-                if check_credentials(user_input, pass_input):
-                    token = generate_auth_token(user_input)
-                    _set_auth_param(token)
-                    st.session_state["is_authenticated"] = True
-                    st.session_state["authenticated_user"] = user_input
-                    st.toast("✅ Authentication successful. Welcome to Coripet Predictor!", icon="🔓")
-                    st.rerun()
-                else:
-                    st.error("❌ Authentication failed: Invalid username or password.")
+                st.markdown("<p style='margin: 12px 0 4px 0; font-weight: 600; font-size: 0.85rem; opacity: 0.85;'>Password</p>", unsafe_allow_html=True)
+                pass_input = st.text_input(
+                    "Password",
+                    type="password",
+                    placeholder="Enter admin password...",
+                    key="login_pass_field",
+                    label_visibility="collapsed"
+                )
 
-        st.markdown(
-            """
-                <div style="text-align: center; margin-top: 20px; font-size: 0.76rem; opacity: 0.55;">
-                    Coripet Intelligent Decision Support System &bull; Authorized Personnel Only
+                st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
+                submitted = st.form_submit_button(
+                    "🔐 Sign In to Console",
+                    type="primary",
+                    use_container_width=True
+                )
+
+                if submitted:
+                    if check_credentials(user_input, pass_input):
+                        login_placeholder.empty()
+                        token = generate_auth_token(user_input)
+                        _set_auth_param(token)
+                        st.session_state["is_authenticated"] = True
+                        st.session_state["authenticated_user"] = user_input
+                        st.toast("✅ Authentication successful. Welcome to Coripet Predictor!", icon="🔓")
+                        st.rerun()
+                    else:
+                        st.error("❌ Authentication failed: Invalid username or password.")
+
+            st.markdown(
+                """
+                    <div style="text-align: center; margin-top: 20px; font-size: 0.76rem; opacity: 0.55;">
+                        Coripet Intelligent Decision Support System &bull; Authorized Personnel Only
+                    </div>
                 </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+                """,
+                unsafe_allow_html=True
+            )
 
     return False
