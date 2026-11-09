@@ -848,7 +848,7 @@ def render_machine_history_tab():
     st.markdown("<div style='margin-top: 18px;'></div>", unsafe_allow_html=True)
 
     # 3. Interactive Filtering Bar
-    f_col1, f_col2, f_col3, f_col4, f_col5 = st.columns([2.6, 1.2, 1.4, 2.2, 1.1])
+    f_col1, f_col2, f_col3, f_col4, f_col5 = st.columns([2.4, 1.1, 1.3, 3.2, 1.0])
     with f_col1:
         search_kw = st.text_input(
             "Search Machine History",
@@ -871,12 +871,29 @@ def render_machine_history_tab():
             label_visibility="collapsed"
         )
     with f_col4:
-        # Machine-wise selector
-        unique_pfs = sorted(df_all["punto_fisico"].unique().tolist())
+        # Build machine-wise selector with full store descriptions
+        pf_descriptions = {"All Machines": "🏢 All Machines (All Sites)"}
+        for _, row_item in df_all.drop_duplicates(subset=["punto_fisico"]).iterrows():
+            pf_code = str(row_item["punto_fisico"]).strip()
+            s_name = str(row_item.get("store_name") or "").strip()
+            comune = str(row_item.get("comune") or "").strip()
+            if s_name and s_name.lower() != "nan" and s_name != pf_code:
+                if comune and comune.lower() != "nan" and comune.lower() not in s_name.lower():
+                    desc = f"{pf_code} • {s_name} ({comune})"
+                else:
+                    desc = f"{pf_code} • {s_name}"
+            elif comune and comune.lower() != "nan":
+                desc = f"{pf_code} • {comune}"
+            else:
+                desc = pf_code
+            pf_descriptions[pf_code] = desc
+
+        unique_pfs = sorted(df_all["punto_fisico"].dropna().unique().tolist())
         pf_choices = ["All Machines"] + unique_pfs
         pf_selected = st.selectbox(
             "Machine Filter",
             pf_choices,
+            format_func=lambda x: pf_descriptions.get(x, x),
             key="hist_pf_selector",
             label_visibility="collapsed"
         )
