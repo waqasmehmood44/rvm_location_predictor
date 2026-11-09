@@ -93,29 +93,57 @@ st.markdown(
         flex-grow: 1 !important;
     }
 
-    /* Modern Adaptive Segmented Control Navigation Tabs */
+    /* Modern Adaptive Segmented Control Navigation Tabs - Single Row Guarantee */
     div[data-testid="stSegmentedControl"] {
         background: rgba(128, 128, 128, 0.08) !important;
         border-radius: 12px !important;
-        padding: 5px !important;
+        padding: 4px !important;
         border: 1px solid rgba(128, 128, 128, 0.22) !important;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
-        margin-bottom: 12px !important;
+        margin-bottom: 14px !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: thin !important;
+    }
+    div[data-testid="stSegmentedControl"]::-webkit-scrollbar {
+        height: 4px !important;
+    }
+    div[data-testid="stSegmentedControl"]::-webkit-scrollbar-thumb {
+        background: rgba(128, 128, 128, 0.3) !important;
+        border-radius: 4px !important;
+    }
+    div[data-testid="stSegmentedControl"] > div {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 6px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
     div[data-testid="stSegmentedControl"] button {
+        flex: 1 1 auto !important;
+        min-width: max-content !important;
+        white-space: nowrap !important;
         border-radius: 8px !important;
         color: inherit !important;
-        opacity: 0.75 !important;
+        opacity: 0.8 !important;
         font-weight: 600 !important;
-        font-size: 0.92rem !important;
+        font-size: 0.88rem !important;
+        padding: 6px 14px !important;
+        text-align: center !important;
         transition: all 0.2s ease !important;
         border: none !important;
     }
     div[data-testid="stSegmentedControl"] button:hover {
         opacity: 1.0 !important;
-        background: rgba(128, 128, 128, 0.12) !important;
+        background: rgba(128, 128, 128, 0.14) !important;
     }
-    div[data-testid="stSegmentedControl"] button[aria-checked="true"] {
+    div[data-testid="stSegmentedControl"] button[aria-checked="true"],
+    div[data-testid="stSegmentedControl"] button[aria-selected="true"],
+    div[data-testid="stSegmentedControl"] button[data-selected="true"] {
         background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
         color: #ffffff !important;
         opacity: 1.0 !important;
@@ -900,32 +928,7 @@ st.markdown(
         border: 1px solid #90caf9;
     }
 
-    /* Segmented Navigation Tab Bar */
-    div[data-testid="stSegmentedControl"] {
-        margin-bottom: 22px !important;
-    }
-    div[data-testid="stSegmentedControl"] > div {
-        background-color: #f1f5f9 !important;
-        border: 1px solid #cbd5e1 !important;
-        border-radius: 10px !important;
-        padding: 4px !important;
-        gap: 6px !important;
-    }
-    div[data-testid="stSegmentedControl"] button {
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        font-size: 0.95rem !important;
-        padding: 8px 22px !important;
-        transition: all 0.15s ease-in-out !important;
-        border: none !important;
-    }
-    div[data-testid="stSegmentedControl"] button[aria-selected="true"],
-    div[data-testid="stSegmentedControl"] button[data-selected="true"] {
-        background-color: #1b5e20 !important;
-        color: #ffffff !important;
-        font-weight: 700 !important;
-        box-shadow: 0 2px 6px rgba(27, 94, 32, 0.25) !important;
-    }
+
 
     /* Ensure all text inputs and password inputs are 100% normal, editable, and clickable */
     div[data-testid="stTextInput"] input,
@@ -3468,12 +3471,20 @@ def main():
     TAB_SPL = "📋 SPL Machines"
     TAB_POT = "💡 POT Machines"
     TAB_HISTORY = "📜 Machine History"
-    TAB_OUTLIERS = "🔍 Outlier & Defect Simulator"
-    TAB_HISTORICAL = "📉 Performance Drops & Telemetry"
+    TAB_OUTLIERS = "🔍 Outlier Simulator"
+    TAB_HISTORICAL = "📉 Performance Telemetry"
     NAV_TABS = [TAB_MAIN, TAB_SPL, TAB_POT, TAB_HISTORY, TAB_OUTLIERS, TAB_HISTORICAL]
 
     if "pending_nav_tab" in st.session_state:
         st.session_state["active_nav_tab"] = st.session_state.pop("pending_nav_tab")
+
+    # Compatibility alias mapping for existing session states
+    tab_aliases = {
+        "🔍 Outlier & Defect Simulator": TAB_OUTLIERS,
+        "📉 Performance Drops & Telemetry": TAB_HISTORICAL,
+    }
+    if st.session_state.get("active_nav_tab") in tab_aliases:
+        st.session_state["active_nav_tab"] = tab_aliases[st.session_state["active_nav_tab"]]
 
     if "active_nav_tab" not in st.session_state or st.session_state["active_nav_tab"] not in NAV_TABS:
         st.session_state["active_nav_tab"] = TAB_MAIN
