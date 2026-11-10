@@ -18,16 +18,20 @@ import sys
 import time
 import argparse
 from pathlib import Path
-import psycopg2
+try:
+    import psycopg2
+except ImportError:
+    psycopg2 = None
 import pandas as pd
 import numpy as np
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 
 # Ensure root directory in sys.path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+ROOT_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT_DIR))
 
-load_dotenv()
+load_dotenv(ROOT_DIR / ".env")
 
 from src.data.load_data import load_filenielsen, load_macro_datasets
 from src.data.historical_physical_point import enrich_daily_bottles_with_history
