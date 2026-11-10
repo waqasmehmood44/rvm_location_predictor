@@ -140,14 +140,32 @@ def assemble_updated_dataset() -> Path:
 
     for col in REQ_COLS:
         if col in df_new.columns:
+            target_dtype = df_base[col].dtype
             try:
-                df_new[col] = df_new[col].astype(df_base[col].dtype)
-            except Exception:
-                pass
+                if str(target_dtype) in ("object", "string", "str"):
+                    df_new[col] = df_new[col].fillna("").astype(str)
+                elif "int" in str(target_dtype):
+                    df_new[col] = pd.to_numeric(df_new[col], errors="coerce").fillna(0).astype(target_dtype)
+                elif "float" in str(target_dtype):
+                    df_new[col] = pd.to_numeric(df_new[col], errors="coerce").astype(target_dtype)
+                else:
+                    df_new[col] = df_new[col].astype(target_dtype)
+            except Exception as e:
+                logger.warning(f"Could not cast {col} to {target_dtype}: {e}")
 
     df_updated = pd.concat([df_base, df_new[REQ_COLS]], ignore_index=True)
     del df_base, df_new
     gc.collect()
+
+    # Ensure all string columns have unified string types so pyarrow serializes without ArrowTypeError
+    str_cols = [
+        "PF", "GIORNO", "TipoMacchina", "Fornitore", "Provincia", "Regione", "CLIENTE",
+        "nielsen_insegna", "nielsen_tipo_negozio", "nielsen_gruppo", "nielsen_match_status",
+        "Latitudine", "Longitudine"
+    ]
+    for sc in str_cols:
+        if sc in df_updated.columns:
+            df_updated[sc] = df_updated[sc].fillna("").astype(str)
 
     df_updated.to_parquet(UPDATED_PARQUET, index=False, engine="pyarrow")
     logger.info(f"  -> Successfully saved updated dataset: {len(df_updated):,} rows across {df_updated['PF'].nunique():,} PFs.")
