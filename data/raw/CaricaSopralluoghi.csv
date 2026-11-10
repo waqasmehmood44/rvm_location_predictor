@@ -1359,4 +1359,5 @@ Corcimar;0000001454;PF00003086;Conad Conselice - Via Frattina;2026-10-26;2026-11
 Corcimar;0000001455;PF00003087;Conad Castelfidardo - Via Musone 2;2026-10-27;2026-11-11;2026-10-27;2026-11-11;2026-10-28;1455;1.0;Definitivo;Modello G;senza tettoia;Cestone;5;Il trasportatore dovrà essere dotato di tutti i mezzi per scaricare e mettere in posizione le macchine;3;WIND;[{'Responsabile': 'Cliente', 'EntroQuando': 'Entro la data di consegna macchina', 'Azione': 'Portare linea corrente'}]
 Darcamo;0000001456;PF00003088;Conad Ispica - Contrada Garzalla;;;;;2026-10-29;1456;1.0;Richiesto;;;;;;;;
 Cavallini;0000001457;PF00003089;Esselunga Gessate - Via della Filanda;;;;;2026-11-09;1457;1.0;Richiesto;;;;;;;;
-Albano;0000001458;PF00003090;Decò Marcianise - Via Aldo Moro;;;;;2026-11-09;1458;1.0;Richiesto;;;;;;;;
+Albano;0000001458;PF00003090;Decò Marcianise - Via Aldo Moro;2026-11-09;2026-11-24;2026-11-09;;2026-11-09;1458;1.0;Da Validare;Modello G;con tettoia;Cestone;5;Il trasportatore dovrà essere dotato di tutti i mezzi per scaricare e mettere in posizione le macchine;4;TIM;[{'Responsabile': 'Cliente', 'EntroQuando': 'Entro la data di consegna macchina', 'Azione': 'predisposizione impianto elettrico'}]
+Cavallini;0000001459;PF00003091;Basko Sannazzaro de' Burgondi - Viale Loreto;;;;;2026-11-10;1459;1.0;Richiesto;;;;;;;;

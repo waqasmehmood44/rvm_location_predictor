@@ -79,3 +79,9 @@ scratch/
 
 !deploy/*.sql
 
+
+# Local report generator scripts (kept out of the repository)
+scripts/build_complete_project_report.py
+scripts/build_feature_overview.py
+scripts/generate_docx.py
+
