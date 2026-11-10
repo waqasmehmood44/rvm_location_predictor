@@ -848,7 +848,7 @@ def render_machine_history_tab():
     st.markdown("<div style='margin-top: 18px;'></div>", unsafe_allow_html=True)
 
     # 3. Interactive Filtering Bar
-    f_col1, f_col2, f_col3, f_col4, f_col5 = st.columns([2.4, 1.1, 1.3, 3.2, 1.0])
+    f_col1, f_col2, f_col3, f_col4, f_col5 = st.columns([1.8, 0.9, 1.2, 4.3, 0.8])
     with f_col1:
         search_kw = st.text_input(
             "Search Machine History",

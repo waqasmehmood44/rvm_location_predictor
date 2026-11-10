@@ -946,22 +946,42 @@ st.markdown(
 
     /* Dropdown Popover and Menu Item Full Visibility: Prevent truncating option labels & counts */
     div[data-baseweb="popover"],
-    div[data-baseweb="menu"],
-    ul[data-baseweb="menu"] {
-        min-width: max-content !important;
-        max-width: 520px !important;
+    div[data-baseweb="popover"] > div {
+        min-width: 100% !important;
+        width: max-content !important;
+        max-width: min(92vw, 850px) !important;
+        overflow-x: visible !important;
+        box-sizing: border-box !important;
     }
+    div[data-baseweb="popover"] ul[role="listbox"],
+    div[data-baseweb="popover"] ul[data-baseweb="menu"],
+    ul[role="listbox"],
+    ul[data-baseweb="menu"] {
+        min-width: 100% !important;
+        width: max-content !important;
+        max-width: min(92vw, 850px) !important;
+        overflow-x: visible !important;
+    }
+    li[role="option"],
     li[data-baseweb="menu-item"] {
         white-space: nowrap !important;
         overflow: visible !important;
         font-size: 0.88rem !important;
-        padding-top: 8px !important;
-        padding-bottom: 8px !important;
+        padding: 8px 16px !important;
+        min-width: max-content !important;
     }
+    li[role="option"] *,
     li[data-baseweb="menu-item"] * {
         white-space: nowrap !important;
         overflow: visible !important;
         text-overflow: clip !important;
+        max-width: none !important;
+    }
+    /* Ensure the closed selectbox value displays full text with smooth ellipsis only if ultra-narrow */
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
     /* Ensure action buttons in filter rows don't truncate text */
     button[kind="secondary"], button[kind="primary"] {
