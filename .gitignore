@@ -43,8 +43,15 @@ venv.bak/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Datasets & Models (sensitive operational data)
-/data/
+# Large Offline Datasets & Local Database (>50MB / local SQLite / offline archives)
+data/*.db
+data/processed/*.csv
+data/processed/full_integrated_daily_rvm.parquet
+data/processed/master_daily_rvm.parquet
+data/processed/modeling_daily_rvm_baseline_archive.parquet
+data/processed/modeling_daily_rvm_updated.parquet
+data/processed/test_holdout.csv
+data/raw/daily_bottles.csv
 models/**/*.csv
 models/**/*.parquet
 models/*_archive/

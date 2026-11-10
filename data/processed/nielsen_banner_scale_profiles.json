@@ -1,0 +1,164 @@
+{
+  "banner_profiles": {
+    "BENNET": {
+      "tipo_negozio": "IPR",
+      "superficie_vendita": 4878.0,
+      "numero_casse": 22.0,
+      "stores_sampled": 64
+    },
+    "CARREFOUR": {
+      "tipo_negozio": "LIS",
+      "superficie_vendita": 319.0,
+      "numero_casse": 2.0,
+      "stores_sampled": 1472
+    },
+    "CONAD": {
+      "tipo_negozio": "SUP",
+      "superficie_vendita": 520.0,
+      "numero_casse": 3.0,
+      "stores_sampled": 3088
+    },
+    "COOP": {
+      "tipo_negozio": "SUP",
+      "superficie_vendita": 520.0,
+      "numero_casse": 3.0,
+      "stores_sampled": 1956
+    },
+    "CRAI": {
+      "tipo_negozio": "LIS",
+      "superficie_vendita": 250.0,
+      "numero_casse": 2.0,
+      "stores_sampled": 1270
+    },
+    "DECO": {
+      "tipo_negozio": "SUP",
+      "superficie_vendita": 400.0,
+      "numero_casse": 3.0,
+      "stores_sampled": 525
+    },
+    "DESPAR": {
+      "tipo_negozio": "LIS",
+      "superficie_vendita": 350.0,
+      "numero_casse": 2.0,
+      "stores_sampled": 1352
+    },
+    "DIMAR": {
+      "tipo_negozio": "SUP",
+      "superficie_vendita": 830.0,
+      "numero_casse": 4.0,
+      "stores_sampled": 240
+    },
+    "DODECA": {
+      "tipo_negozio": "SUP",
+      "superficie_vendita": 880.0,
+      "numero_casse": 5.0,
+      "stores_sampled": 23
+    },
+    "EKOM": {
+      "tipo_negozio": "DIS",
+      "superficie_vendita": 415.0,
+      "numero_casse": 3.0,
+      "stores_sampled": 128
+    },
+    "ESSELUNGA": {
+      "tipo_negozio": "IPR",
+      "superficie_vendita": 2990.0,
+      "numero_casse": 33.0,
+      "stores_sampled": 185
+    },
+    "EUROSPIN": {
+      "tipo_negozio": "DIS",
+      "superficie_vendita": 900.0,
+      "numero_casse": 5.0,
+      "stores_sampled": 1184
+    },
+    "IL GIGANTE": {
+      "tipo_negozio": "SUP",
+      "superficie_vendita": 2418.0,
+      "numero_casse": 11.0,
+      "stores_sampled": 70
+    },
+    "IPER": {
+      "tipo_negozio": "SUP",
+      "superficie_vendita": 938.0,
+      "numero_casse": 5.0,
+      "stores_sampled": 231
+    },
+    "MD": {
+      "tipo_negozio": "DIS",
+      "superficie_vendita": 750.0,
+      "numero_casse": 4.0,
+      "stores_sampled": 822
+    },
+    "PAM": {
+      "tipo_negozio": "SUP",
+      "superficie_vendita": 450.0,
+      "numero_casse": 3.0,
+      "stores_sampled": 425
+    },
+    "PENNY": {
+      "tipo_negozio": "DIS",
+      "superficie_vendita": 750.0,
+      "numero_casse": 4.0,
+      "stores_sampled": 439
+    },
+    "LEROY MERLIN": {
+      "tipo_negozio": "IPR",
+      "superficie_vendita": 8500.0,
+      "numero_casse": 24.0,
+      "stores_sampled": 51
+    },
+    "TECNOMAT": {
+      "tipo_negozio": "IPR",
+      "superficie_vendita": 7500.0,
+      "numero_casse": 18.0,
+      "stores_sampled": 32
+    },
+    "BRICO": {
+      "tipo_negozio": "SUP",
+      "superficie_vendita": 2500.0,
+      "numero_casse": 8.0,
+      "stores_sampled": 150
+    },
+    "OBI": {
+      "tipo_negozio": "IPR",
+      "superficie_vendita": 4500.0,
+      "numero_casse": 12.0,
+      "stores_sampled": 55
+    },
+    "IKEA": {
+      "tipo_negozio": "IPR",
+      "superficie_vendita": 18000.0,
+      "numero_casse": 30.0,
+      "stores_sampled": 22
+    }
+  },
+  "format_defaults": {
+    "IPR": {
+      "superficie_vendita": 3750.0,
+      "numero_casse": 21.0,
+      "label": "Hypermarket / Mall Anchor"
+    },
+    "SUP": {
+      "superficie_vendita": 750.0,
+      "numero_casse": 4.0,
+      "label": "Standard Supermarket"
+    },
+    "DIS": {
+      "superficie_vendita": 740.0,
+      "numero_casse": 4.0,
+      "label": "Discount Store"
+    },
+    "LIS": {
+      "superficie_vendita": 200.0,
+      "numero_casse": 2.0,
+      "label": "Small Neighborhood Market"
+    }
+  },
+  "national_median": {
+    "tipo_negozio": "SUP",
+    "superficie_vendita": 750.0,
+    "numero_casse": 4.0,
+    "label": "National Median Supermarket"
+  }
+}
