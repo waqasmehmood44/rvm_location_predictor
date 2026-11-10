@@ -37,6 +37,7 @@ venv.bak/
 # IDE & Editor settings
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
 
@@ -64,7 +65,8 @@ models/preprocessors/*
 !models/preprocessors/.gitkeep
 
 # Logs and runtime artifacts
-logs/
+logs/*
+!logs/.gitkeep
 *.log
 *.tmp
 *.dump
