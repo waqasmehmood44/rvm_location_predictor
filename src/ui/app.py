@@ -1373,7 +1373,7 @@ def render_seasonality_chart(monthly_data: Any, steady_state_benchmark: Optional
 
 CORIPET_API_URL = "https://macchine.coripet.it/CORIPETRVMAPI/api/PuntiFisici/mt_CaricaViewStoricoPuntoFisico"
 CORIPET_SOPRALLUOGHI_API_URL = "https://macchine.coripet.it/CORIPETRVMAPI/api/Sopralluoghi/mt_CaricaSopralluoghi"
-CORIPET_API_TOKEN = "ck%N@b$x1$wNwCsigohC"
+CORIPET_API_TOKEN = os.getenv("CORIPET_API_TOKEN", "")
 
 VALID_MACHINE_OPTIONS = [
     "DAINT_A-bis",
@@ -1388,7 +1388,7 @@ def fetch_raw_coripet_machines() -> Tuple[pd.DataFrame, str]:
     """
     Fetches raw physical machine records directly from the official Coripet RVM API endpoint:
     POST https://macchine.coripet.it/CORIPETRVMAPI/api/PuntiFisici/mt_CaricaViewStoricoPuntoFisico
-    Header: token: ck%N@b$x1$wNwCsigohC
+    Header: token: <CORIPET_API_TOKEN from .env>
     Returns (DataFrame, source_label) where source_label is 'Live Coripet API' or 'Local Backup File'.
     """
     try:
@@ -1459,7 +1459,7 @@ def fetch_raw_coripet_sopralluoghi() -> Tuple[pd.DataFrame, str]:
     """
     Fetches site survey (sopralluoghi) inspection records directly from official Coripet API:
     POST https://macchine.coripet.it/CORIPETRVMAPI/api/Sopralluoghi/mt_CaricaSopralluoghi
-    Header: token: ck%N@b$x1$wNwCsigohC
+    Header: token: <CORIPET_API_TOKEN from .env>
     Returns (DataFrame, source_label).
     """
     try:

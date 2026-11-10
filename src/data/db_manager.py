@@ -14,12 +14,16 @@ from typing import Dict, Any, Optional, Tuple
 import requests
 import pandas as pd
 import numpy as np
+from dotenv import load_dotenv
 
 from src.data.historical_physical_point import enrich_daily_bottles_with_history
 from src.data.cleaner import DataCleaner
 
+ROOT_DIR = Path(__file__).resolve().parents[2]
+load_dotenv(ROOT_DIR / ".env")
+
 DB_DEFAULT_PATH = Path("data/coripet_rvm.db")
-API_TOKEN = "ck" + "%N@b" + "$" + "x1" + "$" + "wNwCsigohC"
+API_TOKEN = os.getenv("CORIPET_API_TOKEN", "")
 
 URL_CONFERIMENTI = "https://macchine.coripet.it/CORIPETRVMAPI/api/Conferimento/mt_CaricaConferimentiRaggruppamento"
 URL_PUNTI_FISICI = "https://macchine.coripet.it/CORIPETRVMAPI/api/PuntiFisici/mt_CaricaViewStoricoPuntoFisico"

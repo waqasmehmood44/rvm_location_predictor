@@ -4,7 +4,7 @@ and update the PostgreSQL raw_daily_conferimenti table.
 
 API endpoint:
   POST https://macchine.coripet.it/CORIPETRVMAPI/api/Conferimento/mt_CaricaConferimentiRaggruppamento
-  Header: token: ck%N@b$x1$wNwCsigohC
+  Header: token: <CORIPET_API_TOKEN from .env>
   Form data: giornoinizio=YYYY-MM-DD, giornofine=YYYY-MM-DD
 """
 
@@ -25,7 +25,7 @@ sys.path.insert(0, str(ROOT_DIR))
 
 load_dotenv(ROOT_DIR / ".env")
 
-API_TOKEN = "ck" + "%N@b" + "$" + "x1" + "$" + "wNwCsigohC"
+API_TOKEN = os.getenv("CORIPET_API_TOKEN", "")
 API_URL = "https://macchine.coripet.it/CORIPETRVMAPI/api/Conferimento/mt_CaricaConferimentiRaggruppamento"
 SQLITE_PATH = Path("data/coripet_rvm.db")
 
