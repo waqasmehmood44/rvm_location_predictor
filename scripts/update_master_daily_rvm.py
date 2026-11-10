@@ -279,7 +279,7 @@ def run_pipeline(start_date: str = "2026-09-01", end_date: str = "2026-10-21"):
 
         print("\n Recent 10-day Volume in master_daily_rvm:")
         res = conn.execute(text("""
-            SELECT giorno_dt, COUNT(*) as rows, ROUND(SUM(bottiglie)::numeric, 0) as total_bottles, ROUND(SUM(presenze)::numeric, 0) as total_users
+            SELECT giorno_dt, COUNT(*) as row_count, ROUND(SUM(bottiglie), 0) as total_bottles, ROUND(SUM(presenze), 0) as total_users
             FROM master_daily_rvm
             WHERE giorno_dt >= :s
             GROUP BY giorno_dt

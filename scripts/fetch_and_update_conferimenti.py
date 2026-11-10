@@ -228,7 +228,7 @@ def verify_database_state(start_date: str, end_date: str):
         # Daily breakdown sample for recent 7 days
         print("\n Recent Daily Breakdown:")
         res = conn.execute(text("""
-            SELECT giorno_dt, COUNT(*) as rows, ROUND(SUM(bottiglie)::numeric, 0) as total_bottles, ROUND(SUM(presenze)::numeric, 0) as total_users
+            SELECT giorno_dt, COUNT(*) as row_count, ROUND(SUM(bottiglie), 0) as total_bottles, ROUND(SUM(presenze), 0) as total_users
             FROM raw_daily_conferimenti
             WHERE giorno_dt >= :s
             GROUP BY giorno_dt
